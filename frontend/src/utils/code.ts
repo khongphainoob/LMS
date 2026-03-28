@@ -70,7 +70,7 @@ export class CodeBox {
 		app.mount(div);
 
 		return {
-			title: 'CodeBox',
+			title: __('CodeBox'),
 			icon: div.innerHTML
 		};
 	}
@@ -204,3 +204,4 @@ export class CodeBox {
 
 
 export default CodeBox;
+

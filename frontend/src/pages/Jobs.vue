@@ -271,7 +271,7 @@ watch(jobs, () => {
 
 const jobTypes = computed(() => {
 	return [
-		{ label: ' ', value: ' ' },
+		{ label: __(' '), value: ' ' },
 		{ label: __('Full Time'), value: 'Full Time' },
 		{ label: __('Part Time'), value: 'Part Time' },
 		{ label: __('Contract'), value: 'Contract' },
@@ -281,10 +281,10 @@ const jobTypes = computed(() => {
 
 const workModes = computed(() => {
 	return [
-		{ label: ' ', value: ' ' },
-		{ label: 'On site', value: 'On-site' },
-		{ label: 'Hybrid', value: 'Hybrid' },
-		{ label: 'Remote', value: 'Remote' },
+		{ label: __(' '), value: ' ' },
+		{ label: __('On site'), value: 'On-site' },
+		{ label: __('Hybrid'), value: 'Hybrid' },
+		{ label: __('Remote'), value: 'Remote' },
 	]
 })
 
@@ -295,3 +295,4 @@ usePageMeta(() => {
 	}
 })
 </script>
+

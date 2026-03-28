@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+  # MariaDB
+  mariadb:
+    image: mariadb:10.8
+    container_name: lms_mariadb_dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-admin123}
+      MYSQL_DATABASE: ${DB_NAME:-lms_dev}
+      MYSQL_USER: ${DB_USER:-frappe}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-frappe123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data_dev:/var/lib/mysql
+    command: 
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD:-admin123}"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    networks:
+      - lms_network_dev
+
+  # Redis Cache
+  redis-cache:
+    image: redis:7-alpine
+    container_name: lms_redis_cache_dev
+    ports:
+      - "13000:6379"
+    volumes:
+      - redis_cache_data_dev:/data
+    command: redis-server --appendonly yes
+    networks:
+      - lms_network_dev
+
+  # Redis Queue
+  redis-queue:
+    image: redis:7-alpine
+    container_name: lms_redis_queue_dev
+    ports:
+      - "11000:6379"
+    volumes:
+      - redis_queue_data_dev:/data
+    networks:
+      - lms_network_dev
+
+  # Redis SocketIO
+  redis-socketio:
+    image: redis:7-alpine
+    container_name: lms_redis_socketio_dev
+    ports:
+      - "12000:6379"
+    volumes:
+      - redis_socketio_data_dev:/data
+    networks:
+      - lms_network_dev
+
+  # Frappe Backend (Development)
+  frappe:
+    build:
+      context: ../..
+      dockerfile: docker/dev/Dockerfile.dev
+    container_name: lms_frappe_dev
+    environment:
+      - FRAPPE_SITE_NAME=${SITE_NAME:-lms.localhost}
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - REDIS_CACHE=redis-cache:6379
+      - REDIS_QUEUE=redis-queue:6379
+      - REDIS_SOCKETIO=redis-socketio:6379
+      - DEVELOPER_MODE=1
+      - ALLOW_TESTS=1
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+    volumes:
+      - frappe_sites_dev:/home/frappe/frappe-bench/sites
+      - ../../lms:/workspace/lms:cached
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+      redis-socketio:
+        condition: service_started
+    stdin_open: true
+    tty: true
+    networks:
+      - lms_network_dev
+    command: >
+      bash -c "
+        if [ ! -d /home/frappe/frappe-bench ]; then
+          bench init /home/frappe/frappe-bench --skip-redis-config-generation --skip-assets &&
+          cd /home/frappe/frappe-bench &&
+          bench get-app /workspace/lms
+        fi &&
+        cd /home/frappe/frappe-bench &&
+        if [ ! -d sites/${SITE_NAME:-lms.localhost} ]; then
+          bench new-site ${SITE_NAME:-lms.localhost} 
+            --mariadb-root-password ${DB_ROOT_PASSWORD:-admin123} 
+            --admin-password ${ADMIN_PASSWORD:-admin} 
+            --no-mariadb-socket &&
+          bench --site ${SITE_NAME:-lms.localhost} install-app lms &&
+          bench --site ${SITE_NAME:-lms.localhost} set-config developer_mode 1 &&
+          bench --site ${SITE_NAME:-lms.localhost} set-config allow_tests true &&
+          bench --site ${SITE_NAME:-lms.localhost} clear-cache
+        fi &&
+        bench start
+      "
+
+  # Frontend Dev Server (with hot reload)
+  frontend:
+    build:
+      context: ../..
+      dockerfile: docker/dev/Dockerfile.frontend
+    container_name: lms_frontend_dev
+    environment:
+      - VITE_BACKEND_URL=http://frappe:8000
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../frontend:/app:cached
+      - /app/node_modules
+    depends_on:
+      - frappe
+    networks:
+      - lms_network_dev
+
+volumes:
+  mariadb_data_dev:
+  redis_cache_data_dev:
+  redis_queue_data_dev:
+  redis_socketio_data_dev:
+  frappe_sites_dev:
+
+networks:
+  lms_network_dev:
+    driver: bridge

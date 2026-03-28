@@ -1,0 +1,187 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "creation": "2024-03-23 21:30:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "session",
+  "student",
+  "student_name",
+  "student_sbd",
+  "column_break_4",
+  "status",
+  "score",
+  "section_break_7",
+  "paper_image",
+  "lms_quiz_submission",
+  "lms_assignment_submission",
+  "ai_feedback",
+  "teacher_feedback",
+  "ai_rating",
+  "dissatisfaction_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "session",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Session",
+   "options": "AI Grading Session",
+   "reqd": 1
+  },
+  {
+   "fieldname": "student",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Student",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "student.full_name",
+   "fieldname": "student_name",
+   "fieldtype": "Data",
+   "label": "Student Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "student_sbd",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Student SBD"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nGrading\nDone\nFlagged"
+  },
+  {
+   "fieldname": "score",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Score"
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "paper_image",
+   "fieldtype": "Attach Image",
+   "label": "Paper Photo / Image"
+  },
+  {
+   "fieldname": "lms_quiz_submission",
+   "fieldtype": "Link",
+   "label": "LMS Quiz Submission",
+   "options": "LMS Quiz Submission"
+  },
+  {
+   "fieldname": "lms_assignment_submission",
+   "fieldtype": "Link",
+   "label": "LMS Assignment Submission",
+   "options": "LMS Assignment Submission"
+  },
+  {
+   "fieldname": "ai_feedback",
+   "fieldtype": "Long Text",
+   "label": "AI Evaluation JSON"
+  },
+  {
+   "fieldname": "teacher_feedback",
+   "fieldtype": "Small Text",
+   "label": "Teacher Feedback"
+  },
+  {
+   "fieldname": "ai_rating",
+   "fieldtype": "Select",
+   "label": "AI Rating",
+   "options": "\nSatisfied\nDissatisfied"
+  },
+  {
+   "depends_on": "eval:doc.ai_rating == 'Dissatisfied'",
+   "fieldname": "dissatisfaction_reason",
+   "fieldtype": "Small Text",
+   "label": "Dissatisfaction Reason"
+  }
+ ],
+ "modified": "2024-03-23 21:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "AI Grading Submission",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Moderator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Course Creator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Academic User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Instructor",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

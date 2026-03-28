@@ -273,36 +273,36 @@ const validateJobFields = () => {
 
 const jobTypes = computed(() => {
 	return [
-		{ label: 'Full Time', value: 'Full Time' },
-		{ label: 'Part Time', value: 'Part Time' },
-		{ label: 'Contract', value: 'Contract' },
-		{ label: 'Freelance', value: 'Freelance' },
+		{ label: __('Full Time'), value: 'Full Time' },
+		{ label: __('Part Time'), value: 'Part Time' },
+		{ label: __('Contract'), value: 'Contract' },
+		{ label: __('Freelance'), value: 'Freelance' },
 	]
 })
 
 const workModes = computed(() => {
 	return [
-		{ label: 'On site', value: 'On-site' },
-		{ label: 'Hybrid', value: 'Hybrid' },
-		{ label: 'Remote', value: 'Remote' },
+		{ label: __('On site'), value: 'On-site' },
+		{ label: __('Hybrid'), value: 'Hybrid' },
+		{ label: __('Remote'), value: 'Remote' },
 	]
 })
 
 const jobStatuses = computed(() => {
 	return [
-		{ label: 'Open', value: 'Open' },
-		{ label: 'Closed', value: 'Closed' },
+		{ label: __('Open'), value: 'Open' },
+		{ label: __('Closed'), value: 'Closed' },
 	]
 })
 
 const breadcrumbs = computed(() => {
 	let crumbs = [
 		{
-			label: 'Jobs',
+			label: __('Jobs'),
 			route: { name: 'Jobs' },
 		},
 		{
-			label: props.jobName == 'new' ? 'New Job' : 'Edit Job',
+			label: props.jobName == 'new' ? __('New Job') : __('Edit Job'),
 			route: { name: 'JobForm' },
 		},
 	]
@@ -311,8 +311,9 @@ const breadcrumbs = computed(() => {
 
 usePageMeta(() => {
 	return {
-		title: props.jobName == 'new' ? 'New Job' : jobDetail.data?.job_title,
+		title: props.jobName == 'new' ? __('New Job') : jobDetail.data?.job_title,
 		icon: brand.favicon,
 	}
 })
 </script>
+

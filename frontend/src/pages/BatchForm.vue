@@ -183,11 +183,11 @@
 							type="select"
 							:options="[
 								{
-									label: 'Online',
+									label: __('Online'),
 									value: 'Online',
 								},
 								{
-									label: 'Offline',
+									label: __('Offline'),
 									value: 'Offline',
 								},
 							]"
@@ -559,7 +559,7 @@ const trashBatch = (close) => {
 const breadcrumbs = computed(() => {
 	let crumbs = [
 		{
-			label: 'Batches',
+			label: __('Batches'),
 			route: {
 				name: 'Batches',
 			},
@@ -590,3 +590,4 @@ usePageMeta(() => {
 	}
 })
 </script>
+

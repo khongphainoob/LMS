@@ -1,0 +1,44 @@
+FROM python:3.10-slim
+
+# Similar to production but with some dev tools
+ARG FRAPPE_BRANCH=version-15
+
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    build-essential \
+    default-libmysqlclient-dev \
+    vim \
+    htop \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g yarn
+
+RUN pip install frappe-bench
+
+RUN useradd -m -d /home/frappe -s /bin/bash frappe
+USER frappe
+WORKDIR /home/frappe
+
+RUN bench init frappe-bench \
+    --frappe-branch ${FRAPPE_BRANCH} \
+    --skip-redis-config-generation
+
+WORKDIR /home/frappe/frappe-bench
+
+# Get LMS app
+RUN bench get-app https://github.com/frappe/lms.git
+
+# Build with source maps for debugging
+RUN bench build --app lms
+
+EXPOSE 8000
+
+CMD ["bench", "start"]

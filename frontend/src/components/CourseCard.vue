@@ -1,11 +1,11 @@
 <template>
 	<div
 		v-if="course.title"
-		class="flex flex-col h-full rounded-md overflow-auto text-ink-gray-9"
+		class="flex flex-col h-full rounded-xl overflow-hidden text-ink-gray-9 bg-surface-white border border-outline-gray-2 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
 		style="min-height: 350px"
 	>
 		<div
-			class="w-[100%] h-[168px] bg-cover bg-center bg-no-repeat border-t border-x rounded-t-md"
+			class="w-[100%] h-[168px] bg-cover bg-center bg-no-repeat rounded-t-xl border-b border-outline-gray-2"
 			:style="
 				course.image
 					? { backgroundImage: `url('${encodeURI(course.image)}')` }
@@ -47,7 +47,7 @@
 				{{ course.title }}
 			</div>
 		</div>
-		<div class="flex flex-col flex-auto p-4 border-x-2 border-b-2 rounded-b-md">
+		<div class="flex flex-col flex-auto p-5 rounded-b-xl bg-surface-white">
 			<div class="flex items-center justify-between mb-2">
 				<div v-if="course.lessons">
 					<Tooltip :text="__('Lessons')">

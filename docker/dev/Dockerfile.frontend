@@ -1,0 +1,14 @@
+FROM node:24-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package.json frontend/yarn.lock* ./
+
+# Install dependencies
+RUN yarn install --frozen-lockfile || yarn install
+
+EXPOSE 8080
+
+# Development mode with hot reload
+CMD ["yarn", "dev", "--host", "0.0.0.0", "--port", "8080"]

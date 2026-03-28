@@ -6,7 +6,7 @@
 			size: 'xl',
 			actions: [
 				{
-					label: 'Submit',
+					label: __('Submit'),
 					variant: 'solid',
 					onClick: (close) => makeAnnouncement(close),
 				},
@@ -111,3 +111,4 @@ const makeAnnouncement = (close) => {
 	)
 }
 </script>
+

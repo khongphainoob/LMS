@@ -147,7 +147,7 @@ const useCaseOptions = computed(() => {
 
 usePageMeta(() => {
 	return {
-		title: 'Persona',
+		title: __('Persona'),
 		icon: brand.favicon,
 	}
 })

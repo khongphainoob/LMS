@@ -262,41 +262,41 @@ const readOnlyMode = window.read_only_mode
 const tabs = computed(() => {
 	let batchTabs = []
 	batchTabs.push({
-		label: 'Dashboard',
+		label: __('Dashboard'),
 		icon: LayoutDashboard,
 	})
 
 	if (isAdmin.value) {
 		batchTabs.push({
-			label: 'Students',
+			label: __('Students'),
 			icon: ClipboardPen,
 		})
 	}
 
 	batchTabs.push({
-		label: 'Courses',
+		label: __('Courses'),
 		icon: BookOpen,
 	})
 
 	batchTabs.push({
-		label: 'Classes',
+		label: __('Classes'),
 		icon: Laptop,
 	})
 
 	if (isAdmin.value) {
 		batchTabs.push({
-			label: 'Assessments',
+			label: __('Assessments'),
 			icon: BookOpenCheck,
 		})
 	}
 
 	batchTabs.push({
-		label: 'Announcements',
+		label: __('Announcements'),
 		icon: Mail,
 	})
 
 	batchTabs.push({
-		label: 'Discussions',
+		label: __('Discussions'),
 		icon: MessageCircle,
 	})
 	return batchTabs
@@ -330,10 +330,10 @@ const batch = createResource({
 })
 
 const breadcrumbs = computed(() => {
-	let crumbs = [{ label: 'Batches', route: { name: 'Batches' } }]
+	let crumbs = [{ label: __('Batches'), route: { name: 'Batches' } }]
 	if (!isStudent.value) {
 		crumbs.push({
-			label: 'Details',
+			label: __('Details'),
 			route: {
 				name: 'BatchDetail',
 				params: {
@@ -393,3 +393,4 @@ usePageMeta(() => {
 	}
 })
 </script>
+

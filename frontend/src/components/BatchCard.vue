@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex flex-col border hover:border-outline-gray-3 rounded-md p-4 h-full"
+		class="flex flex-col border border-outline-gray-2 bg-surface-white hover:shadow-md hover:-translate-y-1 transition-all duration-300 shadow-sm rounded-xl p-5 h-full"
 		style="min-height: 150px"
 	>
 		<div class="text-lg leading-5 font-semibold mb-2 text-ink-gray-9">

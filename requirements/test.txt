@@ -1,0 +1,18 @@
+# Testing dependencies
+-r base.txt
+
+# Unit testing
+pytest~=7.4.3
+pytest-cov~=4.1.0
+pytest-xdist~=3.5.0
+pytest-timeout~=2.2.0
+
+# Integration testing
+selenium~=4.16.0
+
+# Test data
+faker~=20.1.0
+factory-boy~=3.3.0
+
+# Coverage
+coverage[toml]~=7.3.4

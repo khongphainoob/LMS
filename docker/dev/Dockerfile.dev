@@ -1,0 +1,47 @@
+FROM python:3.10-slim
+
+# Environment
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    NODE_VERSION=24
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    vim \
+    nano \
+    build-essential \
+    default-libmysqlclient-dev \
+    libpq-dev \
+    redis-tools \
+    mariadb-client \
+    supervisor \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g yarn
+
+# Create bench user
+RUN useradd -m -d /home/frappe -s /bin/bash frappe
+
+# Set working directory
+WORKDIR /home/frappe
+
+# Install Frappe Bench
+RUN pip install --no-cache-dir frappe-bench
+
+# Switch to frappe user
+USER frappe
+
+# Development specific settings
+ENV DEVELOPER_MODE=1
+
+EXPOSE 8000 9000
+
+# Development command - will be overridden by docker-compose
+CMD ["bash"]

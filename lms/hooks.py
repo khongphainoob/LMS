@@ -2,7 +2,7 @@ import frappe
 
 from . import __version__ as app_version
 
-app_name = "frappe_lms"
+app_name = "lms"
 app_title = "Learning"
 app_publisher = "Frappe"
 app_description = "Frappe LMS App"
@@ -29,7 +29,7 @@ app_icon_route = f"/{get_lms_path()}"
 # include js, css files in header of web template
 web_include_css = "lms.bundle.css"
 # web_include_css = "/assets/lms/css/lms.css"
-web_include_js = []
+web_include_js = ["/assets/lms/js/login_signup_hint.js"]
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "lms/public/scss/website"

@@ -9,80 +9,80 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 				<Tooltip :text="__('Published Courses')">
 					<NumberChart
-						class="border rounded-md"
-						:config="{ title: 'Courses', value: chartDetails.data.courses }"
+						class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
+						:config="{ title: __('Courses'), value: chartDetails.data.courses }"
 					/>
 				</Tooltip>
 				<Tooltip :text="__('Active Members')">
 					<NumberChart
-						class="border rounded-md"
-						:config="{ title: 'Signups', value: chartDetails.data.users }"
+						class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
+						:config="{ title: __('Signups'), value: chartDetails.data.users }"
 					/>
 				</Tooltip>
 				<Tooltip :text="__('Course Enrollments')">
 					<NumberChart
-						class="border rounded-md"
+						class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
 						:config="{
-							title: 'Enrollments',
+							title: __('Enrollments'),
 							value: chartDetails.data.enrollments,
 						}"
 					/>
 				</Tooltip>
 				<Tooltip :text="__('Course Completions')">
 					<NumberChart
-						class="border rounded-md"
+						class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
 						:config="{
-							title: 'Completions',
+							title: __('Completions'),
 							value: chartDetails.data.completions,
 						}"
 					/>
 				</Tooltip>
 				<Tooltip :text="__('Certified Members')">
 					<NumberChart
-						class="border rounded-md"
+						class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
 						:config="{
-							title: 'Certifications',
+							title: __('Certifications'),
 							value: chartDetails.data.certifications,
 						}"
 					/>
 				</Tooltip>
 			</div>
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-				<div class="border rounded-md min-h-72">
+				<div class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 min-h-72 p-2">
 					<AxisChart
 						v-if="signupsChart.data"
 						:config="{
 							data: signupsChart.data,
-							title: 'Signups',
-							subtitle: 'Signups per day',
+							title: __('Signups'),
+							subtitle: __('Signups per day'),
 							xAxis: {
 								key: 'date',
 								type: 'time',
-								title: 'Date',
+								title: __('Date'),
 								timeGrain: 'day',
 							},
 							yAxis: {
-								title: 'Signups',
+								title: __('Signups'),
 							},
 							series: [{ name: 'signups', type: 'line', showDataPoints: true }],
 						}"
 					/>
 				</div>
-				<div class="border rounded-md min-h-72">
+				<div class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 min-h-72 p-2">
 					<AxisChart
 						v-if="enrollmentChart.data"
 						:config="{
 							data: enrollmentChart.data,
-							title: 'Enrollments',
-							subtitle: 'Enrollments per day',
+							title: __('Enrollments'),
+							subtitle: __('Enrollments per day'),
 							xAxis: {
 								key: 'date',
 								type: 'time',
-								title: 'Date',
+								title: __('Date'),
 								timeGrain: 'day',
 							},
 							yAxis: {
-								title: 'Enrollments',
+								title: __('Enrollments'),
 							},
 							series: [
 								{ name: 'enrollments', type: 'line', showDataPoints: true },
@@ -90,21 +90,21 @@
 						}"
 					/>
 				</div>
-				<div class="border rounded-md">
+				<div class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 p-2">
 					<AxisChart
 						v-if="certification.data"
 						:config="{
 							data: certification.data,
-							title: 'Certifications',
-							subtitle: 'Certifications per day',
+							title: __('Certifications'),
+							subtitle: __('Certifications per day'),
 							xAxis: {
 								key: 'date',
 								type: 'time',
-								title: 'Date',
+								title: __('Date'),
 								timeGrain: 'day',
 							},
 							yAxis: {
-								title: 'Certifications',
+								title: __('Certifications'),
 							},
 							series: [
 								{
@@ -116,13 +116,13 @@
 						}"
 					/>
 				</div>
-				<div class="border rounded-md">
+				<div class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 p-2">
 					<DonutChart
 						v-if="courseCompletion.data"
 						:config="{
 							data: courseCompletion.data,
-							title: 'Completions',
-							subtitle: 'Course Completion',
+							title: __('Completions'),
+							subtitle: __('Course Completion'),
 							categoryColumn: 'label',
 							valueColumn: 'value',
 						}"
@@ -150,7 +150,7 @@ const { brand } = sessionStore()
 const breadcrumbs = computed(() => {
 	return [
 		{
-			label: 'Statistics',
+			label: __('Statistics'),
 			route: {
 				name: 'Statistics',
 			},
@@ -160,12 +160,14 @@ const breadcrumbs = computed(() => {
 
 const chartDetails = createResource({
 	url: 'lms.lms.api.get_chart_details',
+	method: 'GET',
 	cache: ['statistics'],
 	auto: true,
 })
 
 const signupsChart = createResource({
 	url: 'lms.lms.utils.get_chart_data',
+	method: 'GET',
 	params: {
 		chart_name: 'New Signups',
 	},
@@ -182,6 +184,7 @@ const signupsChart = createResource({
 
 const enrollmentChart = createResource({
 	url: 'lms.lms.utils.get_chart_data',
+	method: 'GET',
 	cache: ['enrollments'],
 	params: {
 		chart_name: 'Course Enrollments',
@@ -199,6 +202,7 @@ const enrollmentChart = createResource({
 
 const certification = createResource({
 	url: 'lms.lms.utils.get_chart_data',
+	method: 'GET',
 	cache: ['certifications'],
 	params: {
 		chart_name: 'Certification',
@@ -216,6 +220,7 @@ const certification = createResource({
 
 const courseCompletion = createResource({
 	url: 'lms.lms.utils.get_course_completion_data',
+	method: 'GET',
 	auto: true,
 	cache: ['courseCompletion'],
 })

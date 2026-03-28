@@ -1,0 +1,16 @@
+﻿.git
+.gitignore
+.dockerignore
+node_modules
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+*.log
+*.swp
+.DS_Store
+status_list.txt
+git_status.txt
+status.txt
+status*.txt

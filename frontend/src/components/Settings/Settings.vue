@@ -94,27 +94,27 @@ const data = createDocumentResource({
 const tabsStructure = computed(() => {
 	return [
 		{
-			label: 'Configuration',
+			label: __('Configuration'),
 			hideLabel: true,
 			items: [
 				{
-					label: 'General',
+					label: __('General'),
 					icon: 'Wrench',
 					sections: [
 						{
-							label: 'System Configurations',
+							label: __('System Configurations'),
 							columns: [
 								{
 									fields: [
 										{
-											label: 'Allow Guest Access',
+											label: __('Allow Guest Access'),
 											name: 'allow_guest_access',
 											description:
 												'If enabled, users can access the course and batch lists without logging in.',
 											type: 'checkbox',
 										},
 										{
-											label: 'Prevent Skipping Videos',
+											label: __('Prevent Skipping Videos'),
 											name: 'prevent_skipping_videos',
 											type: 'checkbox',
 											description:
@@ -125,14 +125,14 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Disable PWA',
+											label: __('Disable PWA'),
 											name: 'disable_pwa',
 											type: 'checkbox',
 											description:
 												'If checked, users will not be able to install the application as a Progressive Web App.',
 										},
 										{
-											label: 'Send calendar invite for evaluations',
+											label: __('Send calendar invite for evaluations'),
 											name: 'send_calendar_invite_for_evaluations',
 											description:
 												'If enabled, it sends google calendar invite to the student for evaluations.',
@@ -143,12 +143,12 @@ const tabsStructure = computed(() => {
 							],
 						},
 						{
-							label: 'Notifications',
+							label: __('Notifications'),
 							columns: [
 								{
 									fields: [
 										{
-											label: 'Send Notification for Published Courses',
+											label: __('Send Notification for Published Courses'),
 											name: 'send_notification_for_published_courses',
 											type: 'select',
 											options: [' ', 'Email', 'In-app'],
@@ -158,7 +158,7 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Send Notification for Published Batches',
+											label: __('Send Notification for Published Batches'),
 											name: 'send_notification_for_published_batches',
 											type: 'select',
 											options: [' ', 'Email', 'In-app'],
@@ -168,12 +168,12 @@ const tabsStructure = computed(() => {
 							],
 						},
 						{
-							label: 'Email Templates',
+							label: __('Email Templates'),
 							columns: [
 								{
 									fields: [
 										{
-											label: 'Batch Confirmation Email Template',
+											label: __('Batch Confirmation Email Template'),
 											name: 'batch_confirmation_template',
 											doctype: 'Email Template',
 											type: 'Link',
@@ -183,7 +183,7 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Certification Email Template',
+											label: __('Certification Email Template'),
 											name: 'certification_template',
 											doctype: 'Email Template',
 											type: 'Link',
@@ -193,12 +193,12 @@ const tabsStructure = computed(() => {
 							],
 						},
 						{
-							label: 'Contact Information',
+							label: __('Contact Information'),
 							columns: [
 								{
 									fields: [
 										{
-											label: 'Email',
+											label: __('Email'),
 											name: 'contact_us_email',
 											type: 'text',
 											description:
@@ -209,7 +209,7 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'URL',
+											label: __('URL'),
 											name: 'contact_us_url',
 											type: 'text',
 											description:
@@ -225,7 +225,7 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Livecode URL',
+											label: __('Livecode URL'),
 											name: 'livecode_url',
 											doctype: 'Livecode URL',
 											type: 'text',
@@ -237,7 +237,7 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Unsplash Access Key',
+											label: __('Unsplash Access Key'),
 											name: 'unsplash_access_key',
 											description:
 												'Allows users to pick a profile cover image from Unsplash. https://unsplash.com/documentation#getting-started.',
@@ -252,18 +252,18 @@ const tabsStructure = computed(() => {
 			],
 		},
 		{
-			label: 'Lists',
+			label: __('Lists'),
 			hideLabel: false,
 			items: [
 				{
-					label: 'Members',
+					label: __('Members'),
 					description:
 						'Add new members or manage roles and permissions of existing members',
 					icon: 'UserRoundPlus',
 					template: markRaw(Members),
 				},
 				{
-					label: 'Evaluators',
+					label: __('Evaluators'),
 					description: '',
 					icon: 'UserCheck',
 					description:
@@ -271,27 +271,27 @@ const tabsStructure = computed(() => {
 					template: markRaw(Evaluators),
 				},
 				{
-					label: 'Zoom Accounts',
+					label: __('Zoom Accounts'),
 					description:
 						'Manage zoom accounts to conduct live classes from batches',
 					icon: 'Video',
 					template: markRaw(ZoomSettings),
 				},
 				{
-					label: 'Badges',
+					label: __('Badges'),
 					description:
 						'Create badges and assign them to students to acknowledge their achievements',
 					icon: 'Award',
 					template: markRaw(Badges),
 				},
 				{
-					label: 'Categories',
+					label: __('Categories'),
 					description: 'Double click to edit the category',
 					icon: 'Network',
 					template: markRaw(Categories),
 				},
 				{
-					label: 'Email Templates',
+					label: __('Email Templates'),
 					description: 'Manage the email templates for your learning system',
 					icon: 'MailPlus',
 					template: markRaw(EmailTemplates),
@@ -299,11 +299,11 @@ const tabsStructure = computed(() => {
 			],
 		},
 		{
-			label: 'Payment',
+			label: __('Payment'),
 			hideLabel: false,
 			items: [
 				{
-					label: 'Configuration',
+					label: __('Configuration'),
 					icon: 'CreditCard',
 					description: 'Manage all your payment related settings and defaults',
 					sections: [
@@ -312,13 +312,13 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Default Currency',
+											label: __('Default Currency'),
 											name: 'default_currency',
 											type: 'Link',
 											doctype: 'Currency',
 										},
 										{
-											label: 'Payment Gateway',
+											label: __('Payment Gateway'),
 											name: 'payment_gateway',
 											type: 'Link',
 											doctype: 'Payment Gateway',
@@ -328,17 +328,17 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Apply GST for India',
+											label: __('Apply GST for India'),
 											name: 'apply_gst',
 											type: 'checkbox',
 										},
 										{
-											label: 'Show USD equivalent amount',
+											label: __('Show USD equivalent amount'),
 											name: 'show_usd_equivalent',
 											type: 'checkbox',
 										},
 										{
-											label: 'Apply rounding on equivalent',
+											label: __('Apply rounding on equivalent'),
 											name: 'apply_rounding',
 											type: 'checkbox',
 										},
@@ -349,19 +349,19 @@ const tabsStructure = computed(() => {
 					],
 				},
 				{
-					label: 'Gateways',
+					label: __('Gateways'),
 					icon: 'DollarSign',
 					template: markRaw(PaymentGateways),
 					description: 'Add and manage all your payment gateways',
 				},
 				{
-					label: 'Transactions',
+					label: __('Transactions'),
 					icon: 'Landmark',
 					template: markRaw(Transactions),
 					description: 'View all your payment transactions',
 				},
 				{
-					label: 'Coupons',
+					label: __('Coupons'),
 					icon: 'Ticket',
 					template: markRaw(Coupons),
 					description: 'Manage discount coupons for courses and batches',
@@ -369,11 +369,11 @@ const tabsStructure = computed(() => {
 			],
 		},
 		{
-			label: 'Customize',
+			label: __('Customize'),
 			hideLabel: false,
 			items: [
 				{
-					label: 'Branding',
+					label: __('Branding'),
 					icon: 'Blocks',
 					template: markRaw(BrandSettings),
 					sections: [
@@ -382,19 +382,19 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Brand Name',
+											label: __('Brand Name'),
 											name: 'app_name',
 											type: 'text',
 										},
 										{
-											label: 'Logo',
+											label: __('Logo'),
 											name: 'banner_image',
 											type: 'Upload',
 											description:
 												'Appears in the top left corner of the application to represent your brand.',
 										},
 										{
-											label: 'Favicon',
+											label: __('Favicon'),
 											name: 'favicon',
 											type: 'Upload',
 											description:
@@ -407,7 +407,7 @@ const tabsStructure = computed(() => {
 					],
 				},
 				{
-					label: 'Sidebar',
+					label: __('Sidebar'),
 					icon: 'PanelLeftIcon',
 					description: 'Choose the items you want to show in the sidebar',
 					sections: [
@@ -416,22 +416,27 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Courses',
+											label: __('Courses'),
 											name: 'courses',
 											type: 'checkbox',
 										},
 										{
-											label: 'Batches',
+											label: __('Batches'),
 											name: 'batches',
 											type: 'checkbox',
 										},
 										{
-											label: 'Programming Exercises',
+											label: __('Programming Exercises'),
 											name: 'programming_exercises',
 											type: 'checkbox',
 										},
 										{
-											label: 'Certifications',
+											label: __('AI Grading'),
+											name: 'ai_grading',
+											type: 'checkbox',
+										},
+										{
+											label: __('Certifications'),
 											name: 'certifications',
 											type: 'checkbox',
 										},
@@ -440,17 +445,17 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Jobs',
+											label: __('Jobs'),
 											name: 'jobs',
 											type: 'checkbox',
 										},
 										{
-											label: 'Statistics',
+											label: __('Statistics'),
 											name: 'statistics',
 											type: 'checkbox',
 										},
 										{
-											label: 'Notifications',
+											label: __('Notifications'),
 											name: 'notifications',
 											type: 'checkbox',
 										},
@@ -461,7 +466,7 @@ const tabsStructure = computed(() => {
 					],
 				},
 				{
-					label: 'Signup',
+					label: __('Signup'),
 					icon: 'LogIn',
 					sections: [
 						{
@@ -469,21 +474,21 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Identify User Category',
+											label: __('Identify User Category'),
 											name: 'user_category',
 											type: 'checkbox',
 											description:
 												'Enable this option to identify the user category during signup.',
 										},
 										{
-											label: 'Disable signup',
+											label: __('Disable signup'),
 											name: 'disable_signup',
 											type: 'checkbox',
 											description:
 												'New users will have to be manually registered by Admins.',
 										},
 										{
-											label: 'Signup Consent HTML',
+											label: __('Signup Consent HTML'),
 											name: 'custom_signup_content',
 											type: 'Code',
 											mode: 'htmlmixed',
@@ -496,7 +501,7 @@ const tabsStructure = computed(() => {
 					],
 				},
 				{
-					label: 'SEO',
+					label: __('SEO'),
 					icon: 'Search',
 					sections: [
 						{
@@ -504,7 +509,7 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Meta Description',
+											label: __('Meta Description'),
 											name: 'meta_description',
 											type: 'textarea',
 											rows: 4,
@@ -512,7 +517,7 @@ const tabsStructure = computed(() => {
 												"This description will be shown on lists and pages that don't have meta description",
 										},
 										{
-											label: 'Meta Keywords',
+											label: __('Meta Keywords'),
 											name: 'meta_keywords',
 											type: 'textarea',
 											rows: 4,
@@ -520,7 +525,7 @@ const tabsStructure = computed(() => {
 												'Comma separated keywords for search engines to find your website.',
 										},
 										{
-											label: 'Meta Image',
+											label: __('Meta Image'),
 											name: 'meta_image',
 											type: 'Upload',
 											size: 'lg',
@@ -559,3 +564,4 @@ watch(show, async () => {
 	}
 })
 </script>
+

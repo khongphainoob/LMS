@@ -6,7 +6,7 @@
 			size: 'lg',
 			actions: [
 				{
-					label: 'Add',
+					label: __('Add'),
 					variant: 'solid',
 					onClick: (close) => {
 						addWebPage(close)
@@ -88,3 +88,4 @@ const addWebPage = (close) => {
 	)
 }
 </script>
+

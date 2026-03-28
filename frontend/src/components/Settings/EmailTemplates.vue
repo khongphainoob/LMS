@@ -146,15 +146,16 @@ const openTemplateForm = (templateID) => {
 const columns = computed(() => {
 	return [
 		{
-			label: 'Name',
+			label: __('Name'),
 			key: 'name',
 			width: '20rem',
 		},
 		{
-			label: 'Subject',
+			label: __('Subject'),
 			key: 'subject',
 			width: '25rem',
 		},
 	]
 })
 </script>
+

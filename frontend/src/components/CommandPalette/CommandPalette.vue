@@ -229,7 +229,7 @@ const jumpToOptions = ref([
 		title: __('Jump to'),
 		items: [
 			{
-				title: 'Advanced Search',
+				title: __('Advanced Search'),
 				icon: Search,
 				route: {
 					name: 'Search',
@@ -237,7 +237,7 @@ const jumpToOptions = ref([
 				isActive: true,
 			},
 			{
-				title: 'Courses',
+				title: __('Courses'),
 				icon: BookOpen,
 				route: {
 					name: 'Courses',
@@ -245,7 +245,7 @@ const jumpToOptions = ref([
 				isActive: false,
 			},
 			{
-				title: 'Batches',
+				title: __('Batches'),
 				icon: Users,
 				route: {
 					name: 'Batches',
@@ -253,7 +253,7 @@ const jumpToOptions = ref([
 				isActive: false,
 			},
 			{
-				title: 'Jobs',
+				title: __('Jobs'),
 				icon: Briefcase,
 				route: {
 					name: 'Jobs',
@@ -270,3 +270,4 @@ mark {
 	font-weight: 500;
 }
 </style>
+

@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.8
+    container_name: lms_mariadb_prod
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-lms_prod}
+    volumes:
+      - mariadb_data_prod:/var/lib/mysql
+      - ./backups:/backups
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max-connections=500
+      - --innodb-buffer-pool-size=2G
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lms_network_prod
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  redis-cache:
+    image: redis:7-alpine
+    container_name: lms_redis_cache_prod
+    volumes:
+      - redis_cache_data_prod:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    networks:
+      - lms_network_prod
+    restart: always
+
+  redis-queue:
+    image: redis:7-alpine
+    container_name: lms_redis_queue_prod
+    volumes:
+      - redis_queue_data_prod:/data
+    command: redis-server --appendonly yes
+    networks:
+      - lms_network_prod
+    restart: always
+
+  redis-socketio:
+    image: redis:7-alpine
+    container_name: lms_redis_socketio_prod
+    volumes:
+      - redis_socketio_data_prod:/data
+    command: redis-server --appendonly yes
+    networks:
+      - lms_network_prod
+    restart: always
+
+  frappe:
+    build:
+      context: ../..
+      dockerfile: docker/production/Dockerfile.prod
+      args:
+        FRAPPE_BRANCH: version-15
+    container_name: lms_frappe_prod
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - REDIS_CACHE=redis-cache:6379
+      - REDIS_QUEUE=redis-queue:6379
+      - REDIS_SOCKETIO=redis-socketio:6379
+    volumes:
+      - frappe_sites_prod:/home/frappe/frappe-bench/sites
+      - frappe_logs_prod:/home/frappe/frappe-bench/logs
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+    networks:
+      - lms_network_prod
+    restart: always
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  nginx:
+    image: nginx:alpine
+    container_name: lms_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../common/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - frappe_sites_prod:/var/www/html/sites:ro
+    depends_on:
+      - frappe
+    networks:
+      - lms_network_prod
+    restart: always
+
+volumes:
+  mariadb_data_prod:
+  redis_cache_data_prod:
+  redis_queue_data_prod:
+  redis_socketio_data_prod:
+  frappe_sites_prod:
+  frappe_logs_prod:
+
+networks:
+  lms_network_prod:
+    driver: bridge

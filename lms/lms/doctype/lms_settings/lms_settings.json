@@ -43,6 +43,7 @@
   "certified_members",
   "certifications",
   "programming_exercises",
+  "ai_grading",
   "column_break_exdz",
   "jobs",
   "statistics",
@@ -420,6 +421,12 @@
    "fieldtype": "Check",
    "label": "Programming Exercises"
   },
+    {
+     "default": "0",
+     "fieldname": "ai_grading",
+     "fieldtype": "Check",
+     "label": "AI Grading"
+    },
   {
    "fieldname": "contact_us_tab",
    "fieldtype": "Tab Break",

@@ -1,0 +1,101 @@
+{
+ "actions": [],
+ "creation": "2024-05-18 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ai_settings_tab",
+  "default_model",
+  "api_key",
+  "models_section",
+  "available_models_info",
+  "openai_tab",
+  "openai_api_key",
+  "gemini_tab",
+  "gemini_api_key",
+  "anthropic_tab",
+  "anthropic_api_key"
+ ],
+ "fields": [
+  {
+   "fieldname": "ai_settings_tab",
+   "fieldtype": "Tab Break",
+   "label": "General AI Settings"
+  },
+  {
+   "fieldname": "default_model",
+   "fieldtype": "Select",
+   "label": "Default AI Model",
+   "options": "gpt-4-turbo\ngpt-4o\ngpt-3.5-turbo\ngemini-1.5-pro\ngemini-1.5-flash\nclaude-3-opus\nclaude-3.5-sonnet\nclaude-3-sonnet"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "Default API Key"
+  },
+  {
+   "fieldname": "models_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Configuration"
+  },
+  {
+   "fieldname": "available_models_info",
+   "fieldtype": "HTML",
+   "options": "<div><p>Use the tabs below to configure provider-specific keys. You can add more models and keys via Frappe Desk Customization.</p></div>"
+  },
+  {
+   "fieldname": "openai_tab",
+   "fieldtype": "Tab Break",
+   "label": "OpenAI"
+  },
+  {
+   "fieldname": "openai_api_key",
+   "fieldtype": "Password",
+   "label": "OpenAI API Key"
+  },
+  {
+   "fieldname": "gemini_tab",
+   "fieldtype": "Tab Break",
+   "label": "Google Gemini"
+  },
+  {
+   "fieldname": "gemini_api_key",
+   "fieldtype": "Password",
+   "label": "Gemini API Key"
+  },
+  {
+   "fieldname": "anthropic_tab",
+   "fieldtype": "Tab Break",
+   "label": "Anthropic"
+  },
+  {
+   "fieldname": "anthropic_api_key",
+   "fieldtype": "Password",
+   "label": "Anthropic API Key"
+  }
+ ],
+ "issingle": 1,
+ "custom": 0,
+ "links": [],
+ "modified": "2024-05-18 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "LMS AI Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

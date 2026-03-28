@@ -6,7 +6,7 @@
 			size: 'xl',
 			actions: [
 				{
-					label: 'Submit',
+					label: __('Submit'),
 					variant: 'solid',
 					onClick: ({ close }) => submitLiveClass(close),
 				},
@@ -139,15 +139,15 @@ const getTimezoneOptions = () => {
 const getRecordingOptions = () => {
 	return [
 		{
-			label: 'No Recording',
+			label: __('No Recording'),
 			value: 'No Recording',
 		},
 		{
-			label: 'Local',
+			label: __('Local'),
 			value: 'Local',
 		},
 		{
-			label: 'Cloud',
+			label: __('Cloud'),
 			value: 'Cloud',
 		},
 	]
@@ -238,3 +238,4 @@ const refreshForm = () => {
 	liveClass.auto_recording = 'No Recording'
 }
 </script>
+

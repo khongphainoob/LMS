@@ -1,0 +1,54 @@
+version: "3.7"
+name: lms-services
+
+services:
+  mariadb:
+    image: mariadb:10.8
+    container_name: lms-mariadb
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+    ports:
+      - "3306:3306"  # Expose ra ngoài để bench local kết nối
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    restart: unless-stopped
+
+  redis-cache:
+    image: redis:6.2-alpine
+    container_name: lms-redis-cache
+    ports:
+      - "6379:6379"  # Expose ra ngoài
+    restart: unless-stopped
+
+  redis-queue:
+    image: redis:6.2-alpine
+    container_name: lms-redis-queue
+    ports:
+      - "6380:6379"  # Port khác để tránh conflict
+    volumes:
+      - redis-queue-data:/data
+    restart: unless-stopped
+
+  redis-socketio:
+    image: redis:6.2-alpine
+    container_name: lms-redis-socketio
+    ports:
+      - "6381:6379"  # Port khác
+    restart: unless-stopped
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: lms-dozzle
+    ports:
+      - "9999:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+volumes:
+  mariadb-data:
+  redis-queue-data:

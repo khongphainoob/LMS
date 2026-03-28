@@ -2980,7 +2980,7 @@ msgstr ""
 
 #: frontend/src/components/Assignment.vue:159
 msgid "Grading"
-msgstr ""
+msgstr "Chấm điểm"
 
 #: frontend/src/components/Settings/BadgeForm.vue:46
 #: frontend/src/components/Settings/Badges.vue:235
@@ -3991,6 +3991,10 @@ msgstr ""
 #: frontend/src/components/BatchOverlay.vue:73
 msgid "Manage Batch"
 msgstr ""
+
+#: frontend/src/pages/Grading.vue:15
+msgid "Manage grading workflows from here."
+msgstr "Quản lý quy trình chấm điểm tại đây."
 
 #: frontend/src/pages/Home/Home.vue:120
 msgid "Manage your courses and batches at a glance"

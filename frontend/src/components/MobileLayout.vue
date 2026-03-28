@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<div class="flex h-full flex-col relative">
 		<div class="h-full pb-10" id="scrollContainer">
 			<slot />
@@ -127,21 +127,25 @@ const filterLinksToShow = (data) => {
 const addOtherLinks = () => {
 	if (user) {
 		otherLinks.value.push({
-			label: 'Notifications',
+			action: 'notifications',
+			label: __('Notifications'),
 			icon: 'Bell',
 			to: 'Notifications',
 		})
 		otherLinks.value.push({
-			label: 'Profile',
+			action: 'profile',
+			label: __('Profile'),
 			icon: 'UserRound',
 		})
 		otherLinks.value.push({
-			label: 'Log out',
+			action: 'logout',
+			label: __('Log out'),
 			icon: 'LogOut',
 		})
 	} else {
 		otherLinks.value.push({
-			label: 'Log in',
+			action: 'login',
+			label: __('Log in'),
 			icon: 'LogIn',
 		})
 	}
@@ -162,7 +166,7 @@ watch(userResource, () => {
 
 const addQuizzes = () => {
 	otherLinks.value.push({
-		label: 'Quizzes',
+		label: __('Quizzes'),
 		icon: 'CircleHelp',
 		to: 'Quizzes',
 	})
@@ -170,7 +174,7 @@ const addQuizzes = () => {
 
 const addAssignments = () => {
 	otherLinks.value.push({
-		label: 'Assignments',
+		label: __('Assignments'),
 		icon: 'Pencil',
 		to: 'Assignments',
 	})
@@ -178,7 +182,7 @@ const addAssignments = () => {
 
 const addProgrammingExercises = () => {
 	otherLinks.value.push({
-		label: 'Programming Exercises',
+		label: __('Programming Exercises'),
 		icon: 'Code',
 		to: 'ProgrammingExercises',
 	})
@@ -191,7 +195,7 @@ const addPrograms = async () => {
 	let index = 1
 
 	sidebarLinks.value.splice(index, 0, {
-		label: 'Programs',
+		label: __('Programs'),
 		icon: 'Route',
 		to: 'Programs',
 		activeFor: activeFor,
@@ -211,12 +215,12 @@ let isActive = (tab) => {
 }
 
 const handleClick = (tab) => {
-	if (tab.label == 'Log in') window.location.href = '/login'
-	else if (tab.label == 'Log out')
+	if (tab.action == 'login') window.location.href = '/login'
+	else if (tab.action == 'logout')
 		logout.submit().then(() => {
 			isLoggedIn = false
 		})
-	else if (tab.label == 'Profile')
+	else if (tab.action == 'profile')
 		router.push({
 			name: 'Profile',
 			params: {
@@ -227,8 +231,8 @@ const handleClick = (tab) => {
 }
 
 const isVisible = (tab) => {
-	if (tab.label == 'Log in') return !isLoggedIn
-	else if (tab.label == 'Log out') return isLoggedIn
+	if (tab.action == 'login') return !isLoggedIn
+	else if (tab.action == 'logout') return isLoggedIn
 	else return true
 }
 

@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.8
+    container_name: lms_mariadb_staging
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: lms_staging
+    volumes:
+      - mariadb_data_staging:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    networks:
+      - lms_network_staging
+    restart: unless-stopped
+
+  redis-cache:
+    image: redis:7-alpine
+    container_name: lms_redis_cache_staging
+    volumes:
+      - redis_cache_data_staging:/data
+    networks:
+      - lms_network_staging
+    restart: unless-stopped
+
+  redis-queue:
+    image: redis:7-alpine
+    container_name: lms_redis_queue_staging
+    networks:
+      - lms_network_staging
+    restart: unless-stopped
+
+  redis-socketio:
+    image: redis:7-alpine
+    container_name: lms_redis_socketio_staging
+    networks:
+      - lms_network_staging
+    restart: unless-stopped
+
+  frappe:
+    build:
+      context: ../..
+      dockerfile: docker/staging/Dockerfile.staging
+    container_name: lms_frappe_staging
+    environment:
+      - DB_HOST=mariadb
+      - REDIS_CACHE=redis-cache:6379
+      - REDIS_QUEUE=redis-queue:6379
+      - REDIS_SOCKETIO=redis-socketio:6379
+    ports:
+      - "8001:8000"
+    volumes:
+      - frappe_sites_staging:/home/frappe/frappe-bench/sites
+    depends_on:
+      - mariadb
+      - redis-cache
+    networks:
+      - lms_network_staging
+    restart: unless-stopped
+
+volumes:
+  mariadb_data_staging:
+  redis_cache_data_staging:
+  frappe_sites_staging:
+
+networks:
+  lms_network_staging:
+    driver: bridge

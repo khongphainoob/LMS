@@ -259,9 +259,9 @@ const deleteExercises = (selections: Set<string>, unselectAll: () => void) => {
 }
 
 const languages = [
-	{ label: ' ', value: ' ' },
-	{ label: 'Python', value: 'Python' },
-	{ label: 'JavaScript', value: 'JavaScript' },
+	{ label: __(' '), value: ' ' },
+	{ label: __('Python'), value: 'Python' },
+	{ label: __('JavaScript'), value: 'JavaScript' },
 ]
 
 const columns = computed(() => {
@@ -301,3 +301,4 @@ const breadcrumbs = computed(() => {
 	]
 })
 </script>
+

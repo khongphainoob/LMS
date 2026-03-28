@@ -7,7 +7,7 @@
 			size: 'lg',
 			actions: [
 				{
-					label: 'Submit',
+					label: __('Submit'),
 					variant: 'solid',
 					onClick: (close) => {
 						submitResume(close)

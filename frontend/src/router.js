@@ -199,6 +199,59 @@ const routes = [
 		component: () => import('@/pages/Assignments.vue'),
 	},
 	{
+		path: '/ai-grading',
+		name: 'AIGrading',
+		component: () => import('@/pages/AIGrading.vue'),
+		redirect: { name: 'AIGradingObjective' },
+		children: [
+			{
+				path: 'multiple-choice',
+				name: 'AIGradingObjective',
+				component: () => import('@/pages/AIGrading/ObjectiveGrading.vue'),
+			},
+			{
+				path: 'essay',
+				name: 'AIGradingEssay',
+				component: () => import('@/pages/AIGrading/AIGradingEssayHome.vue'),
+			},
+			{
+				path: 'essay/config/:type',
+				name: 'AIGradingEssayConfig',
+				component: () => import('@/pages/AIGrading/AIGradingEssayConfig.vue'),
+				props: true,
+			},
+			{
+				path: 'essay/:type/workspace/:sessionId/:sessionSlug',
+				name: 'AIGradingEssayWorkspaceLegacy',
+				redirect: (to) => ({
+					name: 'AIGradingEssayWorkspace',
+					params: {
+						type: to.params.type,
+						sessionSlug: to.params.sessionSlug,
+					},
+					query: to.query,
+				}),
+			},
+			{
+				path: 'essay/:type/workspace/:sessionSlug',
+				name: 'AIGradingEssayWorkspace',
+				component: () => import('@/pages/AIGrading/AIGradingEssayWorkspace.vue'),
+				props: true,
+			},
+			{
+				path: 'admin',
+				name: 'AIGradingAdmin',
+				component: () => import('@/pages/AIGrading/AIGradingAdmin.vue'),
+			},
+			{
+				path: 'essay/:type/statistics/:sessionSlug',
+				name: 'AIGradingSessionStatistics',
+				component: () => import('@/pages/AIGrading/AIGradingSessionStatistics.vue'),
+				props: true,
+			},
+		],
+	},
+	{
 		path: '/assignment-submission/:assignmentID/:submissionName',
 		name: 'AssignmentSubmission',
 		component: () => import('@/pages/AssignmentSubmission.vue'),

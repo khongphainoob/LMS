@@ -141,8 +141,8 @@ const exercise = ref<ProgrammingExercise>({
 })
 
 const languageOptions = [
-	{ label: 'Python', value: 'Python' },
-	{ label: 'JavaScript', value: 'JavaScript' },
+	{ label: __('Python'), value: 'Python' },
+	{ label: __('JavaScript'), value: 'JavaScript' },
 ]
 
 const props = withDefaults(
@@ -301,3 +301,4 @@ const deleteExercise = (close: () => void) => {
 	})
 }
 </script>
+

@@ -1,4 +1,4 @@
-import { call, toast } from 'frappe-ui'
+﻿import { call, toast } from 'frappe-ui'
 import { useTimeAgo } from '@vueuse/core'
 import colorsJSON from '@/utils/frappe-ui-colors.json'
 import { Quiz } from '@/utils/quiz'
@@ -525,6 +525,18 @@ const getSidebarItems = () => {
 			label: 'Assessments',
 			hideLabel: true,
 			items: [
+				{
+					label: 'AI Grading',
+					icon: 'Code',
+					to: 'AIGradingObjective',
+					condition: () => {
+						return (
+							userResource?.data?.is_instructor ||
+							userResource?.data?.is_moderator
+						)
+					},
+					activeFor: ['AIGrading', 'AIGradingObjective', 'AIGradingEssay'],
+				},
 				{
 					label: 'Quizzes',
 					icon: 'CircleHelp',

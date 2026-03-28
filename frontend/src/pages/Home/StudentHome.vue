@@ -9,7 +9,7 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 					<div
 						v-for="cls in myLiveClasses.data"
-						class="border rounded-md hover:border-outline-gray-3 p-2"
+						class="border border-outline-gray-2 bg-surface-white hover:shadow-md hover:-translate-y-1 transition-all duration-300 shadow-sm rounded-xl p-5"
 					>
 						<div class="font-semibold text-ink-gray-9 text-lg leading-5 mb-1">
 							{{ cls.title }}

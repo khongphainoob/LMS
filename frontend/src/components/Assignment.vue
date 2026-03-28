@@ -161,10 +161,10 @@
 					></div>
 				</div>
 
-				<!-- Grading -->
+				<!-- AI Grading -->
 				<div v-if="canGradeSubmission" class="mt-8 space-y-4">
 					<div class="font-semibold mb-2 text-ink-gray-9">
-						{{ __('Grading') }}
+						{{ __('AI Grading') }}
 					</div>
 					<FormControl
 						v-if="submissionResource.doc"
@@ -457,9 +457,9 @@ const canModifyAssignment = computed(() => {
 
 const submissionStatusOptions = computed(() => {
 	return [
-		{ label: 'Not Graded', value: 'Not Graded' },
-		{ label: 'Pass', value: 'Pass' },
-		{ label: 'Fail', value: 'Fail' },
+		{ label: __('Not Graded'), value: 'Not Graded' },
+		{ label: __('Pass'), value: 'Pass' },
+		{ label: __('Fail'), value: 'Fail' },
 	]
 })
 
@@ -479,3 +479,4 @@ const showUploader = () => {
 	return ['PDF', 'Image', 'Document'].includes(assignment.data?.type)
 }
 </script>
+

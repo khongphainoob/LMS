@@ -1,0 +1,72 @@
+FROM python:3.10-slim AS builder
+
+# Build arguments
+ARG FRAPPE_BRANCH=version-15
+
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    NODE_VERSION=24
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    build-essential \
+    default-libmysqlclient-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g yarn
+
+# Install Frappe Bench
+RUN pip install --no-cache-dir frappe-bench
+
+# Create bench user
+RUN useradd -m -d /home/frappe -s /bin/bash frappe
+USER frappe
+WORKDIR /home/frappe
+
+# Initialize bench
+RUN bench init frappe-bench \
+    --frappe-branch ${FRAPPE_BRANCH} \
+    --python python3.10 \
+    --skip-redis-config-generation \
+    --skip-assets
+
+WORKDIR /home/frappe/frappe-bench
+
+# Get LMS app
+RUN bench get-app https://github.com/frappe/lms.git
+
+# Build assets for production
+RUN bench build --app lms --production
+
+# Production image (smaller)
+FROM python:3.10-slim
+
+ENV PYTHONUNBUFFERED=1
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y \
+    default-libmysqlclient-dev \
+    libpq-dev \
+    curl \
+    supervisor \
+    nginx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create bench user
+RUN useradd -m -d /home/frappe -s /bin/bash frappe
+
+# Copy built bench from builder
+COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
+
+USER frappe
+WORKDIR /home/frappe/frappe-bench
+
+EXPOSE 8000
+
+CMD ["bench", "start"]

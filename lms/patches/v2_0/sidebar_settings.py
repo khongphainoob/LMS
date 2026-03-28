@@ -9,6 +9,7 @@ def execute():
 		"jobs",
 		"statistics",
 		"notifications",
+		'grade',
 	]
 
 	for field in fields:

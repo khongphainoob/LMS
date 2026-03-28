@@ -23,8 +23,8 @@
 								type="select"
 								v-model="row.reference_doctype"
 								:options="[
-									{ label: 'Course', value: 'LMS Course' },
-									{ label: 'Batch', value: 'LMS Batch' },
+									{ label: __('Course'), value: 'LMS Course' },
+									{ label: __('Batch'), value: 'LMS Batch' },
 								]"
 							/>
 						</td>
@@ -138,3 +138,4 @@ defineExpose({
 	saveItems,
 })
 </script>
+

@@ -1,4 +1,5 @@
 import { createResource } from 'frappe-ui'
+// import { m } from 'vue-router/dist/router-CWoNjPRp.mjs'
 
 export default function translationPlugin(app) {
 	app.config.globalProperties.__ = translate
@@ -31,6 +32,7 @@ function translate(message) {
 function fetchTranslations(lang) {
 	createResource({
 		url: 'lms.lms.api.get_translations',
+		method: 'GET',
 		cache: 'translations',
 		auto: true,
 		transform: (data) => {

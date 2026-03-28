@@ -24,6 +24,7 @@ export const sessionStore = defineStore('lms-session', () => {
 
 	const login = createResource({
 		url: 'login',
+		method: 'POST',
 		onError() {
 			throw new Error('Invalid email or password')
 		},
@@ -37,6 +38,7 @@ export const sessionStore = defineStore('lms-session', () => {
 
 	const logout = createResource({
 		url: 'logout',
+		method: 'POST',
 		onSuccess() {
 			userResource.reset()
 			user.value = null
@@ -46,6 +48,7 @@ export const sessionStore = defineStore('lms-session', () => {
 
 	const branding = createResource({
 		url: 'lms.lms.api.get_branding',
+		method: 'GET',
 		cache: 'brand',
 		auto: true,
 		onSuccess(data) {

@@ -61,12 +61,11 @@ def sign_up(email, full_name, verify_terms, user_category):
 	user.flags.ignore_password_policy = True
 	user.insert()
 
-	# set default signup role as per Portal Settings
-	default_role = frappe.db.get_single_value("Portal Settings", "default_role")
-	if default_role:
-		user.add_roles(default_role)
-
+	# Public sign-ups must remain low-privilege learners.
 	user.add_roles("LMS Student")
+	for elevated_role in ["Moderator", "Course Creator", "Batch Evaluator", "System Manager"]:
+		if frappe.db.exists("Has Role", {"parent": user.name, "role": elevated_role}):
+			user.remove_roles(elevated_role)
 	set_country_from_ip(None, user.name)
 
 	if user.flags.email_sent:

@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="flex h-full flex-col justify-between transition-all duration-300 ease-in-out border-r bg-surface-menu-bar"
-		:class="sidebarStore.isSidebarCollapsed ? 'w-14' : 'w-56'"
+		class="flex h-full flex-col justify-between transition-all duration-300 ease-in-out border-r border-border bg-surface-menu-bar shadow-[2px_0_12px_rgba(0,0,0,0.03)] z-20"
+		:class="sidebarStore.isSidebarCollapsed ? 'w-[60px]' : 'w-64'"
 	>
 		<div
 			class="flex flex-col overflow-hidden"

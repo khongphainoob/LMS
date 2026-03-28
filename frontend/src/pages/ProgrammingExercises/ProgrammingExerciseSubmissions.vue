@@ -31,7 +31,7 @@
 					v-model="filters.status"
 					type="select"
 					:options="[
-						{ label: __(''), value: '' },
+						{ label: '', value: '' },
 						{ label: __('Passed'), value: 'Passed' },
 						{ label: __('Failed'), value: 'Failed' },
 					]"
