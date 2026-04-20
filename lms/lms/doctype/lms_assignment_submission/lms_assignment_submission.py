@@ -18,6 +18,47 @@ class LMSAssignmentSubmission(Document):
 
 	def on_update(self):
 		self.validate_private_attachments()
+		self.log_grade_history()
+
+	def log_grade_history(self):
+		if self.is_new():
+			return
+		
+		doc_before_save = self.get_doc_before_save()
+		if not doc_before_save:
+			return
+			
+		changed = False
+		event_type = "Score Modified"
+		
+		if getattr(doc_before_save, "numeric_score", 0) != getattr(self, "numeric_score", 0):
+			changed = True
+		elif doc_before_save.comments != self.comments:
+			changed = True
+			event_type = "Feedback Added"
+		elif doc_before_save.status != self.status:
+			changed = True
+			event_type = "Status Changed"
+			
+		if changed:
+			try:
+				course = frappe.db.get_value("LMS Assignment", self.assignment, "course") if self.assignment else None
+				frappe.get_doc({
+					"doctype": "LMS Grade History Log",
+					"student": self.member,
+					"course": course,
+					"grader": getattr(self, "evaluator", frappe.session.user),
+					"grading_source": "Teacher",
+					"event_type": event_type,
+					"submission_type": "LMS Assignment Submission",
+					"submission_id": self.name,
+					"score_before": getattr(doc_before_save, "numeric_score", 0) or 0.0,
+					"score_after": getattr(self, "numeric_score", 0) or 0.0,
+					"max_score": getattr(self, "score_out_of", 0) or 0.0,
+					"feedback_text": getattr(self, "comments", "")
+				}).insert(ignore_permissions=True)
+			except Exception as e:
+				frappe.log_error(title="Error logging Assignment grade history", message=str(e))
 
 	def validate_duplicates(self):
 		if frappe.db.exists(

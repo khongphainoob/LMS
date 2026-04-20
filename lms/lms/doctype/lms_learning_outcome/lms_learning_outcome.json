@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "autoname": "format: LO-{course}-{#####}",
+ "creation": "2026-04-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "code",
+  "category",
+  "column_break_1",
+  "course",
+  "section_break_1",
+  "description",
+  "section_break_2",
+  "proficiency_levels"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "T\u00ean Chu\u1ea9n \u0111\u1ea7u ra",
+   "reqd": 1
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "M\u00e3 CLO (V\u00ed d\u1ee5: CLO-MATH-01)",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Ki\u1ebfn th\u1ee9c",
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Ph\u00e2n lo\u1ea1i",
+   "options": "Ki\u1ebfn th\u1ee9c\nK\u1ef9 n\u0103ng\nTh\u00e1i \u0111\u1ed9\nN\u0103ng l\u1ef1c chung"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "course",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Kh\u00f3a h\u1ecdc",
+   "options": "LMS Course",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "M\u00f4 t\u1ea3 K\u1ef9 n\u0103ng"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "M\u00f4 t\u1ea3 chi ti\u1ebft"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "M\u1ee9c \u0111\u1ed9 th\u00e0nh th\u1ea1o"
+  },
+  {
+   "description": "JSON object m\u00f4 t\u1ea3 chi ti\u1ebft c\u00e1c m\u1ee9c: Ch\u01b0a \u0111\u1ea1t, \u0110\u1ea1t, Kh\u00e1, Gi\u1ecfi, Xu\u1ea5t s\u1eafc.",
+   "fieldname": "proficiency_levels",
+   "fieldtype": "Code",
+   "label": "C\u00e1c m\u1ee9c N\u0103ng l\u1ef1c",
+   "options": "JSON"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "LMS Learning Outcome",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Course Creator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "LMS Student",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -20,6 +20,8 @@
   "section_break_ydgh",
   "column_break_oqqy",
   "status",
+  "numeric_score",
+  "score_out_of",
   "comments",
   "section_break_rqal",
   "question",
@@ -79,6 +81,17 @@
    "fieldtype": "Select",
    "label": "Status",
    "options": "Pass\nFail\nNot Graded\nNot Applicable"
+  },
+  {
+   "fieldname": "numeric_score",
+   "fieldtype": "Float",
+   "label": "Score",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "score_out_of",
+   "fieldtype": "Float",
+   "label": "Out of"
   },
   {
    "fieldname": "comments",
@@ -238,5 +251,6 @@
    "title": "Not Applicable"
   }
  ],
- "title_field": "assignment_title"
+ "title_field": "assignment_title",
+ "track_changes": 1
 }

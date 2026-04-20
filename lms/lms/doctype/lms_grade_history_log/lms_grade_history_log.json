@@ -1,0 +1,186 @@
+{
+ "actions": [],
+ "creation": "2026-04-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "timestamp",
+  "student",
+  "course",
+  "grader",
+  "grading_source",
+  "event_type",
+  "column_break_1",
+  "submission_type",
+  "submission_id",
+  "score_before",
+  "score_after",
+  "max_score",
+  "section_break_1",
+  "criteria_snapshot",
+  "feedback_text",
+  "section_break_ai",
+  "ai_model_used",
+  "ai_confidence",
+  "ai_raw_response",
+  "metadata"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Th\u1eddi gian",
+   "reqd": 1
+  },
+  {
+   "fieldname": "student",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "H\u1ecdc sinh",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "course",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Kh\u00f3a h\u1ecdc",
+   "options": "LMS Course"
+  },
+  {
+   "fieldname": "grader",
+   "fieldtype": "Link",
+   "label": "Ng\u01b0\u1eddi ch\u1ea5m",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "default": "AI",
+   "fieldname": "grading_source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Ngu\u1ed3n ch\u1ea5m",
+   "options": "AI\nTeacher\nAI+Teacher Review\nSystem"
+  },
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Lo\u1ea1i s\u1ef1 ki\u1ec7n",
+   "options": "Score Assigned\nScore Modified\nFeedback Added\nRubric Applied\nStatus Changed\nOutcome Updated"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "submission_type",
+   "fieldtype": "Link",
+   "label": "Lo\u1ea1i b\u00e0i n\u1ed9p",
+   "options": "DocType",
+   "reqd": 1
+  },
+  {
+   "fieldname": "submission_id",
+   "fieldtype": "Dynamic Link",
+   "label": "ID B\u00e0i n\u1ed9p",
+   "options": "submission_type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "score_before",
+   "fieldtype": "Float",
+   "label": "\u0110i\u1ec3m tr\u01b0\u1edbc \u0111\u00f3"
+  },
+  {
+   "fieldname": "score_after",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "\u0110i\u1ec3m c\u1eadp nh\u1eadt"
+  },
+  {
+   "fieldname": "max_score",
+   "fieldtype": "Float",
+   "label": "\u0110i\u1ec3m t\u1ed1i \u0111a"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Th\u00f4ng tin B\u00e0i ch\u1ea5m"
+  },
+  {
+   "fieldname": "criteria_snapshot",
+   "fieldtype": "Code",
+   "label": "Snapshot Ti\u00eau ch\u00ed / Nh\u1eadn x\u00e9t (JSON)",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "feedback_text",
+   "fieldtype": "Long Text",
+   "label": "N\u1ed9i dung Feedback"
+  },
+  {
+   "fieldname": "section_break_ai",
+   "fieldtype": "Section Break",
+   "label": "Th\u00f4ng tin AI (N\u1ebfu c\u00f3)"
+  },
+  {
+   "fieldname": "ai_model_used",
+   "fieldtype": "Data",
+   "label": "AI Model s\u1eed d\u1ee5ng"
+  },
+  {
+   "fieldname": "ai_confidence",
+   "fieldtype": "Float",
+   "label": "\u0110\u1ed9 tin c\u1eady c\u1ee7a AI"
+  },
+  {
+   "fieldname": "ai_raw_response",
+   "fieldtype": "Code",
+   "label": "Raw AI Response",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "metadata",
+   "fieldtype": "Code",
+   "label": "Metadata b\u1ed5 sung (Token, v.v)",
+   "options": "JSON"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "LMS Grade History Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Moderator"
+  },
+  {
+   "read": 1,
+   "role": "Instructor"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

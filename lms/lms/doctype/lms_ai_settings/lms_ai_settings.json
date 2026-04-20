@@ -1,101 +1,197 @@
 {
- "actions": [],
- "creation": "2024-05-18 10:00:00.000000",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "ai_settings_tab",
-  "default_model",
-  "api_key",
-  "models_section",
-  "available_models_info",
-  "openai_tab",
-  "openai_api_key",
-  "gemini_tab",
-  "gemini_api_key",
-  "anthropic_tab",
-  "anthropic_api_key"
- ],
- "fields": [
-  {
-   "fieldname": "ai_settings_tab",
-   "fieldtype": "Tab Break",
-   "label": "General AI Settings"
-  },
-  {
-   "fieldname": "default_model",
-   "fieldtype": "Select",
-   "label": "Default AI Model",
-   "options": "gpt-4-turbo\ngpt-4o\ngpt-3.5-turbo\ngemini-1.5-pro\ngemini-1.5-flash\nclaude-3-opus\nclaude-3.5-sonnet\nclaude-3-sonnet"
-  },
-  {
-   "fieldname": "api_key",
-   "fieldtype": "Password",
-   "label": "Default API Key"
-  },
-  {
-   "fieldname": "models_section",
-   "fieldtype": "Section Break",
-   "label": "Additional Configuration"
-  },
-  {
-   "fieldname": "available_models_info",
-   "fieldtype": "HTML",
-   "options": "<div><p>Use the tabs below to configure provider-specific keys. You can add more models and keys via Frappe Desk Customization.</p></div>"
-  },
-  {
-   "fieldname": "openai_tab",
-   "fieldtype": "Tab Break",
-   "label": "OpenAI"
-  },
-  {
-   "fieldname": "openai_api_key",
-   "fieldtype": "Password",
-   "label": "OpenAI API Key"
-  },
-  {
-   "fieldname": "gemini_tab",
-   "fieldtype": "Tab Break",
-   "label": "Google Gemini"
-  },
-  {
-   "fieldname": "gemini_api_key",
-   "fieldtype": "Password",
-   "label": "Gemini API Key"
-  },
-  {
-   "fieldname": "anthropic_tab",
-   "fieldtype": "Tab Break",
-   "label": "Anthropic"
-  },
-  {
-   "fieldname": "anthropic_api_key",
-   "fieldtype": "Password",
-   "label": "Anthropic API Key"
-  }
- ],
- "issingle": 1,
- "custom": 0,
- "links": [],
- "modified": "2024-05-18 10:00:00.000000",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "LMS AI Settings",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "quick_entry": 1,
- "sort_field": "modified",
- "sort_order": "DESC",
- "track_changes": 1
+  "actions": [],
+  "creation": "2024-05-18 10:00:00.000000",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": [
+    "ai_settings_tab",
+    "default_model",
+    "api_key",
+    "ocr_section",
+    "ocr_provider_plugin",
+    "ocr_instance_name",
+    "ocr_api_key",
+    "ocr_api_endpoint",
+    "ocr_site_wide_rate_limit",
+    "ocr_user_rate_limit",
+    "mathpix_section",
+    "mathpix_app_id",
+    "mathpix_app_key",
+    "mathpix_enabled",
+    "pix2text_section",
+    "pix2text_enabled",
+    "classification_section",
+    "classification_model",
+    "custom_service_section",
+    "openai_api_key",
+    "gemini_api_key",
+    "anthropic_api_key",
+    "kyma_api_key",
+    "kyma_api_base_url",
+    "ollama_base_url",
+    "available_models_info"
+  ],
+  "fields": [
+    {
+      "fieldname": "ai_settings_tab",
+      "fieldtype": "Tab Break",
+      "label": "General AI Settings"
+    },
+    {
+      "fieldname": "default_model",
+      "fieldtype": "Select",
+      "label": "Default AI Model",
+      "options": "gpt-4-turbo\ngpt-4o\ngpt-3.5-turbo\ngemini-1.5-pro\ngemini-1.5-flash\nclaude-3-opus\nclaude-3.5-sonnet\nclaude-3-sonnet"
+    },
+    {
+      "fieldname": "api_key",
+      "fieldtype": "Password",
+      "label": "Default API Key"
+    },
+    {
+      "fieldname": "ocr_section",
+      "fieldtype": "Section Break",
+      "label": "OCR Settings"
+    },
+    {
+      "fieldname": "ocr_provider_plugin",
+      "fieldtype": "Select",
+      "label": "Choose OCR provider plugin",
+      "options": "Azure AI API provider\nGoogle Vision OCR provider\nOCR.Space provider\nCustom OCR service"
+    },
+    {
+      "fieldname": "ocr_instance_name",
+      "fieldtype": "Data",
+      "label": "Name for OCR instance"
+    },
+    {
+      "fieldname": "ocr_api_key",
+      "fieldtype": "Password",
+      "label": "OCR API key"
+    },
+    {
+      "fieldname": "ocr_api_endpoint",
+      "fieldtype": "Data",
+      "label": "OCR API endpoint"
+    },
+    {
+      "fieldname": "ocr_site_wide_rate_limit",
+      "fieldtype": "Check",
+      "label": "Set site-wide rate limit"
+    },
+    {
+      "fieldname": "ocr_user_rate_limit",
+      "fieldtype": "Check",
+      "label": "Set user rate limit"
+    },
+    {
+      "fieldname": "custom_service_section",
+      "fieldtype": "Section Break",
+      "label": "Custom AI Service Settings"
+    },
+    {
+      "fieldname": "openai_api_key",
+      "fieldtype": "Password",
+      "label": "OpenAI API Key"
+    },
+    {
+      "fieldname": "gemini_api_key",
+      "fieldtype": "Password",
+      "label": "Gemini API Key"
+    },
+    {
+      "fieldname": "anthropic_api_key",
+      "fieldtype": "Password",
+      "label": "Anthropic API Key"
+    },
+    {
+      "fieldname": "kyma_api_key",
+      "fieldtype": "Password",
+      "label": "Kyma API Key"
+    },
+    {
+      "fieldname": "kyma_api_base_url",
+      "fieldtype": "Data",
+      "label": "Kyma API endpoint"
+    },
+    {
+      "fieldname": "ollama_base_url",
+      "fieldtype": "Data",
+      "label": "Ollama base URL"
+    },
+    {
+      "fieldname": "available_models_info",
+      "fieldtype": "HTML",
+      "options": "<div><p>Keep OCR config separate from AI provider keys. Use the custom service section for OpenAI, Gemini, Anthropic, Kyma, and Ollama settings.</p></div>"
+    },
+    {
+      "fieldname": "mathpix_section",
+      "fieldtype": "Section Break",
+      "label": "Mathpix Formula OCR"
+    },
+    {
+      "fieldname": "mathpix_app_id",
+      "fieldtype": "Data",
+      "label": "Mathpix App ID",
+      "description": "Get from https://dashboard.mathpix.com"
+    },
+    {
+      "fieldname": "mathpix_app_key",
+      "fieldtype": "Password",
+      "label": "Mathpix App Key"
+    },
+    {
+      "fieldname": "mathpix_enabled",
+      "fieldtype": "Check",
+      "label": "Enable Mathpix OCR",
+      "default": 0
+    },
+    {
+      "fieldname": "pix2text_section",
+      "fieldtype": "Section Break",
+      "label": "Pix2Text (Local Fallback)"
+    },
+    {
+      "fieldname": "pix2text_enabled",
+      "fieldtype": "Check",
+      "label": "Enable Pix2Text (requires GPU)",
+      "default": 0
+    },
+    {
+      "fieldname": "classification_section",
+      "fieldtype": "Section Break",
+      "label": "Classification Settings"
+    },
+    {
+      "fieldname": "classification_model",
+      "fieldtype": "Select",
+      "label": "Classification Model (for subject detection)",
+      "options": "gpt-4o|gemini-2.0-flash",
+      "default": "gpt-4o"
+    }
+  ],
+  "issingle": 1,
+  "custom": 0,
+  "links": [],
+  "modified": "2024-05-18 10:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "LMS",
+  "name": "LMS AI Settings",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "quick_entry": 1,
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "track_changes": 1
 }

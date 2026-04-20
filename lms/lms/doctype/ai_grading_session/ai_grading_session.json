@@ -10,6 +10,7 @@
   "session_name",
   "route_slug",
   "grading_type",
+  "rubric_template",
   "subject",
   "level",
   "column_break_4",
@@ -44,6 +45,12 @@
    "label": "Grading Type",
    "options": "Exam\nTest\nHomework",
    "reqd": 1
+  },
+  {
+   "fieldname": "rubric_template",
+   "fieldtype": "Link",
+   "label": "Rubric Template",
+   "options": "LMS Rubric Template"
   },
   {
    "fieldname": "subject",
@@ -181,5 +188,6 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "session_name"
+ "title_field": "session_name",
+ "track_changes": 1
 }

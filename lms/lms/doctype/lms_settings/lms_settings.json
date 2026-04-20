@@ -43,7 +43,10 @@
   "certified_members",
   "certifications",
   "programming_exercises",
+  "ai_integration",
   "ai_grading",
+  "game_center",
+  "grading_book",
   "column_break_exdz",
   "jobs",
   "statistics",
@@ -421,11 +424,29 @@
    "fieldtype": "Check",
    "label": "Programming Exercises"
   },
+  {
+   "default": "1",
+   "fieldname": "ai_integration",
+   "fieldtype": "Check",
+   "label": "AI Integration"
+  },
     {
-     "default": "0",
+     "default": "1",
      "fieldname": "ai_grading",
      "fieldtype": "Check",
      "label": "AI Grading"
+    },
+    {
+     "default": "1",
+     "fieldname": "game_center",
+     "fieldtype": "Check",
+     "label": "Game Center"
+    },
+    {
+     "default": "1",
+     "fieldname": "grading_book",
+     "fieldtype": "Check",
+     "label": "Grading Book"
     },
   {
    "fieldname": "contact_us_tab",

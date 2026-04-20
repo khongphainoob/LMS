@@ -12,6 +12,7 @@
   "title",
   "type",
   "grade_assignment",
+  "rubric_template",
   "course",
   "column_break_hmwv",
   "question",
@@ -42,6 +43,12 @@
    "in_standard_filter": 1,
    "label": "Title",
    "reqd": 1
+  },
+  {
+   "fieldname": "rubric_template",
+   "fieldtype": "Link",
+   "label": "Rubric Template",
+   "options": "LMS Rubric Template"
   },
   {
    "fieldname": "column_break_hmwv",

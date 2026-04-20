@@ -13,6 +13,8 @@
   "column_break_4",
   "status",
   "score",
+  "criteria_scores",
+  "ai_confidence",
   "section_break_7",
   "paper_image",
   "lms_quiz_submission",
@@ -69,6 +71,16 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Score"
+  },
+  {
+   "fieldname": "criteria_scores",
+   "fieldtype": "Long Text",
+   "label": "Criteria Scores (JSON)"
+  },
+  {
+   "fieldname": "ai_confidence",
+   "fieldtype": "Float",
+   "label": "AI Confidence"
   },
   {
    "fieldname": "section_break_7",
@@ -183,5 +195,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

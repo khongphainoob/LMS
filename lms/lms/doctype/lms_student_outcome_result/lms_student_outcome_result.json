@@ -1,0 +1,134 @@
+{
+ "actions": [],
+ "autoname": "format: SOR-{student}-{learning_outcome}-{#####}",
+ "creation": "2026-04-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "student",
+  "course",
+  "column_break_1",
+  "learning_outcome",
+  "last_assessed",
+  "section_break_1",
+  "proficiency_level",
+  "score_percentage",
+  "section_break_2",
+  "evidence_submissions"
+ ],
+ "fields": [
+  {
+   "fieldname": "student",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "H\u1ecdc sinh",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "course",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Kh\u00f3a h\u1ecdc",
+   "options": "LMS Course",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "learning_outcome",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Chu\u1ea9n \u0111\u1ea7u ra",
+   "options": "LMS Learning Outcome",
+   "reqd": 1
+  },
+  {
+   "fieldname": "last_assessed",
+   "fieldtype": "Datetime",
+   "label": "L\u1ea7n \u0111\u00e1nh gi\u00e1 g\u1ea7n nh\u1ea5t",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "K\u1ebft qu\u1ea3 N\u0103ng l\u1ef1c"
+  },
+  {
+   "default": "Ch\u01b0a \u0111\u1ea1t",
+   "fieldname": "proficiency_level",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "M\u1ee9c \u0111\u1ed9",
+   "options": "Ch\u01b0a \u0111\u1ea1t\n\u0110\u1ea1t\nKh\u00e1\nGi\u1ecfi\nXu\u1ea5t s\u1eafc"
+  },
+  {
+   "fieldname": "score_percentage",
+   "fieldtype": "Percent",
+   "label": "T\u1ef7 l\u1ec7 ho\u00e0n th\u00e0nh (%)"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Minh ch\u1ee9ng"
+  },
+  {
+   "description": "JSON array ch\u1ee9a metadata v\u1ec1 c\u00e1c b\u00e0i t\u1eadp/\u0111\u00e1nh gi\u00e1 g\u00f3p ph\u1ea7n tr\u1ee3 v\u00e0o n\u0103ng l\u1ef1c n\u00e0y",
+   "fieldname": "evidence_submissions",
+   "fieldtype": "Code",
+   "label": "L\u1ecbch s\u1eed b\u00e0i n\u1ed9p",
+   "options": "JSON"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "LMS Student Outcome Result",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Moderator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Instructor",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "LMS Student"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
