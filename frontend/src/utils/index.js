@@ -1,4 +1,4 @@
-﻿import { call, toast } from 'frappe-ui'
+import { call, toast } from 'frappe-ui'
 import { useTimeAgo } from '@vueuse/core'
 import colorsJSON from '@/utils/frappe-ui-colors.json'
 import { Quiz } from '@/utils/quiz'
@@ -506,6 +506,15 @@ const getSidebarItems = () => {
 					activeFor: ['Statistics'],
 				},
 				{
+					label: 'Game Center',
+					icon: 'Trophy',
+					to: 'GameCenter',
+					activeFor: ['GameCenter'],
+					condition: () => {
+						return userResource?.data
+					},
+				},
+				{
 					label: 'Contact Us',
 					icon: settings.data?.contact_us_url ? 'Headset' : 'Mail',
 					to: settings.data?.contact_us_url
@@ -526,16 +535,24 @@ const getSidebarItems = () => {
 			hideLabel: true,
 			items: [
 				{
-					label: 'AI Grading',
-					icon: 'Code',
-					to: 'AIGradingObjective',
+					label: 'AI Integration',
+					icon: 'Sparkles',
+					to: 'AIIntegration',
 					condition: () => {
-						return (
-							userResource?.data?.is_instructor ||
-							userResource?.data?.is_moderator
-						)
+						return userResource?.data
 					},
-					activeFor: ['AIGrading', 'AIGradingObjective', 'AIGradingEssay'],
+					activeFor: [
+						'AIIntegration',
+						'StudentAIHelper',
+						'GradingBook',
+						'AIGrading',
+						'AIGradingObjective',
+						'AIGradingEssay',
+						'AIGradingEssayConfig',
+						'AIGradingEssayWorkspace',
+						'AIGradingSessionStatistics',
+						'AIGradingAdmin',
+					],
 				},
 				{
 					label: 'Quizzes',

@@ -199,6 +199,26 @@ const routes = [
 		component: () => import('@/pages/Assignments.vue'),
 	},
 	{
+		path: '/gradingbook/:courseName?/:batchName?',
+		name: 'GradingBook',
+		component: () => import('@/pages/GradingBook.vue'),
+	},
+	{
+		path: '/ai-integration',
+		name: 'AIIntegration',
+		component: () => import('@/pages/AIIntegration.vue'),
+	},
+	{
+		path: '/ai-helper',
+		name: 'StudentAIHelper',
+		component: () => import('@/pages/StudentAIHelper.vue'),
+	},
+	{
+		path: '/ai-student-score-dashboard',
+		name: 'StudentScoreDashboard',
+		component: () => import('@/pages/StudentScoreDashboard.vue'),
+	},
+	{
 		path: '/ai-grading',
 		name: 'AIGrading',
 		component: () => import('@/pages/AIGrading.vue'),
@@ -312,6 +332,11 @@ const routes = [
 		name: 'DataImport',
 		component: () => import('@/pages/DataImport.vue'),
 		props: true,
+	},
+	{
+		path: '/game-center',
+		name: 'GameCenter',
+		component: () => import('@/pages/GameCenter.vue'),
 	},
 ]
 
