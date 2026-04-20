@@ -111,10 +111,10 @@ Read,Đã đọc,
 UnPublished,Chưa xuất bản,
 Search by Title,Tìm kiếm theo tiêu đề,
 Search for a keyword or phrase and press enter,Tìm kiếm từ khóa hoặc cụm từ và nhấn enter, 
-"There are no courses currently. Keep an eye out for fresh learning experiences are on the way!","Hiện tại không có khóa học nào. Hãy chú ý đón chờ những trải nghiệm học tập mới đang trên đường đến!",
+There are no courses currently. Keep an eye out for fresh learning experiences are on the way!,Hiện tại không có khóa học nào. Hãy chú ý đón chờ những trải nghiệm học tập mới đang trên đường đến!,
 Quizzes,Bài kiểm tra,
 No Quizzes,Không có bài kiểm tra,
-"There are no quizzes currently. Keep an eye out for fresh learning experiences are on the way!","Hiện tại không có bài kiểm tra nào. Hãy chú ý đón chờ những trải nghiệm học tập mới đang trên đường đến!",
+There are no quizzes currently. Keep an eye out for fresh learning experiences are on the way!,Hiện tại không có bài kiểm tra nào. Hãy chú ý đón chờ những trải nghiệm học tập mới đang trên đường đến!,
 Toggle Theme,Chuyển đổi giao diện,
 Configuration, Cấu hình,
 Log in,Đăng nhập,
@@ -802,9 +802,9 @@ Grading Progress,Tiến độ chấm điểm,
 Completion Rate,Tỉ lệ hoàn thành,
 Average Score,Điểm trung bình,
 Across all graded papers,Tính trên tất cả bài đã chấm,
-"High Scores (≥8)","Điểm cao (≥8)",
+High Scores (≥8),Điểm cao (≥8),
 Excellence Rate,Tỉ lệ điểm giỏi,
-"Low Scores (<5)","Điểm thấp (<5)",
+Low Scores (<5),Điểm thấp (<5),
 At-risk Rate,Tỉ lệ học sinh yếu,
 Session Statistics,Thống kê phiên chấm,
 Detailed insights and performance analysis for this session.,Thông tin chi tiết và phân tích hiệu suất cho phiên này.,
@@ -814,7 +814,7 @@ Based on student failure rates,Dựa trên tỉ lệ làm sai của học sinh,
 No question data available yet.,Chưa có dữ liệu câu hỏi.,
 fail,làm sai,
 students struggled with this part,học sinh gặp khó khăn ở phần này,
-"At-Risk Students (< 5.0)","Học sinh điểm thấp (< 5.0)",
+At-Risk Students (< 5.0),Học sinh điểm thấp (< 5.0),
 Students,Học sinh,
 All students scored 5.0 or above!,Tất cả học sinh đều đạt từ 5.0 trở lên!,
 Student,Học sinh,
@@ -824,7 +824,7 @@ Send Email,Gửi Mail,
 Score Distribution,Phân bố điểm số,
 Email sent successfully!,Đã gửi email thành công!,
 Student counts per score range,Số lượng học sinh theo khung điểm,
-"AI Grading Result: {0}","Kết quả chấm điểm AI: {0}",
+AI Grading Result: {0},Kết quả chấm điểm AI: {0},
 "Hello {0},","Chào {0},",
 Your submission for <b>{0}</b> has been graded by AI.,Bài nộp của bạn cho <b>{0}</b> đã được AI chấm điểm.,
 Final Score:,Điểm cuối cùng:,
@@ -1243,7 +1243,7 @@ Need review,Cần duyệt
 Open sessions,Phiên đang mở
 Session-based,Theo Phiên
 Exam Grading,Chấm thi
-"Grade official exams with session management. Create sessions, track progress and export results.","Chấm bài thi chính thức với quản lý theo phiên. Theo dõi tiến độ và xuất kết quả chi tiết."
+"Grade official exams with session management. Create sessions, track progress and export results.",Chấm bài thi chính thức với quản lý theo phiên. Theo dõi tiến độ và xuất kết quả chi tiết.
 Start Grading Exams,Bắt đầu chấm thi
 Quick Grade,Chấm nhanh
 Quick Tests,Kiểm tra 15-45 phút
@@ -1251,7 +1251,7 @@ Quick Tests,Kiểm tra 15-45 phút
 Grade Tests,Chấm bài kiểm tra
 Batch Workflow,Chấm hàng loạt
 Homework & Assignments,Bài tập về nhà
-"Grade homework and practice assignments. Provide detailed, encouraging feedback efficiently in batches.","Chấm bài tập về nhà. Cung cấp nhận xét chi tiết và mang tính xây dựng cho học sinh."
+"Grade homework and practice assignments. Provide detailed, encouraging feedback efficiently in batches.",Chấm bài tập về nhà. Cung cấp nhận xét chi tiết và mang tính xây dựng cho học sinh.
 Review Homework,Chấm bài tập
 Create & manage grading sessions,Tạo và quản lý các phiên chấm bài
 Class / ID-based submission lists,Danh sách học sinh theo SBD/Lớp
@@ -1345,7 +1345,7 @@ Error: no-solution condition should be Δ < 0,Lỗi sai: điều kiện vô nghi
 AI Suggested Score,AI Đề Xuất Điểm
 Confidence,Độ tin cậy
 AI Notes,AI Nhận xét
-"Student understands Δ computation and roots well. Two errors: (1) missing solution set S in Q2; (2) wrong sign for no-solution condition in Q3. Suggest −0.5 each.","Học sinh hiểu tốt cách tính Δ và nghiệm. Có 2 điểm trừ: (1) thiếu tập kết luận; (2) sai điều kiện vô nghiệm. Đề xuất trừ 0.5đ mỗi lỗi."
+Student understands Δ computation and roots well. Two errors: (1) missing solution set S in Q2; (2) wrong sign for no-solution condition in Q3. Suggest −0.5 each.,Học sinh hiểu tốt cách tính Δ và nghiệm. Có 2 điểm trừ: (1) thiếu tập kết luận; (2) sai điều kiện vô nghiệm. Đề xuất trừ 0.5đ mỗi lỗi.
 Grading Criteria,Tiêu Chí Chấm
 Teacher Comments,Giáo viên nhận xét
 Add your comments...,Nhập lời nhận xét của bạn...
@@ -1393,14 +1393,14 @@ Total AI Graded,Tổng số bài AI đã chấm
 Satisaction Rate,Tỉ lệ hài lòng
 Review Flags,Số bài cần xem lại
 Detailed Dissatisfaction Feedback,Chi tiết các phản hồi chưa hài lòng
-All instances where teachers marked AI grading as "Dissatisfied",Toàn bộ các trường hợp giáo viên đánh giá AI chấm "Chưa hài lòng"
+"All instances where teachers marked AI grading as ""Dissatisfied""","Toàn bộ các trường hợp giáo viên đánh giá AI chấm ""Chưa hài lòng"""
 Session / Assignment,Phiên chấm / Bài tập
 Reason for Dissatisfaction,Lý do chưa hài lòng
 Admin Dashboard,Thống kê AI
 Grade All,Chấm tất cả bài
 Grade Document,Chấm bài này
 Chấm tất cả bài,Chấm tất cả bài
-Chấm bài này,Chấm bài này,"Nhập các hướng dẫn cụ thể, điểm cần trừ, hoặc barem chi tiết để AI đánh giá..."Back,Quay lại,
+Chấm bài này,Chấm bài này,"Nhập các hướng dẫn cụ thể, điểm cần trừ, hoặc barem chi tiết để AI đánh giá...Back",Quay lại,
 Change Focus,Đổi trọng tâm,
 Grade Exams,Chấm bài kiểm tra,
 Grade Homework,Chấm Bài Tập Về Nhà,
@@ -1412,3 +1412,365 @@ Set up class information and upload homework for grading.,Nhập lớp vào và 
 Set up information and choose a grading session before starting.,Điền thông tin và lựa chọn bài luyện để bắt đầu.,
 Set up information and upload test papers.,Điền thông số và tải hình bài môn.,
 Student ID,Mã học sinh,
+"<p>Dear {{ member_name }},</p>
+
+<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>
+
+<p>Thanks,</p>
+<p>Frappe Learning</p>","<p>Kính gửi {{ member_name }},</p>
+
+<p>Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.</p>
+
+<p>Cảm ơn,</p>
+<p>Frappe Learning</p>",
+Access AI-powered learning and grading tools from one place.,Truy cập các công cụ học tập và chấm điểm được hỗ trợ bởi AI từ một nơi.,
+Action,Hoạt động,
+Add & Start Grading,Thêm và bắt đầu chấm điểm,
+Add New Student,Thêm sinh viên mới,
+AI Analytics,Phân tích AI,
+AI Integration,Tích hợp AI,
+AI Integration Dashboard,Trang tổng quan tích hợp AI,
+AI Objective Grading,AI Chấm điểm khách quan,
+All AI grading results have been satisfactory,Tất cả kết quả chấm điểm AI đều đạt yêu cầu,
+"All instances where teachers marked AI grading as ""Dissatisfied""","Tất cả các trường hợp trong đó giáo viên đánh dấu điểm AI là ""Không hài lòng""",
+Analytics & Export,Phân tích & Xuất,
+"Ask about lessons, deadlines, and learning strategies. The assistant gives quick guidance for students.","Hỏi về bài học, thời hạn và chiến lược học tập. Trợ lý hướng dẫn nhanh chóng cho học viên.",
+Ask clear questions with course and lesson context for better answers.,Đặt câu hỏi rõ ràng với bối cảnh khóa học và bài học để có câu trả lời tốt hơn.,
+Auto,Tự động,
+"Auto-evaluate MCQ submissions with confidence checks and retry signals. Fast, accurate, and transparent.","Tự động đánh giá các bài gửi MCQ bằng các tín hiệu kiểm tra độ tin cậy và thử lại. Nhanh chóng, chính xác và minh bạch.",
+Avg Assignment Score,Điểm bài tập trung bình,
+Avg Completion,Mức độ hoàn thành trung bình,
+Avg Quiz Score,Điểm kiểm tra trung bình,
+Back,Back,
+Batch Grading,Chấm điểm hàng loạt,
+Batch Leaderboard,Bảng xếp hạng hàng loạt,
+Break your task into small milestones and finish a draft at least one day before the deadline.,Chia nhiệm vụ của bạn thành các cột mốc nhỏ và hoàn thành bản nháp ít nhất một ngày trước thời hạn.,
+Calculating competencies...,Tính toán năng lực...,
+Camera is not supported on this device/browser.,Máy ảnh không được hỗ trợ trên thiết bị/trình duyệt này.,
+Capture multiple pages directly,Chụp trực tiếp nhiều trang,
+Captured,Đã chụp,
+Check flagged answers and low-confidence cases before publishing results.,Kiểm tra các câu trả lời được gắn cờ và các trường hợp có độ tin cậy thấp trước khi công bố kết quả.,
+Clear all,Xóa tất cả,
+CodeBox,Hộp mã,
+Competency Radar,Radar năng lực,
+complete,hoàn thành,
+Continuous assessment and competency tracking,Đánh giá liên tục và theo dõi năng lực,
+Conversation,Cuộc hội thoại,
+"Dear {{ member_name }},
+
+You have been enrolled in our upcoming batch {{ batch_name }}.
+
+Thanks,
+Frappe Learning","Kính gửi {{ member_name }},
+
+Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.
+
+Cảm ơn,
+Frappe Learning",
+Delete this grading session? All submissions in this session will also be deleted.,Xóa phiên chấm điểm này? Tất cả các bài nộp trong phiên này cũng sẽ bị xóa.,
+designed as a learning path to guide your progress. You may take the courses in any order that suits you.,được thiết kế như một lộ trình học tập để hướng dẫn sự tiến bộ của bạn. Bạn có thể tham gia các khóa học theo bất kỳ thứ tự nào phù hợp với bạn.,
+"designed as a structured learning path to guide your progress. Courses in this program must be taken in order, and each course will unlock as you complete the previous one.",được thiết kế như một lộ trình học tập có cấu trúc để hướng dẫn sự tiến bộ của bạn. Các khóa học trong chương trình này phải được thực hiện theo thứ tự và mỗi khóa học sẽ mở khóa khi bạn hoàn thành khóa học trước đó.,
+e.g. 12A1-023,ví dụ. 12A1-023,
+Edit Session,Chỉnh sửa phiên,
+End of list,Cuối danh sách,
+Enter level,Nhập cấp độ,
+Enter notes for this session...,Nhập ghi chú cho phiên này...,
+Enter session name,Nhập tên phiên,
+Enter subject,Nhập chủ đề,
+Evaluations,Đánh giá,
+Export CSV,Xuất CSV,
+Export Grades,Export Grades,
+Failed to create badge assignment:,Không tạo được huy hiệu:,
+Failed to update badge assignment:,Không cập nhật được việc gán huy hiệu:,
+Failed to update meta tags {0},Không cập nhật được thẻ meta {0},
+Final (40%),Cuối cùng (40%),
+"Focus on key concepts, practice with short quizzes daily, and review incorrect answers before retrying.","Tập trung vào các khái niệm chính, luyện tập với các câu đố ngắn hàng ngày và xem lại các câu trả lời sai trước khi thử lại.",
+GPA,GPA,
+"Grade all MCQ submissions in one go. Fast, reliable, and scalable for large classes.","Chấm điểm tất cả bài nộp MCQ trong một lần. Nhanh chóng, đáng tin cậy và có thể mở rộng cho các lớp học lớn.",
+Gradebook,Sổ điểm,
+Gradebook Dashboard,Bảng điều khiển sổ điểm,
+Graded Today,Đã chấm điểm hôm nay,
+Grades,Điểm,
+GradingBook,GradingBook,
+"Great question. Include your course name, lesson topic, and where you are stuck so I can help with a more targeted answer.","Câu hỏi hay. Hãy bao gồm tên khóa học, chủ đề bài học và điểm bạn gặp khó khăn để tôi có thể giúp đưa ra câu trả lời có mục tiêu hơn.",
+"Hello! I am your smart learning assistant. Ask me anything about studying, assignments, or exam preparation.","Xin chào! Tôi là trợ lý học tập thông minh của bạn. Hỏi tôi bất cứ điều gì về việc học, bài tập hoặc luyện thi.",
+Hours Spent,Số giờ đã sử dụng,
+Insights,Thông tin chi tiết,
+Leaderboard,Bảng xếp hạng,
+Learning Outcomes,Kết quả học tập,
+Learning Tips,Mẹo học tập,
+Level,Mức độ,
+Loading feedback data...,Đang tải dữ liệu phản hồi...,
+Loading gradebook...,Đang tải sổ điểm...,
+Loading grades...,Đang tải điểm...,
+Loading more...,Đang tải thêm...,
+Loading...,Đang tải...,
+"Manage student grades, skills, and pending AI submissions","Quản lý điểm, kỹ năng của học sinh và bài nộp AI đang chờ xử lý",
+Manual Review,Xem xét thủ công,
+Midterm (30%),Giữa kỳ (30%),
+"Multiple select (JPG, PNG)","Nhiều lựa chọn (JPG, PNG)",
+Needs Grading,Cần chấm điểm,
+Next Submission,Lần gửi tiếp theo,
+No competency data available.,Không có dữ liệu năng lực có sẵn.,
+No dissatisfaction feedback yet,Chưa có phản hồi không hài lòng nào,
+No grades available yet.,Chưa có điểm nào.,
+No grading data found for this batch.,Không tìm thấy dữ liệu chấm điểm cho đợt này.,
+No grading sessions found.,Không tìm thấy phiên chấm điểm nào.,
+No leaderboard data available yet.,Chưa có dữ liệu bảng xếp hạng.,
+No matching students found,Không tìm thấy sinh viên phù hợp,
+No reason provided,Không có lý do nào được cung cấp,
+No upcoming events,Không có sự kiện sắp tới,
+Only {0} file is allowed.,Chỉ cho phép tệp {0}.,
+Open Live Camera,Mở máy ảnh trực tiếp,
+Open Sessions,Phiên mở,
+Open the,Open the,
+Overall Completion,Hoàn thành tổng thể,
+Payment for,Thanh toán cho,
+"PDF, DOC, DOCX, TXT, RTF, ODT — Max 10MB","PDF, DOC, DOCX, TXT, RTF, ODT — Tối đa 10MB",
+Please select a student from the system list.,Vui lòng chọn một sinh viên từ danh sách hệ thống.,
+points,điểm,
+Q&A Support,Hỗ trợ hỏi đáp,
+Quiz (30%),Câu đố (30%),
+Recent Submissions,Bài gửi gần đây,
+Reset,Cài lại,
+Review difficult topics in short 20-25 minute sessions.,Xem lại các chủ đề khó trong thời gian ngắn 20-25 phút.,
+Review Now,Xem lại ngay,
+Satisfaction Rate,Tỷ lệ hài lòng,
+Save & Update,Lưu & Cập nhật,
+Save All,Lưu tất cả,
+Save Changes,Lưu thay đổi,
+Search for,Tìm kiếm,
+Search session by ID or name...,Phiên tìm kiếm theo ID hoặc tên...,
+Select student from existing system users,Chọn sinh viên từ người dùng hệ thống hiện có,
+Session is missing. Please open a valid workspace URL.,Phiên bị thiếu. Vui lòng mở không gian làm việc hợp lệ URL.,
+Session Not Found,Không tìm thấy phiên,
+Smart Chatbot,Chatbot thông minh,
+Smart Multiple Choice Grading,Chấm điểm trắc nghiệm thông minh,
+Smart Student Chatbot,Chatbot sinh viên thông minh,
+Start Batch Grading,Bắt đầu chấm điểm hàng loạt,
+Student SBD,Student SBD,
+Student submission image,Hình ảnh bài nộp của sinh viên,
+Student Tools,Công cụ dành cho sinh viên,
+Successfully saved all progress and scores to the system!,Đã lưu thành công toàn bộ tiến độ và điểm số vào hệ thống!,
+Suggested Questions,Câu hỏi gợi ý,
+SVG contains potentially unsafe content.,SVG chứa nội dung có thể không an toàn.,
+Teacher,Giáo viên,
+Teacher Tools,Công cụ dành cho giáo viên,
+The last day to schedule your evaluations is,Ngày cuối cùng để lên lịch đánh giá của bạn là,
+This is a separate field from system user account,Đây là một trường riêng biệt với tài khoản người dùng hệ thống,
+This student is already in the current session.,Học sinh này đã tham gia phiên học hiện tại.,
+Total Score,Tổng số điểm,
+Total Sessions,Tổng số phiên,
+Total Students,Tổng số học sinh,
+Total Submissions,Tổng số bài gửi,
+"Try a weekly plan: 3 review sessions, 2 practice sessions, and 1 reflection session to track progress.","Hãy thử lập kế hoạch hàng tuần: 3 buổi ôn tập, 2 buổi thực hành và 1 buổi suy ngẫm để theo dõi tiến độ.",
+Type '/' for commands or select text to format,Nhập '/' cho các lệnh hoặc chọn văn bản để định dạng,
+Type to search student by name/email/username,Nhập để tìm kiếm sinh viên theo tên/email/tên người dùng,
+Type your question...,Nhập câu hỏi của bạn...,
+Unable to add student.,Không thể thêm sinh viên.,
+Unable to open camera. Please allow camera permission.,Không thể mở máy ảnh. Vui lòng cho phép máy ảnh.,
+Upload Files,Tải tập tin lên,
+"Use a simple structure: thesis, 2-3 supporting points, and conclusion. Then revise for clarity and grammar.","Sử dụng cấu trúc đơn giản: luận điểm, 2-3 điểm hỗ trợ và kết luận. Sau đó sửa lại cho rõ ràng và ngữ pháp.",
+Use active recall and self-quizzes after each lesson.,Sử dụng phương pháp gợi nhớ tích cực và tự kiểm tra sau mỗi bài học.,
+View Analytics,Xem phân tích,
+"View analytics, export results, and monitor grading performance.","Xem phân tích, xuất kết quả và theo dõi hiệu suất chấm điểm.",
+View Grade History Log,Xem nhật ký lịch sử điểm,
+you are on a,bạn đang ở trên một,
+"<p>Dear {{ member_name }},</p>
+
+<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>
+
+<p>Thanks,</p>
+<p>Frappe Learning</p>","<p>Kính gửi {{ member_name }},</p>
+
+<p>Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.</p>
+
+<p>Cảm ơn,</p>
+<p>Frappe Learning</p>",
+AI Insights,Thông tin chi tiết về AI,
+"Dashboard for score trends, performance highlights, and AI-based recommendations.","Trang tổng quan về xu hướng điểm số, điểm nổi bật về hiệu suất và đề xuất dựa trên AI.",
+"Dear {{ member_name }},
+
+You have been enrolled in our upcoming batch {{ batch_name }}.
+
+Thanks,
+Frappe Learning","Kính gửi {{ member_name }},
+
+Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.
+
+Cảm ơn,
+Frappe Learning",
+Great performance. Your average score is in the high band.,Hiệu suất tuyệt vời. Điểm trung bình của bạn ở mức cao.,
+High Scores (>=8),Điểm cao (>=8),
+Improvement area: Build a consistent study rhythm with 3 focused sessions each week.,Lĩnh vực cải thiện: Xây dựng nhịp độ học tập nhất quán với 3 buổi học tập trung mỗi tuần.,
+Improvement area: Core concepts and basic practice need reinforcement this week.,Lĩnh vực cần cải thiện: Các khái niệm cốt lõi và thực hành cơ bản cần được củng cố trong tuần này.,
+Improvement area: Focus on topics where your score dropped below 7.,Lĩnh vực cần cải thiện: Tập trung vào các chủ đề mà điểm của bạn giảm xuống dưới 7.,
+Improvement area: Keep depth in explanation to maintain stable high scores.,Lĩnh vực cần cải thiện: Duy trì chiều sâu trong phần giải thích để duy trì điểm cao ổn định.,
+Need Improvement (<5),Cần cải thiện (<5),
+Next step: Ask the Smart Chatbot for a 7-day recovery plan and follow it closely.,Bước tiếp theo: Hỏi Smart Chatbot về kế hoạch phục hồi trong 7 ngày và theo dõi chặt chẽ kế hoạch đó.,
+Next step: Challenge yourself with advanced questions to sustain momentum.,Bước tiếp theo: Thử thách bản thân bằng các câu hỏi nâng cao để duy trì động lực.,
+Next step: Complete your next assessment and review feedback right after submission.,Bước tiếp theo: Hoàn thành đánh giá tiếp theo của bạn và xem xét phản hồi ngay sau khi gửi.,
+Next step: Review one weak topic daily and re-attempt similar questions.,Bước tiếp theo: Xem lại một chủ đề yếu hàng ngày và thử lại các câu hỏi tương tự.,
+No score data yet. Keep submitting quizzes and assignments to unlock personalized AI insights.,Chưa có dữ liệu điểm số. Tiếp tục gửi câu hỏi và bài tập để mở khóa thông tin chi tiết về AI được cá nhân hóa.,
+Recent Grade Results,Kết quả lớp gần đây,
+Result,Kết quả,
+Scoreboard & AI Analysis,Bảng điểm & Phân tích AI,
+Strength: You are passing consistently in most recent evaluations.,Điểm mạnh: Bạn luôn đạt điểm cao trong hầu hết các bài đánh giá gần đây.,
+Strength: You are still active and generating data for targeted coaching.,Điểm mạnh: Bạn vẫn đang hoạt động và tạo ra dữ liệu cho mục tiêu huấn luyện.,
+Strength: You show strong understanding across recent assessments.,Điểm mạnh: Bạn thể hiện sự hiểu biết sâu sắc qua các đánh giá gần đây.,
+Strength: Your participation has started and the system is ready to track your learning progress.,Điểm mạnh: Sự tham gia của bạn đã bắt đầu và hệ thống sẵn sàng theo dõi tiến trình học tập của bạn.,
+Student Score Analytics,Phân tích điểm học sinh,
+Total Results,Tổng kết quả,
+Track your scores and get AI-powered learning insights.,Theo dõi điểm số của bạn và nhận thông tin chi tiết về học tập được hỗ trợ bởi AI.,
+Your current score trend needs support and a stronger review plan.,Xu hướng điểm số hiện tại của bạn cần được hỗ trợ và có kế hoạch đánh giá mạnh mẽ hơn.,
+Your performance is stable and on track.,Hiệu suất của bạn ổn định và đi đúng hướng.,
+"<p>Dear {{ member_name }},</p>
+
+<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>
+
+<p>Thanks,</p>
+<p>Frappe Learning</p>","<p>Kính gửi {{ member_name }},</p>
+
+<p>Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.</p>
+
+<p>Cảm ơn,</p>
+<p>Frappe Learning</p>",
+Assignment Score,Điểm bài tập,
+Badge Gallery,Thư viện huy hiệu,
+Badges Earned,Huy hiệu đã kiếm được,
+Completion,Hoàn thành,
+Composite Score,Điểm tổng hợp,
+Current Learning Streak,Quá trình học tập hiện tại,
+Day Streak,Chuỗi ngày,
+"Dear {{ member_name }},
+
+You have been enrolled in our upcoming batch {{ batch_name }}.
+
+Thanks,
+Frappe Learning","Kính gửi {{ member_name }},
+
+Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.
+
+Cảm ơn,
+Frappe Learning",
+Game Center,Trung tâm trò chơi,
+Hours Spent Learning,Số giờ dành cho việc học,
+Locked,Đã khóa,
+No badges available yet.,Chưa có huy hiệu nào.,
+No badges earned yet. Start learning to earn your first badge!,Chưa kiếm được huy hiệu nào. Bắt đầu học cách kiếm huy hiệu đầu tiên của bạn!,
+pts,điểm,
+Quiz Score,Điểm bài kiểm tra,
+Recent Badges,Huy hiệu gần đây,
+Score Breakdown,Phân tích điểm,
+"<p>Dear {{ member_name }},</p>
+
+<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>
+
+<p>Thanks,</p>
+<p>Frappe Learning</p>","<p>Kính gửi {{ member_name }},</p>
+
+<p>Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.</p>
+
+<p>Cảm ơn,</p>
+<p>Frappe Learning</p>",
+All Rounds Complete!,Tất cả các vòng hoàn thành!,
+Answer questions before time runs out,Trả lời câu hỏi trước khi hết giờ,
+Avg Time,Thời gian trung bình,
+Completed in {0} moves and {1},Completed in {0} moves and {1},
+Congratulations!,Chúc mừng!,
+Correct order in {0}/{1} rounds,Correct order in {0}/{1} rounds,
+"Dear {{ member_name }},
+
+You have been enrolled in our upcoming batch {{ batch_name }}.
+
+Thanks,
+Frappe Learning","Kính gửi {{ member_name }},
+
+Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.
+
+Cảm ơn,
+Frappe Learning",
+Drag & Drop,Kéo và thả,
+Drag & Drop Sort,Kéo và thả Sắp xếp,
+Drop items here in order,Thả các mục vào đây theo thứ tự,
+Flip cards and match pairs to test your memory,Lật thẻ và ghép các cặp để kiểm tra trí nhớ của bạn,
+Game Over!,Trò chơi kết thúc!,
+Games,Trò chơi,
+games available,trò chơi có sẵn,
+Great job! Keep up the good work! \u{1F31F},Làm tốt lắm! Hãy tiếp tục làm tốt công việc của mình nhé! \u{1F31F},
+Hint ({0}),Gợi ý ({0}),
+History:,Lịch sử:,
+Keep practicing! You'll get better! \u{1F4DA},Hãy tiếp tục luyện tập! Bạn sẽ khỏe hơn! \u{1F4DA},
+Luck,May mắn,
+Memory Match,Ghép hình,
+Mini Games,Trò chơi nhỏ,
+Miss,Trượt,
+moves,lượt,
+No items left,Không còn mặt hàng nào,
+Not bad! Room for improvement. \u{1F4AA},Không tệ! Phòng để cải thiện. \u{1F4AA},
+Outstanding! You're a quiz master! \u{1F3C6},Nổi bật! Bạn là một bậc thầy về câu đố! \u{1F3C6},
+Perfect! +100 pts \u{1F389},Hoàn hảo! +100 điểm \u{1F389},
+Play Again,Chơi lại,
+Points: {0},Điểm: {0},
+Puzzle,Câu đố,
+Quiz Complete!,Câu đố hoàn thành!,
+Solved {0} out of {1} words,Đã giải quyết được {0} trong tổng số {1} từ,
+Sort,Sắp xếp,
+Sort items in the correct order,Sắp xếp các mục theo đúng thứ tự,
+Speed,Tốc độ,
+Spin and collect points with luck,Quay và thu thập điểm một cách may mắn,
+Spin the Wheel,Quay bánh xe,
+SPIN!,SPIN!,
+Spinning...,Đang quay...,
+Spins left: {0},Còn {0} lượt quay,
+Timed Quiz,Câu đố có tính thời gian,
+Timed Quiz Challenge,Thử thách đố vui tính giờ,
+Try again!,Hãy thử lại!,
+Unscramble letters to find the hidden word,Sắp xếp lại các chữ cái để tìm từ ẩn,
+Word,Từ,
+Word Scramble,Sắp xếp chữ cái,
+"<p>Dear {{ member_name }},</p>
+
+<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>
+
+<p>Thanks,</p>
+<p>Frappe Learning</p>","<p>Kính gửi {{ member_name }},</p>
+
+<p>Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.</p>
+
+<p>Cảm ơn,</p>
+<p>Frappe Learning</p>",
+5 mini-games available,Có sẵn 5 trò chơi nhỏ,
+All Badges,Tất cả huy hiệu,
+All Time,Mọi thời đại,
+Assignment Avg,Bài tập trung bình,
+badges,huy hiệu,
+Champion,Nhà vô địch,
+Collect them all!,Thu thập tất cả!,
+Courses Done,Khóa học đã hoàn thành,
+"Dear {{ member_name }},
+
+You have been enrolled in our upcoming batch {{ batch_name }}.
+
+Thanks,
+Frappe Learning","Kính gửi {{ member_name }},
+
+Bạn đã được đăng ký vào đợt {{ batch_name }} sắp tới của chúng tôi.
+
+Cảm ơn,
+Frappe Learning",
+earned,đã đạt,
+Earned,Đã đạt,
+learned,đã học,
+Learning Streak,Chuỗi ngày học,
+Performance Breakdown,Phân tích hiệu suất,
+Play Games,Chơi trò chơi,
+Quick Actions,Thao tác nhanh,
+Quiz Avg,Câu đố trung bình,
+See your ranking,Xem thứ hạng của bạn,
+Start learning to earn badges!,Bắt đầu học để kiếm huy hiệu!,
+streak,chuỗi,
+Study Hours,Giờ học,
+This Month,Tháng này,
+This Week,Tuần này,
+You,Bạn,

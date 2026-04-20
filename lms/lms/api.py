@@ -407,7 +407,9 @@ def get_sidebar_settings():
 		"statistics",
 		"notifications",
 		"programming_exercises",
+		"ai_integration",
 		"ai_grading",
+		"game_center",
 	]
 	sidebar_items = frappe._dict({item: lms_settings.get(item) for item in items})
 
@@ -1960,6 +1962,322 @@ def get_my_courses():
 	return my_courses
 
 
+@frappe.whitelist()
+def get_home_stats():
+	"""Get student home dashboard stats."""
+	user = frappe.session.user
+
+	# Count lessons from enrolled courses
+	enrolled_courses = frappe.get_all(
+		"LMS Enrollment",
+		filters={"member": user},
+		pluck="course",
+	)
+
+	total_lessons = 0
+	if enrolled_courses:
+		total_lessons = frappe.db.sql(
+			"""SELECT COALESCE(SUM(lesson_count), 0) FROM `tabLMS Course`
+			   WHERE name IN %s""",
+			[enrolled_courses],
+		)[0][0]
+
+	# Count completed lessons
+	completed_lessons = 0
+	if frappe.db.exists("DocType", "LMS Course Progress"):
+		completed_lessons = frappe.db.count(
+			"LMS Course Progress",
+			{"member": user},
+		)
+
+	# Count quizzes from enrolled courses
+	pending_quizzes = 0
+	if enrolled_courses:
+		pending_quizzes = frappe.db.count(
+			"LMS Quiz",
+			{"course": ["in", enrolled_courses]},
+		)
+
+	# Count assignments from enrolled courses
+	total_assignments = 0
+	if enrolled_courses and frappe.db.exists("DocType", "LMS Assignment"):
+		total_assignments = frappe.db.count(
+			"LMS Assignment",
+			{"course": ["in", enrolled_courses]},
+		)
+
+	return {
+		"total_lessons": cint(total_lessons),
+		"completed_lessons": cint(completed_lessons),
+		"lesson_progress": round(
+			(cint(completed_lessons) / cint(total_lessons) * 100) if total_lessons else 0, 0
+		),
+		"total_quizzes": cint(pending_quizzes),
+		"total_assignments": cint(total_assignments),
+	}
+
+
+@frappe.whitelist()
+def get_performance_stats(member=None):
+	"""Get student performance statistics."""
+	if not member:
+		member = frappe.session.user
+
+	# Average Quiz Score
+	quiz_data = frappe.db.get_all("LMS Quiz Submission", filters={"member": member}, fields=["percentage"])
+	avg_quiz_score = 0
+	if quiz_data:
+		avg_quiz_score = round(sum(q.percentage for q in quiz_data) / len(quiz_data), 1)
+
+	# Average Assignment Score (only graded: Pass/Fail with a score)
+	assignment_data = frappe.db.get_all(
+		"LMS Assignment Submission",
+		filters={"member": member, "status": ["in", ["Pass", "Fail"]]},
+		fields=["numeric_score", "score_out_of"],
+	)
+	avg_assignment_score = 0
+	if assignment_data:
+		scored = [
+			(flt(a.numeric_score) / flt(a.score_out_of) * 100)
+			for a in assignment_data
+			if flt(a.score_out_of) > 0
+		]
+		avg_assignment_score = round(sum(scored) / len(scored), 1) if scored else 0
+
+	# Overall Completion (average of LMS Enrollment progress)
+	enrollment_data = frappe.db.get_all("LMS Enrollment", filters={"member": member}, fields=["progress"])
+	overall_completion = 0
+	if enrollment_data:
+		overall_completion = round(sum(flt(e.progress) for e in enrollment_data) / len(enrollment_data), 1)
+
+	return {
+		"avg_quiz_score": avg_quiz_score,
+		"avg_assignment_score": avg_assignment_score,
+		"overall_completion": overall_completion,
+	}
+
+
+@frappe.whitelist()
+def get_hours_spent(member=None):
+	"""Get total hours spent watching videos."""
+	if not member:
+		member = frappe.session.user
+
+	total_seconds = frappe.db.get_value(
+		"LMS Video Watch Duration", {"member": member}, "SUM(CAST(watch_time AS DECIMAL(16,2)))"
+	) or 0
+
+	total_seconds = flt(total_seconds)
+	total_hours = round(total_seconds / 3600, 1)
+
+	hours = int(total_seconds // 3600)
+	minutes = int((total_seconds % 3600) // 60)
+	display_time = f"{hours}h {minutes}m"
+
+	# Per-course breakdown (top 5)
+	course_breakdown = frappe.db.sql(
+		"""SELECT course, COALESCE(SUM(CAST(watch_time AS DECIMAL(16,2))), 0) as total_seconds
+		   FROM `tabLMS Video Watch Duration`
+		   WHERE member = %s AND course IS NOT NULL
+		   GROUP BY course ORDER BY total_seconds DESC LIMIT 5""",
+		[member],
+		as_dict=True,
+	)
+
+	for row in course_breakdown:
+		row.course_title = frappe.db.get_value("LMS Course", row.course, "title") or ""
+		row.total_hours = round(flt(row.total_seconds) / 3600, 1)
+
+	return {
+		"total_seconds": total_seconds,
+		"total_hours": total_hours,
+		"display_time": display_time,
+		"course_breakdown": course_breakdown,
+	}
+
+
+@frappe.whitelist()
+def get_admin_performance_stats():
+	"""Get aggregate performance stats for admin's batches."""
+	roles = frappe.get_roles()
+	is_moderator = "Moderator" in roles
+
+	# Get batches where current user is instructor
+	batches = []
+	if is_moderator:
+		batches = frappe.get_all("LMS Batch", pluck="name")
+	else:
+		batches = frappe.get_all("Course Instructor", {"instructor": frappe.session.user}, pluck="parent")
+
+	if not batches:
+		return {
+			"total_students": 0,
+			"avg_completion": 0,
+			"avg_quiz_score": 0,
+			"avg_assignment_score": 0,
+			"total_hours": 0,
+		}
+
+	members = frappe.get_all("LMS Batch Enrollment", {"batch": ["in", batches]}, pluck="member")
+	members = list(set(members))
+
+	if not members:
+		return {
+			"total_students": 0,
+			"avg_completion": 0,
+			"avg_quiz_score": 0,
+			"avg_assignment_score": 0,
+			"total_hours": 0,
+		}
+
+	avg_completion = frappe.db.sql(
+		"SELECT AVG(progress) FROM `tabLMS Enrollment` WHERE member IN %s", [members]
+	)[0][0] or 0
+
+	avg_quiz = frappe.db.sql(
+		"SELECT AVG(percentage) FROM `tabLMS Quiz Submission` WHERE member IN %s", [members]
+	)[0][0] or 0
+
+	avg_assignment = frappe.db.sql(
+		"""SELECT AVG(numeric_score / NULLIF(score_out_of, 0) * 100)
+		   FROM `tabLMS Assignment Submission`
+		   WHERE member IN %s AND status IN ('Pass', 'Fail') AND score_out_of > 0""",
+		[members],
+	)[0][0] or 0
+
+	total_hours = frappe.db.sql(
+		"""SELECT COALESCE(SUM(CAST(watch_time AS DECIMAL(16,2))), 0) / 3600
+		   FROM `tabLMS Video Watch Duration` WHERE member IN %s""",
+		[members],
+	)[0][0] or 0
+
+	return {
+		"total_students": len(members),
+		"avg_completion": round(flt(avg_completion), 1),
+		"avg_quiz_score": round(flt(avg_quiz), 1),
+		"avg_assignment_score": round(flt(avg_assignment), 1),
+		"total_hours": round(flt(total_hours), 1),
+	}
+
+
+def calculate_composite_score(member):
+	"""Calculate composite score for a member.
+
+	Formula:
+		Score = (0.30 * avg_quiz_pct)
+		      + (0.25 * avg_assignment_pct)
+		      + (0.25 * completion_pct)
+		      + (0.10 * min(streak / 30, 1) * 100)
+		      + (0.10 * min(hours / 100, 1) * 100)
+	"""
+	W_QUIZ = 0.30
+	W_ASSIGNMENT = 0.25
+	W_COMPLETION = 0.25
+	W_STREAK = 0.10
+	W_HOURS = 0.10
+	STREAK_CAP = 30
+	HOURS_CAP = 100
+
+	# Quiz score
+	quiz_data = frappe.db.get_all("LMS Quiz Submission", filters={"member": member}, fields=["percentage"])
+	avg_quiz_pct = 0
+	if quiz_data:
+		avg_quiz_pct = sum(q.percentage for q in quiz_data) / len(quiz_data)
+
+	# Assignment score
+	assignment_data = frappe.db.get_all(
+		"LMS Assignment Submission",
+		filters={"member": member, "status": ["in", ["Pass", "Fail"]]},
+		fields=["numeric_score", "score_out_of"],
+	)
+	avg_assignment_pct = 0
+	if assignment_data:
+		scored = [
+			(flt(a.numeric_score) / flt(a.score_out_of) * 100)
+			for a in assignment_data
+			if flt(a.score_out_of) > 0
+		]
+		avg_assignment_pct = sum(scored) / len(scored) if scored else 0
+
+	# Completion percentage
+	enrollment_data = frappe.db.get_all("LMS Enrollment", filters={"member": member}, fields=["progress"])
+	completion_pct = 0
+	if enrollment_data:
+		completion_pct = sum(flt(e.progress) for e in enrollment_data) / len(enrollment_data)
+
+	# Streak
+	all_dates = fetch_activity_dates(member)
+	streak, _ = calculate_streaks(all_dates)
+	current_streak = calculate_current_streak(all_dates, streak)
+
+	# Hours spent
+	total_seconds = frappe.db.get_value(
+		"LMS Video Watch Duration", {"member": member}, "SUM(CAST(watch_time AS DECIMAL(16,2)))"
+	) or 0
+	total_hours = flt(total_seconds) / 3600
+
+	streak_score = min(current_streak / STREAK_CAP, 1) * 100
+	hours_score = min(total_hours / HOURS_CAP, 1) * 100
+
+	composite_score = round(
+		(W_QUIZ * avg_quiz_pct)
+		+ (W_ASSIGNMENT * avg_assignment_pct)
+		+ (W_COMPLETION * completion_pct)
+		+ (W_STREAK * streak_score)
+		+ (W_HOURS * hours_score),
+		1,
+	)
+
+	return {
+		"composite_score": composite_score,
+		"avg_quiz_score": round(avg_quiz_pct, 1),
+		"avg_assignment_score": round(avg_assignment_pct, 1),
+		"completion_pct": round(completion_pct, 1),
+		"streak_days": current_streak,
+		"hours_spent": round(total_hours, 1),
+	}
+
+
+@frappe.whitelist()
+def get_leaderboard(batch=None, limit=10):
+	"""Get leaderboard with composite scores."""
+	limit = cint(limit)
+
+	if batch:
+		members = frappe.get_all("LMS Batch Enrollment", {"batch": batch}, pluck="member")
+	else:
+		members = frappe.get_all("LMS Enrollment", group_by="member", pluck="member")
+
+	if not members:
+		return []
+
+	leaderboard = []
+	for member in members:
+		stats = calculate_composite_score(member)
+		stats["member"] = member
+		leaderboard.append(stats)
+
+	leaderboard.sort(key=lambda x: x["composite_score"], reverse=True)
+
+	# Assign ranks (handle ties)
+	for i, entry in enumerate(leaderboard):
+		if i > 0 and entry["composite_score"] == leaderboard[i - 1]["composite_score"]:
+			entry["rank"] = leaderboard[i - 1]["rank"]
+		else:
+			entry["rank"] = i + 1
+
+	# Enrich with user details (only for top N)
+	for entry in leaderboard[:limit]:
+		user_data = frappe.db.get_value(
+			"User", entry["member"], ["full_name", "user_image", "username"], as_dict=True
+		)
+		entry["member_name"] = user_data.full_name if user_data else ""
+		entry["member_image"] = user_data.user_image if user_data else ""
+		entry["username"] = user_data.username if user_data else ""
+
+	return leaderboard[:limit]
+
+
 def get_my_latest_courses():
 	return frappe.get_all(
 		"LMS Enrollment",
@@ -2303,7 +2621,7 @@ def get_ai_grading_session_detail(session):
 @frappe.whitelist()
 def get_ai_grading_submissions(session):
 	"""Get all submissions for a given session."""
-	return frappe.get_all(
+	submissions = frappe.get_all(
 		"AI Grading Submission",
 		filters={"session": session},
 		fields=[
@@ -2318,6 +2636,46 @@ def get_ai_grading_submissions(session):
 		],
 		order_by="creation asc",
 	)
+
+	for submission in submissions:
+		submission.paper_images = _get_ai_grading_submission_paper_images(
+			submission.name,
+			submission.paper_image,
+		)
+
+	return submissions
+
+
+def _is_ai_grading_image_file(file_url):
+	if not file_url:
+		return False
+
+	file_url = file_url.lower()
+	return file_url.endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"))
+
+
+def _get_ai_grading_submission_paper_images(submission_name, primary_image=None):
+	images = []
+	if primary_image:
+		images.append(primary_image)
+
+	attached_files = frappe.get_all(
+		"File",
+		filters={
+			"attached_to_doctype": "AI Grading Submission",
+			"attached_to_name": submission_name,
+			"is_private": 0,
+		},
+		fields=["file_url"],
+		order_by="creation asc",
+	)
+
+	for file_doc in attached_files:
+		file_url = getattr(file_doc, "file_url", None)
+		if file_url and _is_ai_grading_image_file(file_url) and file_url not in images:
+			images.append(file_url)
+
+	return images
 
 
 @frappe.whitelist()
@@ -2371,8 +2729,12 @@ def add_ai_grading_submission(
 	paper_image=None,
 	paper_image_data=None,
 	paper_image_name=None,
+	paper_images_data=None,
+	paper_images_names=None,
 ):
 	"""Add one student submission to an existing AI grading session."""
+	import json
+
 	if not session or not frappe.db.exists("AI Grading Session", session):
 		frappe.throw(_("AI Grading Session not found or session ID is missing. Got: {0}").format(session))
 
@@ -2381,6 +2743,32 @@ def add_ai_grading_submission(
 		frappe.throw(_("Student is required."))
 
 	student_sbd = (student_sbd or "").strip()
+	image_payloads = []
+	image_names = []
+
+	if isinstance(paper_images_data, str):
+		try:
+			parsed_images = json.loads(paper_images_data)
+			if isinstance(parsed_images, list):
+				image_payloads = parsed_images
+		except Exception:
+			image_payloads = [paper_images_data]
+	elif isinstance(paper_images_data, list):
+		image_payloads = paper_images_data
+
+	if isinstance(paper_images_names, str):
+		try:
+			parsed_names = json.loads(paper_images_names)
+			if isinstance(parsed_names, list):
+				image_names = parsed_names
+		except Exception:
+			image_names = [paper_images_names]
+	elif isinstance(paper_images_names, list):
+		image_names = paper_images_names
+
+	if not image_payloads and paper_image_data:
+		image_payloads = [paper_image_data]
+		image_names = [paper_image_name]
 
 	user_name = student
 	if not frappe.db.exists("User", user_name):
@@ -2414,15 +2802,27 @@ def add_ai_grading_submission(
 		if student_sbd and frappe.db.has_column("AI Grading Submission", "student_sbd"):
 			doc.student_sbd = student_sbd
 		doc.status = "Pending"
-		if paper_image_data and not paper_image:
+		doc.insert()
+		saved_image_urls = []
+		for idx, image_payload in enumerate(image_payloads):
+			image_name = image_names[idx] if idx < len(image_names) else None
 			try:
-				paper_image = _save_ai_grading_submission_image_data(paper_image_data, paper_image_name)
+				image_url = _save_ai_grading_submission_image_data(
+					image_payload,
+					image_name,
+					attached_to_doctype=doc.doctype,
+					attached_to_name=doc.name,
+				)
 			except Exception:
 				frappe.log_error(frappe.get_traceback(), "AI Grading Image Upload Error")
-				paper_image = None
-		if paper_image:
-			doc.paper_image = paper_image
-		doc.insert()
+				image_url = None
+			if image_url:
+				saved_image_urls.append(image_url)
+		if not saved_image_urls and paper_image:
+			saved_image_urls = [paper_image]
+		if saved_image_urls and doc.paper_image != saved_image_urls[0]:
+			doc.paper_image = saved_image_urls[0]
+			doc.save(ignore_permissions=True)
 	except frappe.exceptions.ValidationError as ve:
 		frappe.log_error(frappe.get_traceback(), "add_ai_grading_submission ValidationError")
 		frappe.throw(str(ve))
@@ -2439,7 +2839,12 @@ def add_ai_grading_submission(
 	}
 
 
-def _save_ai_grading_submission_image_data(data_url, file_name=None):
+def _save_ai_grading_submission_image_data(
+	data_url,
+	file_name=None,
+	attached_to_doctype=None,
+	attached_to_name=None,
+):
 	"""Persist image payload and return file URL. Returns None when payload is invalid."""
 	if not data_url:
 		return None
@@ -2480,6 +2885,8 @@ def _save_ai_grading_submission_image_data(data_url, file_name=None):
 			"content": content_bytes,
 			"decode": False,
 			"is_private": False,
+			"attached_to_doctype": attached_to_doctype,
+			"attached_to_name": attached_to_name,
 		}
 	)
 	file_doc.save(ignore_permissions=True)
@@ -2797,3 +3204,254 @@ def send_ai_grading_result_email(submission):
 	return True
 
 
+@frappe.whitelist()
+def get_gradebook_data(course=None, batch=None):
+	"""Fetch student grades aggregated by categories defined in Gradebook Settings."""
+	if not course or not batch:
+		return []
+
+	# 1. Get Gradebook Settings
+	settings = frappe.get_all("LMS Gradebook Settings", 
+		filters={"course": course, "batch": batch}, 
+		fields=["name", "grading_method", "passing_grade"]
+	)
+	
+	if not settings:
+		# Default settings or return empty if not configured
+		return []
+	
+	settings_name = settings[0].name
+	categories = frappe.get_all("LMS Gradebook Category", 
+		filters={"parent": settings_name}, 
+		fields=["category_name", "weight", "assessment_type", "drop_lowest"]
+	)
+
+	# 2. Get Students in Batch
+	enrollments = frappe.get_all("LMS Batch Enrollment", 
+		filters={"batch": batch}, 
+		fields=["member", "member_name"]
+	)
+
+	gradebook = []
+
+	for enr in enrollments:
+		student_id = enr.member
+		student_name = enr.member_name
+
+		student_data = {
+			"id": student_id,
+			"name": student_name,
+			"total": 0
+		}
+
+		# Initialize category scores
+		for cat in categories:
+			student_data[cat.category_name.lower()] = 0
+
+		# 3. Fetch Evaluations (Teacher Grading)
+		evaluations = frappe.get_all("LMS Teacher Evaluation",
+			filters={"student": student_id, "course": course, "batch": batch},
+			fields=["overall_rating", "outcome_assessments"]
+		)
+
+		# 4. Fetch AI Submissions
+		ai_submissions = frappe.get_all("AI Grading Submission",
+			filters={"student": student_id, "status": "Done"},
+			fields=["score", "session"]
+		)
+
+		# Logic to map scores to categories would go here.
+		# For now, let's implement a basic version that aggregates some scores.
+		total_weighted_score = 0
+		
+		# Simple mapping logic (Example: matching category name to evaluation period)
+		for cat in categories:
+			cat_name = cat.category_name.lower()
+			weight = cat.weight / 100.0
+			
+			# Filter evaluations or submissions that belong to this category
+			# This is a bit simplified for now.
+			category_score = 0
+			count = 0
+			
+			if "quiz" in cat_name:
+				# Sum up quiz scores
+				pass # TODO: fetch from LMS Quiz Submission
+			elif "midterm" in cat_name or "final" in cat_name:
+				# Match from Teacher Evaluation
+				for ev in evaluations:
+					# Map rating to score (Xuất sắc=10, Giỏi=8.5, Khá=7.0, Đạt=5.0, Chưa đạt=3.0)
+					rating_map = {"Xuất sắc": 10, "Giỏi": 8.5, "Khá": 7, "Đạt": 5, "Chưa đạt": 3}
+					category_score = rating_map.get(ev.overall_rating, 0)
+			
+			student_data[cat_name] = category_score
+			total_weighted_score += category_score * weight
+
+		student_data["total"] = round(total_weighted_score, 2)
+		gradebook.append(student_data)
+
+	return gradebook
+
+
+@frappe.whitelist()
+def get_class_competency_matrix(course, batch):
+	"""Fetch summary of learning outcomes for a batch."""
+	outcomes = frappe.get_all("LMS Learning Outcome", fields=["name", "label"])
+	results = frappe.get_all("LMS Student Outcome Result",
+		filters={"course": course},
+		fields=["learning_outcome", "proficiency_level", "score_percentage"]
+	)
+	
+	matrix = []
+	for outcome in outcomes:
+		outcome_results = [r for r in results if r.learning_outcome == outcome.name]
+		if not outcome_results:
+			continue
+			
+		avg_pct = sum(r.score_percentage for r in outcome_results) / len(outcome_results)
+		
+		matrix.append({
+			"id": outcome.name,
+			"label": outcome.label or outcome.name,
+			"percentage": round(avg_pct, 1)
+		})
+		
+	return matrix
+
+
+@frappe.whitelist()
+def get_student_grades(student=None):
+	"""Fetch all grades for a specific student across their courses."""
+	if not student:
+		student = frappe.session.user
+
+	# Fetch Teacher Evaluations
+	evaluations = frappe.get_all("LMS Teacher Evaluation",
+		filters={"student": student},
+		fields=["name", "course", "overall_rating", "modified"]
+	)
+
+	grades = []
+	for ev in evaluations:
+		course_title = frappe.db.get_value("LMS Course", ev.course, "title")
+		
+		# Map rating to score
+		rating_map = {"Xuất sắc": 10, "Giỏi": 8.5, "Khá": 7, "Đạt": 5, "Chưa đạt": 3}
+		score = rating_map.get(ev.overall_rating, 0)
+		
+		grades.append({
+			"id": ev.name,
+			"name": ev.overall_rating,
+			"course": course_title or ev.course,
+			"date": ev.modified.strftime("%d/%m/%Y") if ev.modified else "",
+			"score": score
+		})
+
+	return grades
+
+
+
+
+@frappe.whitelist()
+def get_game_center_stats():
+	member = frappe.session.user
+	member_name = frappe.get_value("User", member, "full_name") or member
+	score_data = calculate_composite_score(member)
+	streak_data = get_streak_info()
+
+	recent_badges = frappe.get_all(
+		"LMS Badge Assignment",
+		{"member": member},
+		["badge", "badge_image", "badge_description", "issued_on"],
+		order_by="issued_on desc",
+		limit=5,
+	)
+	total_badges = frappe.db.count("LMS Badge Assignment", {"member": member})
+	total_available = frappe.db.count("LMS Badge", {"enabled": 1})
+
+	return {
+		**score_data,
+		**streak_data,
+		"recent_badges": recent_badges,
+		"total_badges": total_badges,
+		"total_available": total_available,
+	}
+
+
+@frappe.whitelist()
+def get_user_badges(member=None):
+	if not member:
+		member = frappe.session.user
+
+	badges = frappe.get_all(
+		"LMS Badge",
+		{"enabled": 1},
+		["name", "title", "image", "description"],
+	)
+
+	earned = frappe.get_all(
+		"LMS Badge Assignment",
+		{"member": member},
+		["badge", "issued_on"],
+	)
+
+	earned_map = {e.badge: e.issued_on for e in earned}
+
+	return [
+		{
+			"name": b.name,
+			"title": b.title,
+			"image": b.image,
+			"description": b.description,
+			"earned": b.name in earned_map,
+			"issued_on": str(earned_map[b.name]) if b.name in earned_map else None,
+		}
+		for b in badges
+	]
+
+@frappe.whitelist()
+def get_user_game_profile():
+	member = frappe.session.user
+	member_name = frappe.get_value("User", member, "full_name") or member
+	score_data = calculate_composite_score(member)
+	streak_data = get_streak_info()
+
+	total_score = score_data.get("composite_score", 0)
+	level = int(total_score // 100) + 1
+	xp_in_level = round(total_score % 100, 1)
+	xp_to_next = 100
+
+	enrollments = frappe.db.get_all(
+		"LMS Enrollment",
+		{"member": member},
+		["course", "progress"],
+		order_by="progress desc",
+		limit_page_length=5,
+	)
+
+	total_courses = frappe.db.count("LMS Enrollment", {"member": member})
+	completed_courses = frappe.db.count("LMS Enrollment", {"member": member, "progress": [">=", 100]})
+
+	quiz_count = frappe.db.count("LMS Quiz Submission", {"member": member})
+	assignment_count = frappe.db.count("LMS Assignment Submission", {"member": member, "status": ["in", ["Pass", "Fail"]]})
+
+	return {
+		"member_name": member_name,
+		"level": level,
+		"xp": xp_in_level,
+		"xp_to_next": xp_to_next,
+		"total_score": total_score,
+		"current_streak": streak_data["current_streak"],
+		"longest_streak": streak_data["longest_streak"],
+		"hours_spent": score_data.get("hours_spent", 0),
+		"avg_quiz_score": score_data.get("avg_quiz_score", 0),
+		"avg_assignment_score": score_data.get("avg_assignment_score", 0),
+		"completion_pct": score_data.get("completion_pct", 0),
+		"total_courses": total_courses,
+		"completed_courses": completed_courses,
+		"quiz_count": quiz_count,
+		"assignment_count": assignment_count,
+		"top_courses": enrollments,
+		"total_badges": frappe.db.count("LMS Badge Assignment", {"member": member}),
+		"total_available": frappe.db.count("LMS Badge", {"enabled": 1}),
+	}
