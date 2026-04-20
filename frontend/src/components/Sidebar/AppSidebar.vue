@@ -206,6 +206,7 @@ import {
 	onMounted,
 	inject,
 	watch,
+	computed,
 	reactive,
 	markRaw,
 	h,

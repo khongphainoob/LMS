@@ -431,8 +431,8 @@ const tabsStructure = computed(() => {
 											type: 'checkbox',
 										},
 										{
-											label: __('AI Grading'),
-											name: 'ai_grading',
+											label: __('AI Integration'),
+											name: 'ai_integration',
 											type: 'checkbox',
 										},
 										{

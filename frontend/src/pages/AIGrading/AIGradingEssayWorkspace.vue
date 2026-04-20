@@ -167,7 +167,29 @@
 				</div>
 
 				<div class="flex-1 overflow-y-auto bg-gray-50 p-6">
+					<div v-if="paperImages.length" class="mx-auto max-w-4xl rounded bg-white p-4 shadow-md">
+						<div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-2">
+							<div>
+								<div class="text-xs font-medium text-gray-700">{{ currentSub.name }}</div>
+								<div class="text-[10px] text-gray-500">{{ currentSub.sbd || currentSub.student_id }}</div>
+							</div>
+							<div
+								v-if="hasMultiplePaperImages"
+								class="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] text-gray-500"
+							>
+								<button class="rounded-full px-2 py-1 transition-colors hover:bg-white hover:text-gray-700" @click="prevPaperPage">←</button>
+								<span class="min-w-14 text-center font-mono">{{ paperPageIndex + 1 }}/{{ paperImages.length }}</span>
+								<button class="rounded-full px-2 py-1 transition-colors hover:bg-white hover:text-gray-700" @click="nextPaperPage">→</button>
+							</div>
+						</div>
+						<img
+							:src="currentPaperImage"
+							:alt="__('Student submission image')"
+							class="max-h-[calc(100vh-11rem)] w-full rounded border border-gray-200 object-contain"
+						/>
+					</div>
 					<div
+						v-else
 						class="mx-auto max-w-xl rounded bg-[#fff9f0] p-8 shadow-md"
 						style="font-family: Georgia, serif"
 					>
@@ -565,6 +587,8 @@ const submissions = computed(() => {
 			name: s.student_name || s.student,
 			score: s.score,
 			status: (s.status || '').toLowerCase() || 'pending',
+			paper_image: s.paper_image,
+			paper_images: s.paper_images,
 			raw: s
 		}))
 	} catch (e) {
@@ -626,6 +650,24 @@ const filteredSubmissions = computed(() => {
 })
 
 const currentSub = computed(() => filteredSubmissions.value[currentIdx.value] || submissions.value[0])
+const paperPageIndex = ref(0)
+const paperImages = computed(() => {
+	const images = currentSub.value?.paper_images
+	if (Array.isArray(images)) return images.filter(Boolean)
+	if (typeof images === 'string' && images.trim()) {
+		try {
+			const parsed = JSON.parse(images)
+			if (Array.isArray(parsed)) return parsed.filter(Boolean)
+		} catch (e) {
+			return [images]
+		}
+		return [images]
+	}
+	if (currentSub.value?.paper_image) return [currentSub.value.paper_image]
+	return []
+})
+const currentPaperImage = computed(() => paperImages.value[paperPageIndex.value] || paperImages.value[0] || '')
+const hasMultiplePaperImages = computed(() => paperImages.value.length > 1)
 
 const approvedCount = computed(() => submissions.value.filter((s) => s.status === 'done').length)
 const flagCount = computed(() => submissions.value.filter((s) => s.status === 'flag').length)
@@ -662,54 +704,45 @@ function statusLabel(status) {
 	return map[status] || status
 }
 
+function nextPaperPage() {
+	if (!paperImages.value.length) return
+	paperPageIndex.value = (paperPageIndex.value + 1) % paperImages.value.length
+}
+
+function prevPaperPage() {
+	if (!paperImages.value.length) return
+	paperPageIndex.value = (paperPageIndex.value - 1 + paperImages.value.length) % paperImages.value.length
+}
+
 // --- Criteria ---
-const criteria = reactive([
-	{
-		name: __('Q2 — Compute Δ correctly'),
-		score: 1.0,
-		max: 1,
-		badge: 'correct',
-		badgeLabel: '✓ AI: Correct',
-		note: 'Δ = 1, computed accurately',
-		highlight: false,
-	},
-	{
-		name: __('Q2 — Compute roots x₁, x₂'),
-		score: 1.0,
-		max: 1,
-		badge: 'correct',
-		badgeLabel: '✓ AI: Correct',
-		note: 'x₁ = 3/2, x₂ = 1 — fully correct',
-		highlight: false,
-	},
-	{
-		name: __('Q2 — Conclusion & solution set'),
-		score: 0.5,
-		max: 1,
-		badge: 'partial',
-		badgeLabel: '~ AI: Partial',
-		note: __('Correctly noted "two distinct roots" but missing S = {1; 3/2}'),
-		highlight: true,
-	},
-	{
-		name: __('Q3 — Definition and formula of Δ'),
-		score: 1.0,
-		max: 1,
-		badge: 'correct',
-		badgeLabel: '✓ AI: Correct',
-		note: __('Definition and formula are accurate'),
-		highlight: false,
-	},
-	{
-		name: __('Q3 — Analysis of 3 cases of Δ'),
-		score: 0.5,
-		max: 1,
-		badge: 'wrong',
-		badgeLabel: '✗ AI: Error found',
-		note: __('Wrong sign: wrote "Δ > 0 no solution" — should be Δ < 0. −0.5'),
-		highlight: false,
-	},
-])
+const criteria = reactive([])
+const defaultCriteria = ref([])
+
+watch(resolvedSessionId, async (newId) => {
+	if (!newId || !sessionDoc.value?.rubric_template) return;
+	try {
+		const res = await frappe.call({
+			method: 'frappe.client.get',
+			args: {
+				doctype: 'LMS Rubric Template',
+				name: sessionDoc.value.rubric_template
+			}
+		});
+		if (res?.message?.criteria) {
+			defaultCriteria.value = res.message.criteria.map(c => ({
+				name: c.criterion_name,
+				score: 0.0,
+				max: c.max_score,
+				badge: '',
+				badgeLabel: '',
+				note: '',
+				highlight: false
+			}));
+		}
+	} catch (e) {
+		console.log('No rubric found', e);
+	}
+}, { immediate: true })
 
 const totalScore = computed(() => {
 	return Math.min(10, criteria.reduce((sum, c) => sum + (c.score || 0), 0))
@@ -901,9 +934,14 @@ async function addStudent() {
 	try {
 		let paperImageData = null
 		let paperImageName = null
-		if (newStudent.images.length > 0 && newStudent.images[0]?.file) {
-			paperImageData = await fileToDataUrl(newStudent.images[0].file)
-			paperImageName = newStudent.images[0].file.name
+		let paperImagesData = []
+		let paperImagesNames = []
+		const imageFiles = newStudent.images.filter((img) => img?.file)
+		if (imageFiles.length > 0) {
+			paperImagesData = await Promise.all(imageFiles.map((img) => fileToDataUrl(img.file)))
+			paperImagesNames = imageFiles.map((img) => img.file.name)
+			paperImageData = paperImagesData[0] || null
+			paperImageName = paperImagesNames[0] || null
 		}
 
 		const result = await addStudentResource.submit({
@@ -913,6 +951,8 @@ async function addStudent() {
 			student_sbd: newStudent.sbd?.trim() || null,
 			paper_image_data: paperImageData,
 			paper_image_name: paperImageName,
+			paper_images_data: paperImagesData,
+			paper_images_names: paperImagesNames,
 		})
 		if (result?.already_exists) {
 			window.alert(__('This student is already in the current session.'))
@@ -929,6 +969,7 @@ async function addStudent() {
 
 // Watch current submission and load feedback
 watch(currentSub, (newVal) => {
+	paperPageIndex.value = 0
 	if (!newVal) return
 	const raw = newVal.raw
 	if (raw) {
@@ -938,13 +979,16 @@ watch(currentSub, (newVal) => {
 		// Load criteria from ai_feedback if present
 		if (raw.ai_feedback) {
 			try {
-				const parsed = JSON.parse(raw.ai_feedback)
+				const parsed = typeof raw.ai_feedback === 'string' ? JSON.parse(raw.ai_feedback) : raw.ai_feedback
 				if (parsed.criteria) {
 					criteria.splice(0, criteria.length, ...parsed.criteria)
 				}
 			} catch (e) {
 				console.error("Failed to parse AI feedback JSON", e)
+				criteria.splice(0, criteria.length, ...JSON.parse(JSON.stringify(defaultCriteria.value)))
 			}
+		} else {
+			criteria.splice(0, criteria.length, ...JSON.parse(JSON.stringify(defaultCriteria.value)))
 		}
 	}
 }, { immediate: true })

@@ -1,54 +1,75 @@
-﻿<template>
-	<div class="flex h-full flex-col relative">
-		<div class="h-full pb-10" id="scrollContainer">
+<template>
+	<div class="flex h-full flex-col relative bg-surface-white">
+		<!-- Top Navigation Bar for mobile -->
+		<div class="fixed top-0 left-0 w-full flex items-center justify-between px-4 py-3 border-b border-outline-gray-2 bg-surface-white z-20 shadow-sm">
+			<div class="text-lg font-semibold text-ink-gray-9 tracking-tight">TOMOSA</div>
+			<button @click.stop="toggleMenu" class="p-1 transition active:scale-95">
+				<component
+					:is="icons['Menu']"
+					class="h-6 w-6 stroke-1.5 text-ink-gray-9"
+				/>
+			</button>
+		</div>
+
+		<!-- Scroll Content Area (Push down by top bar) -->
+		<div class="h-full pt-[60px]" id="scrollContainer">
 			<slot />
 		</div>
 
-		<div class="relative z-20">
-			<!-- Dropdown menu -->
+		<!-- Vertical Sidebar Drawer -->
+		<div class="relative z-50">
+			<!-- Backdrop Overlay -->
 			<div
-				class="fixed bottom-16 right-2 w-[80%] rounded-md bg-surface-white text-base p-5 space-y-4 shadow-md"
 				v-if="showMenu"
+				class="fixed inset-0 bg-ink-gray-9/30 backdrop-blur-sm transition-opacity"
+				@click="showMenu = false"
+			></div>
+
+			<!-- Right-aligned sliding drawer -->
+			<div
+				class="fixed top-0 right-0 h-full w-[280px] bg-surface-white shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col"
+				:class="showMenu ? 'translate-x-0' : 'translate-x-full'"
 				ref="menu"
 			>
-				<div
-					v-for="link in otherLinks"
-					:key="link.label"
-					class="flex items-center space-x-2 cursor-pointer"
-					@click="handleClick(link)"
-				>
-					<component
-						:is="icons[link.icon]"
-						class="h-4 w-4 stroke-1.5 text-ink-gray-5"
-					/>
-					<div>{{ link.label }}</div>
+				<div class="flex items-center justify-between p-4 border-b border-outline-gray-2">
+					<span class="font-medium text-lg text-ink-gray-9">Menu</span>
+					<button @click="showMenu = false" class="p-1 transition active:scale-95">
+						<component :is="icons['X']" class="h-6 w-6 stroke-1.5 text-ink-gray-7" />
+					</button>
 				</div>
-			</div>
 
-			<!-- Fixed menu -->
-			<div
-				v-if="sidebarSettings.data"
-				class="fixed bottom-0 left-0 w-full flex items-center justify-around border-t border-outline-gray-2 bg-surface-white standalone:pb-4 z-10"
-			>
-				<button
-					v-for="tab in sidebarLinks"
-					:key="tab.label"
-					:class="isVisible(tab) ? 'block' : 'hidden'"
-					class="flex flex-col items-center justify-center py-3 transition active:scale-95"
-					@click="handleClick(tab)"
-				>
-					<component
-						:is="icons[tab.icon]"
-						class="h-6 w-6 stroke-1.5"
-						:class="[isActive(tab) ? 'text-ink-gray-9' : 'text-ink-gray-5']"
-					/>
-				</button>
-				<button @click="toggleMenu">
-					<component
-						:is="icons['List']"
-						class="h-6 w-6 stroke-1.5 text-ink-gray-5"
-					/>
-				</button>
+				<div class="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+					<div
+						v-for="tab in sidebarLinks"
+						:key="tab.label"
+						v-show="isVisible(tab)"
+						class="flex items-center space-x-3 px-3 py-3 rounded-md cursor-pointer transition-colors"
+						:class="isActive(tab) ? 'bg-surface-gray-2 text-ink-gray-9 font-medium' : 'text-ink-gray-7 hover:bg-surface-gray-1'"
+						@click="handleClick(tab); showMenu = false;"
+					>
+						<component
+							:is="icons[tab.icon]"
+							class="h-5 w-5 stroke-1.5"
+							:class="isActive(tab) ? 'text-ink-gray-9' : 'text-ink-gray-5'"
+						/>
+						<span>{{ tab.label }}</span>
+					</div>
+
+					<div v-if="otherLinks.length > 0" class="h-px bg-outline-gray-2 my-4"></div>
+
+					<div
+						v-for="link in otherLinks"
+						:key="link.label"
+						class="flex items-center space-x-3 px-3 py-3 rounded-md cursor-pointer text-ink-gray-7 hover:bg-surface-gray-1 transition-colors"
+						@click="handleClick(link); showMenu = false;"
+					>
+						<component
+							:is="icons[link.icon]"
+							class="h-5 w-5 stroke-1.5 text-ink-gray-5"
+						/>
+						<span>{{ link.label }}</span>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -57,7 +78,7 @@
 import { getSidebarLinks } from '@/utils'
 import { useRouter } from 'vue-router'
 import { call } from 'frappe-ui'
-import { watch, ref, onMounted } from 'vue'
+import { watch, ref, onMounted, computed } from 'vue'
 import { sessionStore } from '@/stores/session'
 import { useSettings } from '@/stores/settings'
 import { usersStore } from '@/stores/user'

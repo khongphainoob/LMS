@@ -1,77 +1,60 @@
 <template>
 	<div>
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-5 mt-10">
-			<UpcomingEvaluations :forHome="true" />
-			<div v-if="myLiveClasses.data?.length">
-				<div class="font-semibold text-lg mb-3 text-ink-gray-9">
-					{{ __('Upcoming Live Classes') }}
-				</div>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-					<div
-						v-for="cls in myLiveClasses.data"
-						class="border border-outline-gray-2 bg-surface-white hover:shadow-md hover:-translate-y-1 transition-all duration-300 shadow-sm rounded-xl p-5"
-					>
-						<div class="font-semibold text-ink-gray-9 text-lg leading-5 mb-1">
-							{{ cls.title }}
-						</div>
-						<div class="text-ink-gray-5 leading-5 mb-4">
-							{{ cls.description }}
-						</div>
-						<div class="mt-auto space-y-4 text-ink-gray-7">
-							<div class="flex items-center space-x-2">
-								<Calendar class="w-4 h-4 stroke-1.5" />
-								<span>
-									{{ dayjs(cls.date).format('DD MMMM YYYY') }}
-								</span>
-							</div>
-							<div class="flex items-center space-x-2">
-								<Clock class="w-4 h-4 stroke-1.5" />
-								<span>
-									{{ formatTime(cls.time) }} -
-									{{ dayjs(getClassEnd(cls)).format('HH:mm A') }}
-								</span>
-							</div>
-							<div
-								v-if="canAccessClass(cls)"
-								class="flex items-center space-x-2 text-ink-gray-9 mt-auto"
-							>
-								<a
-									v-if="user.data?.is_moderator || user.data?.is_evaluator"
-									:href="cls.start_url"
-									target="_blank"
-									class="cursor-pointer inline-flex items-center justify-center gap-2 transition-colors focus:outline-none text-ink-gray-8 bg-surface-gray-2 hover:bg-surface-gray-3 active:bg-surface-gray-4 focus-visible:ring focus-visible:ring-outline-gray-3 h-7 text-base px-2 rounded"
-									:class="cls.join_url ? 'w-full' : 'w-1/2'"
-								>
-									<Monitor class="h-4 w-4 stroke-1.5" />
-									{{ __('Start') }}
-								</a>
-								<a
-									:href="cls.join_url"
-									target="_blank"
-									class="w-full cursor-pointer inline-flex items-center justify-center gap-2 transition-colors focus:outline-none text-ink-gray-8 bg-surface-gray-2 hover:bg-surface-gray-3 active:bg-surface-gray-4 focus-visible:ring focus-visible:ring-outline-gray-3 h-7 text-base px-2 rounded"
-								>
-									<Video class="h-4 w-4 stroke-1.5" />
-									{{ __('Join') }}
-								</a>
-							</div>
-							<Tooltip
-								v-else-if="hasClassEnded(cls)"
-								:text="__('This class has ended')"
-								placement="right"
-							>
-								<div class="flex items-center space-x-2 text-ink-amber-3 w-fit">
-									<Info class="w-4 h-4 stroke-1.5" />
-									<span>
-										{{ __('Ended') }}
-									</span>
-								</div>
-							</Tooltip>
-						</div>
-					</div>
-				</div>
-			</div>
+		<!-- Stat Cards Row 1: Overview -->
+		<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+			<StatCard
+				:label="__('Lessons')"
+				:count="homeStats.data?.total_lessons || 0"
+				:progress="homeStats.data?.lesson_progress || 0"
+				color="orange"
+			/>
+			<StatCard
+				:label="__('Assignments')"
+				:count="homeStats.data?.total_assignments || 0"
+				:progress="0"
+				color="pink"
+			/>
+			<StatCard
+				:label="__('Quizzes')"
+				:count="homeStats.data?.total_quizzes || 0"
+				:progress="0"
+				color="green"
+			/>
 		</div>
 
+		<!-- Stat Cards Row 2: Performance & Hours -->
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+			<StatCard
+				:label="__('Avg Quiz Score')"
+				:count="performanceStats.data?.avg_quiz_score || 0"
+				:progress="performanceStats.data?.avg_quiz_score || 0"
+				suffix="%"
+				color="blue"
+			/>
+			<StatCard
+				:label="__('Avg Assignment Score')"
+				:count="performanceStats.data?.avg_assignment_score || 0"
+				:progress="performanceStats.data?.avg_assignment_score || 0"
+				suffix="%"
+				color="amber"
+			/>
+			<StatCard
+				:label="__('Overall Completion')"
+				:count="performanceStats.data?.overall_completion || 0"
+				:progress="performanceStats.data?.overall_completion || 0"
+				suffix="%"
+				color="pink"
+			/>
+			<StatCard
+				:label="__('Hours Spent')"
+				:count="hoursSpent.data?.total_hours || 0"
+				:progress="Math.min(hoursSpent.data?.total_hours || 0, 100)"
+				suffix="h"
+				color="green"
+			/>
+		</div>
+
+		<!-- My Courses -->
 		<div v-if="myCourses.data?.length">
 			<div class="flex items-center justify-between mb-3">
 				<span class="font-semibold text-lg text-ink-gray-9">
@@ -104,6 +87,7 @@
 			</div>
 		</div>
 
+		<!-- My Batches -->
 		<div v-if="myBatches.data?.length" class="mt-10">
 			<div class="flex items-center justify-between mb-3">
 				<span class="font-semibold text-lg text-ink-gray-9">
@@ -135,6 +119,81 @@
 				</router-link>
 			</div>
 		</div>
+
+		<!-- Upcoming Live Classes -->
+		<div v-if="myLiveClasses.data?.length" class="mt-10">
+			<div class="font-semibold text-lg mb-3 text-ink-gray-9">
+				{{ __('Upcoming Live Classes') }}
+			</div>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+				<div
+					v-for="cls in myLiveClasses.data"
+					class="border border-outline-gray-2 bg-surface-white hover:shadow-md hover:-translate-y-1 transition-all duration-300 shadow-sm rounded-xl p-5"
+				>
+					<div class="font-semibold text-ink-gray-9 text-lg leading-5 mb-1">
+						{{ cls.title }}
+					</div>
+					<div class="text-ink-gray-5 leading-5 mb-4">
+						{{ cls.description }}
+					</div>
+					<div class="mt-auto space-y-4 text-ink-gray-7">
+						<div class="flex items-center space-x-2">
+							<Calendar class="w-4 h-4 stroke-1.5" />
+							<span>
+								{{ dayjs(cls.date).format('DD MMMM YYYY') }}
+							</span>
+						</div>
+						<div class="flex items-center space-x-2">
+							<Clock class="w-4 h-4 stroke-1.5" />
+							<span>
+								{{ formatTime(cls.time) }} -
+								{{ dayjs(getClassEnd(cls)).format('HH:mm A') }}
+							</span>
+						</div>
+						<div
+							v-if="canAccessClass(cls)"
+							class="flex items-center space-x-2 text-ink-gray-9 mt-auto"
+						>
+							<a
+								v-if="user.data?.is_moderator || user.data?.is_evaluator"
+								:href="cls.start_url"
+								target="_blank"
+								class="cursor-pointer inline-flex items-center justify-center gap-2 transition-colors focus:outline-none text-ink-gray-8 bg-surface-gray-2 hover:bg-surface-gray-3 active:bg-surface-gray-4 focus-visible:ring focus-visible:ring-outline-gray-3 h-7 text-base px-2 rounded"
+								:class="cls.join_url ? 'w-full' : 'w-1/2'"
+							>
+								<Monitor class="h-4 w-4 stroke-1.5" />
+								{{ __('Start') }}
+							</a>
+							<a
+								:href="cls.join_url"
+								target="_blank"
+								class="w-full cursor-pointer inline-flex items-center justify-center gap-2 transition-colors focus:outline-none text-ink-gray-8 bg-surface-gray-2 hover:bg-surface-gray-3 active:bg-surface-gray-4 focus-visible:ring focus-visible:ring-outline-gray-3 h-7 text-base px-2 rounded"
+							>
+								<Video class="h-4 w-4 stroke-1.5" />
+								{{ __('Join') }}
+							</a>
+						</div>
+						<Tooltip
+							v-else-if="hasClassEnded(cls)"
+							:text="__('This class has ended')"
+							placement="right"
+						>
+							<div class="flex items-center space-x-2 text-ink-amber-3 w-fit">
+								<Info class="w-4 h-4 stroke-1.5" />
+								<span>
+									{{ __('Ended') }}
+								</span>
+							</div>
+						</Tooltip>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Leaderboard -->
+		<div class="mt-10">
+			<Leaderboard mode="student" />
+		</div>
 	</div>
 </template>
 <script setup lang="ts">
@@ -151,7 +210,8 @@ import {
 } from 'lucide-vue-next'
 import CourseCard from '@/components/CourseCard.vue'
 import BatchCard from '@/components/BatchCard.vue'
-import UpcomingEvaluations from '@/components/UpcomingEvaluations.vue'
+import StatCard from '@/components/StatCard.vue'
+import Leaderboard from '@/pages/Home/Leaderboard.vue'
 
 const dayjs = inject<any>('$dayjs')
 const user = inject<any>('$user')
@@ -159,6 +219,21 @@ const user = inject<any>('$user')
 const props = defineProps<{
 	myLiveClasses: any
 }>()
+
+const homeStats = createResource({
+	url: 'lms.lms.api.get_home_stats',
+	auto: true,
+})
+
+const performanceStats = createResource({
+	url: 'lms.lms.api.get_performance_stats',
+	auto: true,
+})
+
+const hoursSpent = createResource({
+	url: 'lms.lms.api.get_hours_spent',
+	auto: true,
+})
 
 const myCourses = createResource({
 	url: 'lms.lms.api.get_my_courses',

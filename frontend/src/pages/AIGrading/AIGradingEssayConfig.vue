@@ -105,7 +105,7 @@
 		<!-- Session Panel (only for exam type) -->
 		<div
 			v-if="type === 'exam'"
-			class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+			class="rounded-xl border border-gray-100 bg-gray-50 p-5 shadow-sm overflow-hidden"
 		>
 			<div class="mb-4 space-y-3">
 				<div class="flex items-center justify-between">
@@ -127,7 +127,7 @@
 			</div>
 
 			<div 
-				class="space-y-2 max-h-[420px] overflow-y-auto pr-1 scroll-smooth"
+				class="session-list space-y-2 pr-1 scroll-smooth rounded-lg bg-gray-100/60 p-1.5"
 				@scroll="onScroll"
 			>
 				<div
@@ -139,18 +139,18 @@
 				<div
 					v-for="session in sessions"
 					:key="session.id"
-					class="group flex items-center gap-3 rounded-lg border p-3 transition-all border-gray-100 bg-gray-50 shadow-sm"
+					class="session-item group flex flex-wrap items-center gap-3 rounded-lg border p-3 transition-all border-gray-100 bg-gray-50 shadow-sm sm:flex-nowrap"
 					:class="accentClasses.hoverSession"
 				>
 					<div
 						class="h-2 w-2 rounded-full flex-shrink-0"
 						:style="{ background: session.color }"
 					/>
-					<div class="flex-1">
-						<div class="text-sm font-medium text-gray-800 transition-colors" :class="'group-hover:' + accentClasses.text">{{ session.name }}</div>
+					<div class="min-w-0 flex-1">
+						<div class="truncate text-sm font-medium text-gray-800 transition-colors" :class="'group-hover:' + accentClasses.text">{{ session.name }}</div>
 						<div class="text-[11px] text-gray-400 font-mono">{{ session.meta }}</div>
 					</div>
-					<div class="flex items-center gap-1.5 ml-auto">
+					<div class="ml-auto flex w-full flex-wrap items-center justify-end gap-1.5 sm:w-auto sm:flex-nowrap">
 						<button
 							class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 shadow-sm transition-all hover:border-emerald-300 hover:bg-emerald-100"
 							@click.stop="openSession(session)"
@@ -191,7 +191,7 @@
 			</div>
 
 			<button
-				class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-gray-200 bg-transparent py-2.5 text-sm font-medium transition-all"
+				class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-gray-200 bg-gray-100/70 py-2.5 text-sm font-medium transition-all"
 				:class="[accentClasses.text, accentClasses.hoverSession]"
 				@click="showNewSessionModal = true"
 			>
@@ -803,3 +803,29 @@ async function proceed() {
 	}
 }
 </script>
+
+<style scoped>
+.session-list {
+	/* Show exactly 4 rows on desktop: 4 items + 3 gaps */
+	max-height: calc((4.5rem * 4) + (0.5rem * 3));
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	scrollbar-gutter: stable;
+}
+
+.session-item {
+	min-height: 4.5rem;
+}
+
+@media (max-width: 640px) {
+	.session-list {
+		/* Show exactly 3 rows on mobile: 3 items + 2 gaps */
+		max-height: calc((4.25rem * 3) + (0.5rem * 2));
+	}
+
+	.session-item {
+		min-height: 4.25rem;
+	}
+}
+</style>
