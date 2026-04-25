@@ -308,6 +308,21 @@ const routes = [
 		props: true,
 	},
 	{
+		path: '/game',
+		name: 'Games',
+		component: () => import('@/pages/Game/Game.vue'),
+	},
+	{
+		path: '/fruit-ninja-game',
+		name: 'FruitNinjaGame',
+		component: () => import('@/pages/FruitNinjaGame.vue'),
+	},
+	{
+		path: '/duck-race-game',
+		name: 'DuckRaceGame',
+		component: () => import('@/pages/DuckRaceGame.vue'),
+	},
+	{
 		path: '/data-import/:importName',
 		name: 'DataImport',
 		component: () => import('@/pages/DataImport.vue'),

@@ -506,6 +506,12 @@ const getSidebarItems = () => {
 					activeFor: ['Statistics'],
 				},
 				{
+					label: 'Games',
+					icon: 'Gamepad2',
+					to: 'Games',
+					activeFor: ['Games', 'DuckRaceGame', 'FruitNinjaGame'],
+				},
+				{
 					label: 'Contact Us',
 					icon: settings.data?.contact_us_url ? 'Headset' : 'Mail',
 					to: settings.data?.contact_us_url
