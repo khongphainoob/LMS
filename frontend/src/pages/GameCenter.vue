@@ -313,6 +313,8 @@ import TimedQuiz from "@/pages/GameCenter/TimedQuiz.vue"
 import SpinTheWheel from "@/pages/GameCenter/SpinTheWheel.vue"
 import WordScramble from "@/pages/GameCenter/WordScramble.vue"
 import DragDropSort from "@/pages/GameCenter/DragDropSort.vue"
+import DuckRace from "@/pages/GameCenter/DuckRace.vue"
+import FruitNinja from "@/pages/GameCenter/FruitNinja.vue"
 
 const { brand } = sessionStore()
 const dayjs = inject("$dayjs")
@@ -356,7 +358,7 @@ const demoBadges = [
 ]
 
 const quickActions = [
-	{ label: __("Play Games"), tab: "Games", desc: __("5 mini-games available"), icon: Gamepad2, btnClass: "bg-ink-blue-4", cardClass: "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 hover:to-indigo-100", textHover: "group-hover:text-ink-blue-5" },
+	{ label: __("Play Games"), tab: "Games", desc: __("7 mini-games available"), icon: Gamepad2, btnClass: "bg-ink-blue-4", cardClass: "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 hover:to-indigo-100", textHover: "group-hover:text-ink-blue-5" },
 	{ label: __("Leaderboard"), tab: "Leaderboard", desc: __("See your ranking"), icon: Trophy, btnClass: "bg-amber-400", cardClass: "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:from-amber-100 hover:to-orange-100", textHover: "group-hover:text-amber-600" },
 	{ label: __("All Badges"), tab: "Badges", desc: __("Collect them all!"), icon: Award, btnClass: "bg-purple-500", cardClass: "bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 hover:from-purple-100 hover:to-violet-100", textHover: "group-hover:text-purple-600" },
 ]
@@ -417,6 +419,8 @@ const games = [
 	{ id: "spin-wheel", title: __("Spin the Wheel"), description: __("Spin and collect points with luck"), icon: markRaw(Gift), component: markRaw(SpinTheWheel), tag: __("Luck"), bgClass: "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20", iconClass: "text-ink-amber-5", tagClass: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
 	{ id: "word-scramble", title: __("Word Scramble"), description: __("Unscramble letters to find the hidden word"), icon: markRaw(Languages), component: markRaw(WordScramble), tag: __("Word"), bgClass: "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20", iconClass: "text-ink-green-5", tagClass: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" },
 	{ id: "drag-drop", title: __("Drag & Drop"), description: __("Sort items in the correct order"), icon: markRaw(GripVertical), component: markRaw(DragDropSort), tag: __("Sort"), bgClass: "bg-gradient-to-br from-rose-50 to-pink-100 dark:from-rose-900/20 dark:to-pink-900/20", iconClass: "text-ink-red-4", tagClass: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
+	{ id: "duck-race", title: __("Duck Race"), description: __("Answer questions to push your duck to the finish line"), icon: markRaw(Gamepad2), component: markRaw(DuckRace), tag: __("Quiz"), bgClass: "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20", iconClass: "text-ink-amber-5", tagClass: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
+	{ id: "fruit-ninja", title: __("Fruit Ninja"), description: __("Slice the flying fruit before it disappears"), icon: markRaw(Gamepad2), component: markRaw(FruitNinja), tag: __("Arcade"), bgClass: "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20", iconClass: "text-ink-green-5", tagClass: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" },
 ]
 
 const badgeFilters = [

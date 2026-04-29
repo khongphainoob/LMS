@@ -1998,6 +1998,11 @@ def get_home_stats():
 			{"course": ["in", enrolled_courses]},
 		)
 
+	game_sessions = frappe.db.count(
+		"LMS Game Session",
+		{"member": user},
+	)
+
 	# Count assignments from enrolled courses
 	total_assignments = 0
 	if enrolled_courses and frappe.db.exists("DocType", "LMS Assignment"):
@@ -2013,6 +2018,7 @@ def get_home_stats():
 			(cint(completed_lessons) / cint(total_lessons) * 100) if total_lessons else 0, 0
 		),
 		"total_quizzes": cint(pending_quizzes),
+		"game_sessions": cint(game_sessions),
 		"total_assignments": cint(total_assignments),
 	}
 
@@ -2050,10 +2056,16 @@ def get_performance_stats(member=None):
 	if enrollment_data:
 		overall_completion = round(sum(flt(e.progress) for e in enrollment_data) / len(enrollment_data), 1)
 
+	game_data = frappe.db.get_all("LMS Game Session", filters={"member": member}, fields=["percentage"])
+	avg_game_score = 0
+	if game_data:
+		avg_game_score = round(sum(flt(g.percentage) for g in game_data) / len(game_data), 1)
+
 	return {
 		"avg_quiz_score": avg_quiz_score,
 		"avg_assignment_score": avg_assignment_score,
 		"overall_completion": overall_completion,
+		"avg_game_score": avg_game_score,
 	}
 
 
@@ -2175,8 +2187,10 @@ def calculate_composite_score(member):
 	W_COMPLETION = 0.25
 	W_STREAK = 0.10
 	W_HOURS = 0.10
+	W_GAMES = 0.10
 	STREAK_CAP = 30
 	HOURS_CAP = 100
+	GAMES_CAP = 100
 
 	# Quiz score
 	quiz_data = frappe.db.get_all("LMS Quiz Submission", filters={"member": member}, fields=["percentage"])
@@ -2216,8 +2230,19 @@ def calculate_composite_score(member):
 	) or 0
 	total_hours = flt(total_seconds) / 3600
 
+	# Game score
+	game_data = frappe.db.get_all(
+		"LMS Game Session",
+		filters={"member": member},
+		fields=["percentage"],
+	)
+	avg_game_pct = 0
+	if game_data:
+		avg_game_pct = sum(flt(g.percentage) for g in game_data) / len(game_data)
+
 	streak_score = min(current_streak / STREAK_CAP, 1) * 100
 	hours_score = min(total_hours / HOURS_CAP, 1) * 100
+	game_score = min(avg_game_pct / GAMES_CAP, 1) * 100
 
 	composite_score = round(
 		(W_QUIZ * avg_quiz_pct)
@@ -2225,6 +2250,7 @@ def calculate_composite_score(member):
 		+ (W_COMPLETION * completion_pct)
 		+ (W_STREAK * streak_score)
 		+ (W_HOURS * hours_score),
+		+ (W_GAMES * game_score),
 		1,
 	)
 
@@ -2235,6 +2261,7 @@ def calculate_composite_score(member):
 		"completion_pct": round(completion_pct, 1),
 		"streak_days": current_streak,
 		"hours_spent": round(total_hours, 1),
+		"avg_game_score": round(avg_game_pct, 1),
 	}
 
 
@@ -2276,6 +2303,27 @@ def get_leaderboard(batch=None, limit=10):
 		entry["username"] = user_data.username if user_data else ""
 
 	return leaderboard[:limit]
+
+
+@frappe.whitelist()
+def record_game_session(game, score, max_score=100, result="Completed", metadata=None):
+	if not frappe.session.user or frappe.session.user == "Guest":
+		frappe.throw(_("Please log in to save game progress."))
+
+	game_session = frappe.get_doc(
+		{
+			"doctype": "LMS Game Session",
+			"game": game,
+			"member": frappe.session.user,
+			"score": cint(score),
+			"max_score": cint(max_score) or 100,
+			"result": result,
+			"metadata": metadata or {},
+		}
+	)
+	game_session.insert(ignore_permissions=True)
+	frappe.db.commit()
+	return {"name": game_session.name, "percentage": game_session.percentage}
 
 
 def get_my_latest_courses():

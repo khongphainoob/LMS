@@ -46,6 +46,13 @@
 				color="pink"
 			/>
 			<StatCard
+				:label="__('Game XP')"
+				:count="performanceStats.data?.avg_game_score || 0"
+				:progress="performanceStats.data?.avg_game_score || 0"
+				suffix="%"
+				color="purple"
+			/>
+			<StatCard
 				:label="__('Hours Spent')"
 				:count="hoursSpent.data?.total_hours || 0"
 				:progress="Math.min(hoursSpent.data?.total_hours || 0, 100)"
