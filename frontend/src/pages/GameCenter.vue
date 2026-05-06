@@ -28,7 +28,11 @@
 			/>
 
 			<template v-if="activeGame">
-				<component :is="activeGame.component" />
+				<component
+					:is="activeGame.component"
+					:class-game="activeGame.classGame"
+					@completed="onGameCompleted"
+				/>
 			</template>
 
 			<!-- ========== OVERVIEW ========== -->
@@ -47,15 +51,15 @@
 									transform="rotate(-90 50 50)" />
 							</svg>
 							<div class="absolute inset-0 flex flex-col items-center justify-center">
-								<span class="text-xl sm:text-2xl font-bold text-ink-gray-9">{{ demoProfile.level }}</span>
+					<span class="text-xl sm:text-2xl font-bold text-ink-gray-9">{{ profileData.level }}</span>
 								<span class="text-[9px] font-medium uppercase tracking-wider text-ink-gray-5">{{ __("Level") }}</span>
 							</div>
 						</div>
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 mb-1">
-								<h2 class="text-lg font-bold text-ink-gray-9 truncate">{{ demoProfile.member_name }}</h2>
+						<h2 class="text-lg font-bold text-ink-gray-9 truncate">{{ profileData.member_name }}</h2>
 								<span class="text-xs bg-ink-blue-4 text-white px-2 py-0.5 rounded-full font-medium">
-									{{ demoProfile.xp }}/{{ demoProfile.xp_to_next }} XP
+							{{ profileData.xp }}/{{ profileData.xp_to_next }} XP
 								</span>
 							</div>
 							<div class="w-full h-2.5 bg-surface-gray-2 rounded-full overflow-hidden mb-3">
@@ -65,17 +69,17 @@
 							<div class="flex flex-wrap gap-x-5 gap-y-1.5">
 								<div class="flex items-center gap-1.5 text-sm">
 									<Flame class="size-4 text-orange-500" />
-									<span class="font-bold text-ink-gray-9">{{ demoProfile.current_streak }}</span>
+							<span class="font-bold text-ink-gray-9">{{ profileData.current_streak }}</span>
 									<span class="text-ink-gray-5 text-xs">{{ __("day streak") }}</span>
 								</div>
 								<div class="flex items-center gap-1.5 text-sm">
 									<Clock class="size-4 text-ink-blue-4" />
-									<span class="font-bold text-ink-gray-9">{{ demoProfile.hours_spent }}h</span>
+							<span class="font-bold text-ink-gray-9">{{ profileData.hours_spent }}h</span>
 									<span class="text-ink-gray-5 text-xs">{{ __("learned") }}</span>
 								</div>
 								<div class="flex items-center gap-1.5 text-sm">
 									<Award class="size-4 text-ink-purple-4" />
-									<span class="font-bold text-ink-gray-9">{{ demoProfile.total_badges }}/{{ demoProfile.total_available }}</span>
+							<span class="font-bold text-ink-gray-9">{{ profileData.total_badges }}/{{ profileData.total_available }}</span>
 									<span class="text-ink-gray-5 text-xs">{{ __("badges") }}</span>
 								</div>
 							</div>
@@ -120,7 +124,7 @@
 					<div class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm p-5">
 						<h3 class="text-sm font-semibold text-ink-gray-8 mb-3">{{ __("Recent Badges") }}</h3>
 						<div class="flex gap-3 overflow-x-auto pb-1">
-							<div v-for="(b, idx) in demoBadges" :key="idx" class="flex-shrink-0 w-16 text-center">
+						<div v-for="(b, idx) in recentBadges" :key="idx" class="flex-shrink-0 w-16 text-center">
 								<div class="w-12 h-12 mx-auto rounded-lg flex items-center justify-center text-2xl"
 									:class="b.earned ? 'bg-amber-50 dark:bg-amber-900/20 ring-2 ring-amber-300' : 'bg-surface-gray-2 opacity-40'">
 									{{ b.emoji }}
@@ -226,7 +230,7 @@
 
 				<!-- Full List -->
 				<div class="border border-outline-gray-2 bg-surface-white rounded-xl shadow-sm overflow-hidden">
-					<div v-for="e in demoLeaderboard" :key="e.rank"
+					<div v-for="e in leaderboardEntries" :key="e.rank"
 						class="flex items-center gap-3 px-4 py-3 hover:bg-surface-gray-1 transition-colors border-b border-outline-gray-1 last:border-b-0"
 						:class="{ 'bg-blue-50/30': e.is_you }">
 						<div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
@@ -252,7 +256,7 @@
 				<div class="flex items-center justify-between flex-wrap gap-2">
 					<div>
 						<h3 class="font-semibold text-ink-gray-9">{{ __("Badge Gallery") }}</h3>
-						<p class="text-xs text-ink-gray-5 mt-0.5">{{ earnedBadgeCount }}/{{ demoAllBadges.length }} {{ __("earned") }}</p>
+						<p class="text-xs text-ink-gray-5 mt-0.5">{{ earnedBadgeCount }}/{{ badgeCards.length }} {{ __("earned") }}</p>
 					</div>
 					<div class="flex items-center gap-1.5 bg-surface-gray-1 rounded-lg p-0.5">
 						<button v-for="f in badgeFilters" :key="f.value" @click="badgeFilter = f.value"
@@ -300,8 +304,8 @@
 </template>
 
 <script setup>
-import { Breadcrumbs, TabButtons, usePageMeta } from "frappe-ui"
-import { ref, computed, inject, markRaw } from "vue"
+import { Breadcrumbs, TabButtons, usePageMeta, createResource } from "frappe-ui"
+import { ref, computed, inject, markRaw, watch } from "vue"
 import {
 	Trophy, Flame, TrendingUp, Clock, Award, Lock, ArrowLeft,
 	Brain, Zap, Gift, Languages, GripVertical,
@@ -324,38 +328,115 @@ const activeGame = ref(null)
 const badgeFilter = ref("all")
 const circumference = 2 * Math.PI * 42
 
-const demoProfile = {
+const profileResource = createResource({
+	url: "lms.lms.api.get_user_game_profile",
+	auto: true,
+})
+
+const badgesResource = createResource({
+	url: "lms.lms.api.get_user_badges",
+	params: { member: null },
+	auto: true,
+})
+
+const leaderboardResource = createResource({
+	url: "lms.lms.api.get_leaderboard",
+	params: { limit: 10, period: leaderboardPeriod.value },
+	auto: true,
+})
+
+const classGamesResource = createResource({
+	url: "lms.lms.api.list_class_games",
+	auto: true,
+})
+
+const fallbackProfile = {
 	member_name: "Nguyen Van A", level: 7, xp: 68, xp_to_next: 100,
 	total_score: 668, current_streak: 12, hours_spent: 47,
 	avg_quiz_score: 85, avg_assignment_score: 78, completion_pct: 65,
 	total_courses: 8, completed_courses: 5, total_badges: 6, total_available: 12,
 }
 
-const xpPercent = computed(() => (demoProfile.xp / demoProfile.xp_to_next) * 100)
+const profileData = computed(() => ({ ...fallbackProfile, ...(profileResource.data || {}) }))
 
-const statCards = [
-	{ label: __("Quiz Avg"), value: demoProfile.avg_quiz_score + "%", icon: Target, bgClass: "bg-blue-50 dark:bg-blue-900/20", iconClass: "text-ink-blue-4" },
-	{ label: __("Assignment Avg"), value: demoProfile.avg_assignment_score + "%", icon: FileCheck, bgClass: "bg-green-50 dark:bg-green-900/20", iconClass: "text-ink-green-5" },
-	{ label: __("Courses Done"), value: demoProfile.completed_courses + "/" + demoProfile.total_courses, icon: BookOpen, bgClass: "bg-purple-50 dark:bg-purple-900/20", iconClass: "text-ink-purple-4" },
-	{ label: __("Total Score"), value: demoProfile.total_score, icon: TrendingUp, bgClass: "bg-amber-50 dark:bg-amber-900/20", iconClass: "text-ink-amber-5" },
-]
+const xpPercent = computed(() => (profileData.value.xp / profileData.value.xp_to_next) * 100)
 
-const performanceBars = [
-	{ label: __("Quiz Score"), value: demoProfile.avg_quiz_score, icon: Target, iconClass: "text-ink-blue-4", barClass: "bg-ink-blue-4", textClass: "text-ink-blue-5" },
-	{ label: __("Assignment Score"), value: demoProfile.avg_assignment_score, icon: FileCheck, iconClass: "text-ink-green-5", barClass: "bg-ink-green-5", textClass: "text-ink-green-5" },
-	{ label: __("Course Completion"), value: demoProfile.completion_pct, icon: BookOpen, iconClass: "text-ink-purple-4", barClass: "bg-ink-purple-4", textClass: "text-ink-purple-4" },
-	{ label: __("Learning Streak"), value: Math.min(demoProfile.current_streak / 30 * 100, 100), icon: Flame, iconClass: "text-orange-500", barClass: "bg-orange-400", textClass: "text-orange-500" },
-	{ label: __("Study Hours"), value: Math.min(demoProfile.hours_spent / 100 * 100, 100), icon: Clock, iconClass: "text-ink-cyan-5", barClass: "bg-ink-cyan-5", textClass: "text-ink-cyan-5" },
-]
+const statCards = computed(() => [
+	{ label: __("Quiz Avg"), value: profileData.value.avg_quiz_score + "%", icon: Target, bgClass: "bg-blue-50 dark:bg-blue-900/20", iconClass: "text-ink-blue-4" },
+	{ label: __("Assignment Avg"), value: profileData.value.avg_assignment_score + "%", icon: FileCheck, bgClass: "bg-green-50 dark:bg-green-900/20", iconClass: "text-ink-green-5" },
+	{ label: __("Courses Done"), value: profileData.value.completed_courses + "/" + profileData.value.total_courses, icon: BookOpen, bgClass: "bg-purple-50 dark:bg-purple-900/20", iconClass: "text-ink-purple-4" },
+	{ label: __("Total Score"), value: profileData.value.total_score, icon: TrendingUp, bgClass: "bg-amber-50 dark:bg-amber-900/20", iconClass: "text-ink-amber-5" },
+])
 
-const demoBadges = [
-	{ emoji: "\u{1F3C6}", title: "Top Student", earned: true },
-	{ emoji: "\u{1F525}", title: "7-Day Streak", earned: true },
-	{ emoji: "\u{1F4DA}", title: "Bookworm", earned: true },
-	{ emoji: "\u{26A1}", title: "Speed Demon", earned: true },
-	{ emoji: "\u{1F3AF}", title: "Quiz Master", earned: false },
-	{ emoji: "\u{1F48E}", title: "Perfect Score", earned: false },
-]
+const performanceBars = computed(() => [
+	{ label: __("Quiz Score"), value: profileData.value.avg_quiz_score, icon: Target, iconClass: "text-ink-blue-4", barClass: "bg-ink-blue-4", textClass: "text-ink-blue-5" },
+	{ label: __("Assignment Score"), value: profileData.value.avg_assignment_score, icon: FileCheck, iconClass: "text-ink-green-5", barClass: "bg-ink-green-5", textClass: "text-ink-green-5" },
+	{ label: __("Course Completion"), value: profileData.value.completion_pct, icon: BookOpen, iconClass: "text-ink-purple-4", barClass: "bg-ink-purple-4", textClass: "text-ink-purple-4" },
+	{ label: __("Learning Streak"), value: Math.min(profileData.value.current_streak / 30 * 100, 100), icon: Flame, iconClass: "text-orange-500", barClass: "bg-orange-400", textClass: "text-orange-500" },
+	{ label: __("Study Hours"), value: Math.min(profileData.value.hours_spent / 100 * 100, 100), icon: Clock, iconClass: "text-ink-cyan-5", barClass: "bg-ink-cyan-5", textClass: "text-ink-cyan-5" },
+])
+
+const badgeEmojiMap = {
+	"Bookworm": "📚",
+	"7-Day Streak": "🔥",
+	"Quiz Master": "🎯",
+	"Scholar": "🎓",
+	"Speed Demon": "⚡",
+	"Top Student": "🏆",
+	"Unstoppable": "🔥",
+	"Dedicated Learner": "👥",
+	"Quiz Champion": "📋",
+	"Team Player": "🤝",
+	"Night Owl": "🌙",
+	"Perfect Week": "⭐",
+}
+
+const recentBadges = computed(() => {
+	const badges = badgesResource.data || []
+	if (!badges.length) {
+		return [
+			{ emoji: "🏆", title: "Top Student", earned: true },
+			{ emoji: "🔥", title: "7-Day Streak", earned: true },
+		]
+	}
+	return badges.map((b) => ({
+		emoji: badgeEmojiMap[b.title] || "🏅",
+		title: b.title,
+		description: b.description,
+		earned: b.earned,
+		issued_on: b.issued_on,
+		progress: b.progress || 0,
+	}))
+})
+
+const games = computed(() => {
+	const apiGames = classGamesResource.data || []
+	if (!apiGames.length) {
+		return [
+			{ id: "memory-match", title: __("Memory Match"), description: __("Flip cards and match pairs to test your memory"), icon: markRaw(Brain), component: markRaw(MemoryMatch), tag: __("Puzzle"), bgClass: "bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/20 dark:to-violet-900/20", iconClass: "text-ink-purple-5", tagClass: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400" },
+			{ id: "timed-quiz", title: __("Timed Quiz"), description: __("Answer questions before time runs out"), icon: markRaw(Zap), component: markRaw(TimedQuiz), tag: __("Speed"), bgClass: "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20", iconClass: "text-ink-blue-4", tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" },
+		]
+	}
+	const componentMap = {
+		memory_match: markRaw(MemoryMatch),
+		timed_quiz: markRaw(TimedQuiz),
+		spin_wheel: markRaw(SpinTheWheel),
+		word_scramble: markRaw(WordScramble),
+		drag_drop: markRaw(DragDropSort),
+	}
+	return apiGames.map((game) => ({
+		id: game.name,
+		classGame: game.name,
+		title: game.game_details?.title || game.game,
+		description: game.game_details?.game_type || game.game,
+		icon: markRaw(Gamepad2),
+		component: componentMap[game.game_details?.game_type] || markRaw(MemoryMatch),
+		tag: game.game_details?.delivery_mode || __("Game"),
+		bgClass: "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20",
+		iconClass: "text-ink-blue-4",
+		tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+	}))
+})
 
 const quickActions = [
 	{ label: __("Play Games"), tab: "Games", desc: __("7 mini-games available"), icon: Gamepad2, btnClass: "bg-ink-blue-4", cardClass: "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 hover:to-indigo-100", textHover: "group-hover:text-ink-blue-5" },
@@ -363,7 +444,7 @@ const quickActions = [
 	{ label: __("All Badges"), tab: "Badges", desc: __("Collect them all!"), icon: Award, btnClass: "bg-purple-500", cardClass: "bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 hover:from-purple-100 hover:to-violet-100", textHover: "group-hover:text-purple-600" },
 ]
 
-const demoLeaderboard = [
+const leaderboardEntries = computed(() => leaderboardResource.data || [
 	{ rank: 1, member_name: "Tran Thi B", avatar: "\u{1F469}\u{200D}\u{1F393}", composite_score: 520, completion_pct: 92, streak_days: 30 },
 	{ rank: 2, member_name: "Le Van C", avatar: "\u{1F468}\u{200D}\u{1F4BB}", composite_score: 480, completion_pct: 85, streak_days: 21 },
 	{ rank: 3, member_name: "Pham Thi D", avatar: "\u{1F469}\u{200D}\u{1F52C}", composite_score: 445, completion_pct: 80, streak_days: 18 },
@@ -372,9 +453,9 @@ const demoLeaderboard = [
 	{ rank: 6, member_name: "Vu Thi F", avatar: "\u{1F469}\u{200D}\u{1F680}", composite_score: 350, completion_pct: 60, streak_days: 10 },
 	{ rank: 7, member_name: "Bui Van G", avatar: "\u{1F468}\u{200D}\u{1F3AF}", composite_score: 320, completion_pct: 55, streak_days: 7 },
 	{ rank: 8, member_name: "Dang Thi H", avatar: "\u{1F469}\u{200D}\u{1F4BB}", composite_score: 295, completion_pct: 50, streak_days: 5 },
-]
+])
 
-const podiumPlaces = [
+const podiumPlaces = computed(() => [
 	{ rank: 1, member_name: "Tran Thi B", avatar: "\u{1F469}\u{200D}\u{1F393}", composite_score: 520, medal: "\u{1F451}",
 		circleClass: "w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-amber-100 to-yellow-200 dark:from-amber-900/40 dark:to-yellow-900/40 text-amber-700 dark:text-amber-400 text-xl ring-amber-400",
 		avatarClass: "w-12 h-12 sm:w-14 sm:h-14 ring-2 ring-amber-400",
@@ -396,32 +477,22 @@ const podiumPlaces = [
 		emojiSize: "text-lg -top-1 -right-1",
 		barClass: "h-12 sm:h-16 bg-orange-50 dark:bg-orange-900/20",
 	},
-]
+])
 
-const demoAllBadges = [
-	{ name: "first-lesson", emoji: "\u{1F4DA}", title: "Bookworm", description: __("Complete your first lesson"), earned: true, issued_on: "15 Jan 2026", progress: 0 },
-	{ name: "streak-7", emoji: "\u{1F525}", title: "7-Day Streak", description: __("Maintain a 7-day learning streak"), earned: true, issued_on: "22 Jan 2026", progress: 0 },
-	{ name: "quiz-100", emoji: "\u{1F3AF}", title: "Quiz Master", description: __("Score 100% on any quiz"), earned: true, issued_on: "01 Feb 2026", progress: 0 },
-	{ name: "5-courses", emoji: "\u{1F393}", title: "Scholar", description: __("Complete 5 courses"), earned: true, issued_on: "10 Feb 2026", progress: 0 },
-	{ name: "speed-demon", emoji: "\u{26A1}", title: "Speed Demon", description: __("Complete a quiz in under 30 seconds"), earned: true, issued_on: "15 Feb 2026", progress: 0 },
-	{ name: "top-student", emoji: "\u{1F3C6}", title: "Top Student", description: __("Reach top 5 on the leaderboard"), earned: true, issued_on: "20 Mar 2026", progress: 0 },
-	{ name: "streak-30", emoji: "\u{1F525}", title: "Unstoppable", description: __("Maintain a 30-day learning streak"), earned: false, progress: 40 },
-	{ name: "10-courses", emoji: "\u{1F465}", title: "Dedicated Learner", description: __("Enroll in 10 courses"), earned: false, progress: 80 },
-	{ name: "all-quiz", emoji: "\u{1F4AA}", title: "Quiz Champion", description: __("Complete all quizzes in a course"), earned: false, progress: 55 },
-	{ name: "help-others", emoji: "\u{1F91D}", title: "Team Player", description: __("Help 5 classmates in discussions"), earned: false, progress: 60 },
-	{ name: "night-owl", emoji: "\u{1F319}", title: "Night Owl", description: __("Study past midnight 10 times"), earned: false, progress: 30 },
-	{ name: "perfect-week", emoji: "\u{2B50}", title: "Perfect Week", description: __("Complete all weekly assignments"), earned: false, progress: 70 },
-]
-
-const games = [
-	{ id: "memory-match", title: __("Memory Match"), description: __("Flip cards and match pairs to test your memory"), icon: markRaw(Brain), component: markRaw(MemoryMatch), tag: __("Puzzle"), bgClass: "bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/20 dark:to-violet-900/20", iconClass: "text-ink-purple-5", tagClass: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400" },
-	{ id: "timed-quiz", title: __("Timed Quiz"), description: __("Answer questions before time runs out"), icon: markRaw(Zap), component: markRaw(TimedQuiz), tag: __("Speed"), bgClass: "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20", iconClass: "text-ink-blue-4", tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" },
-	{ id: "spin-wheel", title: __("Spin the Wheel"), description: __("Spin and collect points with luck"), icon: markRaw(Gift), component: markRaw(SpinTheWheel), tag: __("Luck"), bgClass: "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20", iconClass: "text-ink-amber-5", tagClass: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
-	{ id: "word-scramble", title: __("Word Scramble"), description: __("Unscramble letters to find the hidden word"), icon: markRaw(Languages), component: markRaw(WordScramble), tag: __("Word"), bgClass: "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20", iconClass: "text-ink-green-5", tagClass: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" },
-	{ id: "drag-drop", title: __("Drag & Drop"), description: __("Sort items in the correct order"), icon: markRaw(GripVertical), component: markRaw(DragDropSort), tag: __("Sort"), bgClass: "bg-gradient-to-br from-rose-50 to-pink-100 dark:from-rose-900/20 dark:to-pink-900/20", iconClass: "text-ink-red-4", tagClass: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
-	{ id: "duck-race", title: __("Duck Race"), description: __("Answer questions to push your duck to the finish line"), icon: markRaw(Gamepad2), component: markRaw(DuckRace), tag: __("Quiz"), bgClass: "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20", iconClass: "text-ink-amber-5", tagClass: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
-	{ id: "fruit-ninja", title: __("Fruit Ninja"), description: __("Slice the flying fruit before it disappears"), icon: markRaw(Gamepad2), component: markRaw(FruitNinja), tag: __("Arcade"), bgClass: "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20", iconClass: "text-ink-green-5", tagClass: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" },
-]
+const badgeCards = computed(() => recentBadges.value.length ? recentBadges.value : [
+	{ name: "first-lesson", emoji: "📚", title: "Bookworm", description: __("Complete your first lesson"), earned: true, issued_on: "15 Jan 2026", progress: 0 },
+	{ name: "streak-7", emoji: "🔥", title: "7-Day Streak", description: __("Maintain a 7-day learning streak"), earned: true, issued_on: "22 Jan 2026", progress: 0 },
+	{ name: "quiz-100", emoji: "🎯", title: "Quiz Master", description: __("Score 100% on any quiz"), earned: true, issued_on: "01 Feb 2026", progress: 0 },
+	{ name: "5-courses", emoji: "🎓", title: "Scholar", description: __("Complete 5 courses"), earned: true, issued_on: "10 Feb 2026", progress: 0 },
+	{ name: "speed-demon", emoji: "⚡", title: "Speed Demon", description: __("Complete a quiz in under 30 seconds"), earned: true, issued_on: "15 Feb 2026", progress: 0 },
+	{ name: "top-student", emoji: "🏆", title: "Top Student", description: __("Reach top 5 on the leaderboard"), earned: true, issued_on: "20 Mar 2026", progress: 0 },
+	{ name: "streak-30", emoji: "🔥", title: "Unstoppable", description: __("Maintain a 30-day learning streak"), earned: false, progress: 40 },
+	{ name: "10-courses", emoji: "👥", title: "Dedicated Learner", description: __("Enroll in 10 courses"), earned: false, progress: 80 },
+	{ name: "all-quiz", emoji: "📋", title: "Quiz Champion", description: __("Complete all quizzes in a course"), earned: false, progress: 55 },
+	{ name: "help-others", emoji: "🤝", title: "Team Player", description: __("Help 5 classmates in discussions"), earned: false, progress: 60 },
+	{ name: "night-owl", emoji: "🌙", title: "Night Owl", description: __("Study past midnight 10 times"), earned: false, progress: 30 },
+	{ name: "perfect-week", emoji: "⭐", title: "Perfect Week", description: __("Complete all weekly assignments"), earned: false, progress: 70 },
+])
 
 const badgeFilters = [
 	{ label: __("All"), value: "all" },
@@ -430,15 +501,27 @@ const badgeFilters = [
 ]
 
 const filteredBadges = computed(() => {
-	if (badgeFilter.value === "earned") return demoAllBadges.filter((b) => b.earned)
-	if (badgeFilter.value === "locked") return demoAllBadges.filter((b) => !b.earned)
-	return demoAllBadges
+	if (badgeFilter.value === "earned") return badgeCards.value.filter((b) => b.earned)
+	if (badgeFilter.value === "locked") return badgeCards.value.filter((b) => !b.earned)
+	return badgeCards.value
 })
 
-const earnedBadgeCount = computed(() => demoAllBadges.filter((b) => b.earned).length)
+const earnedBadgeCount = computed(() => badgeCards.value.filter((b) => b.earned).length)
+
+watch(leaderboardPeriod, (period) => {
+	leaderboardResource.update({ params: { limit: 10, period } })
+	leaderboardResource.reload()
+})
 
 function openGame(game) { activeGame.value = game }
 function closeGame() { activeGame.value = null }
+
+function onGameCompleted() {
+	profileResource.reload()
+	leaderboardResource.reload()
+	badgesResource.reload()
+	closeGame()
+}
 
 const breadcrumbs = computed(() => [{ label: __("Game Center"), route: { name: "GameCenter" } }])
 usePageMeta(() => ({ title: __("Game Center"), icon: brand.favicon }))

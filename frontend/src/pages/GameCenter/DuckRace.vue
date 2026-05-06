@@ -97,6 +97,12 @@ import { ref, computed, onUnmounted } from 'vue'
 import { call } from 'frappe-ui'
 import { Timer, Trophy } from 'lucide-vue-next'
 
+const props = defineProps({
+	classGame: { type: String, default: null },
+})
+
+const emit = defineEmits(["completed"])
+
 const duckName = 'Blue Duck'
 const gameState = ref('start')
 const score = ref(0)
@@ -106,6 +112,7 @@ const timeLeft = ref(45)
 const statusText = ref('Ready to race')
 const typedAnswer = ref('')
 const smashedCounters = ref([])
+const sessionId = ref(null)
 let timer = null
 
 const questions = [
@@ -139,8 +146,9 @@ function resetGame() {
 	timer = null
 }
 
-function startGame() {
+async function startGame() {
 	resetGame()
+	await startSession()
 	gameState.value = 'playing'
 	timer = setInterval(() => {
 		timeLeft.value -= 1
@@ -156,17 +164,24 @@ function endGame(status) {
 	timer = null
 }
 
-function recordSession(result) {
-	call('lms.lms.api.record_game_session', {
-		game: 'Duck Race',
-		score: score.value,
-		max_score: 100,
-		result,
+async function startSession() {
+	if (!props.classGame) return
+	const res = await call('lms.lms.api.start_game_session', { class_game: props.classGame })
+	sessionId.value = res.session_id
+}
+
+async function recordSession(result) {
+	if (!sessionId.value) return
+	await call('lms.lms.api.submit_game_session', {
+		session_id: sessionId.value,
+		raw_score: score.value,
 		metadata: {
+			result,
 			progress: progress.value,
 			counters_smashed: smashedCounters.value.length,
 		},
 	})
+	emit('completed')
 }
 
 function boostDuck(correct) {

@@ -1,0 +1,117 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-29 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "class_game",
+  "member",
+  "best_score",
+  "average_score",
+  "total_score",
+  "attempt_count",
+  "progress_percentage",
+  "last_session"
+ ],
+ "fields": [
+  {
+   "fieldname": "class_game",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Class Game",
+   "options": "LMS Class Game",
+   "reqd": 1
+  },
+  {
+   "fieldname": "member",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Member",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "best_score",
+   "fieldtype": "Int",
+   "label": "Best Score"
+  },
+  {
+   "default": "0",
+   "fieldname": "average_score",
+   "fieldtype": "Float",
+   "label": "Average Score"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_score",
+   "fieldtype": "Int",
+   "label": "Total Score"
+  },
+  {
+   "default": "0",
+   "fieldname": "attempt_count",
+   "fieldtype": "Int",
+   "label": "Attempt Count"
+  },
+  {
+   "default": "0",
+   "fieldname": "progress_percentage",
+   "fieldtype": "Float",
+   "label": "Progress Percentage"
+  },
+  {
+   "fieldname": "last_session",
+   "fieldtype": "Link",
+   "label": "Last Session",
+   "options": "LMS Game Session"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "modified": "2026-04-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "LMS Game Progress",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "if_owner": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "LMS Student",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "LMS Student"
+  },
+  {
+   "read": 1,
+   "role": "Moderator"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

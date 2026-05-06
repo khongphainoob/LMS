@@ -1,6 +1,7 @@
 """API methods for the LMS."""
 
 import json
+import math
 import os
 import re
 import shutil
@@ -27,6 +28,7 @@ from frappe.utils import (
 	get_datetime,
 	getdate,
 	now,
+	now_datetime,
 )
 from frappe.utils.file_manager import safe_b64decode
 from frappe.utils.response import Response
@@ -2172,7 +2174,7 @@ def get_admin_performance_stats():
 	}
 
 
-def calculate_composite_score(member):
+def calculate_composite_score(member, batch=None):
 	"""Calculate composite score for a member.
 
 	Formula:
@@ -2191,9 +2193,14 @@ def calculate_composite_score(member):
 	STREAK_CAP = 30
 	HOURS_CAP = 100
 	GAMES_CAP = 100
+	filters = {"member": member}
+	if batch:
+		courses = frappe.get_all("Batch Course", {"parent": batch}, pluck="course")
+		if courses:
+			filters["course"] = ["in", courses]
 
 	# Quiz score
-	quiz_data = frappe.db.get_all("LMS Quiz Submission", filters={"member": member}, fields=["percentage"])
+	quiz_data = frappe.db.get_all("LMS Quiz Submission", filters=filters, fields=["percentage"])
 	avg_quiz_pct = 0
 	if quiz_data:
 		avg_quiz_pct = sum(q.percentage for q in quiz_data) / len(quiz_data)
@@ -2201,7 +2208,7 @@ def calculate_composite_score(member):
 	# Assignment score
 	assignment_data = frappe.db.get_all(
 		"LMS Assignment Submission",
-		filters={"member": member, "status": ["in", ["Pass", "Fail"]]},
+		filters={**filters, "status": ["in", ["Pass", "Fail"]]},
 		fields=["numeric_score", "score_out_of"],
 	)
 	avg_assignment_pct = 0
@@ -2214,7 +2221,10 @@ def calculate_composite_score(member):
 		avg_assignment_pct = sum(scored) / len(scored) if scored else 0
 
 	# Completion percentage
-	enrollment_data = frappe.db.get_all("LMS Enrollment", filters={"member": member}, fields=["progress"])
+	enrollment_filters = {"member": member}
+	if batch:
+		enrollment_filters["batch"] = batch
+	enrollment_data = frappe.db.get_all("LMS Enrollment", filters=enrollment_filters, fields=["progress"])
 	completion_pct = 0
 	if enrollment_data:
 		completion_pct = sum(flt(e.progress) for e in enrollment_data) / len(enrollment_data)
@@ -2233,7 +2243,7 @@ def calculate_composite_score(member):
 	# Game score
 	game_data = frappe.db.get_all(
 		"LMS Game Session",
-		filters={"member": member},
+		filters=filters,
 		fields=["percentage"],
 	)
 	avg_game_pct = 0
@@ -2265,13 +2275,23 @@ def calculate_composite_score(member):
 	}
 
 
-@frappe.whitelist()
-def get_leaderboard(batch=None, limit=10):
-	"""Get leaderboard with composite scores."""
-	limit = cint(limit)
+def _leaderboard_cache_key(batch=None):
+	return f"game_leaderboard:{batch or 'global'}"
 
+
+def _build_leaderboard(batch=None):
+	roles = frappe.get_roles()
 	if batch:
-		members = frappe.get_all("LMS Batch Enrollment", {"batch": batch}, pluck="member")
+		if "Moderator" not in roles:
+			if "Course Creator" in roles:
+				if not frappe.db.exists("Course Instructor", {"parent": batch, "instructor": frappe.session.user}):
+					frappe.throw(_("You can only view batches you teach."))
+			elif "Batch Evaluator" in roles:
+				if not frappe.db.exists("Course Evaluator", {"parent": batch, "evaluator": frappe.session.user}):
+					frappe.throw(_("You can only view batches assigned to you."))
+			elif not frappe.db.exists("LMS Batch Enrollment", {"batch": batch, "member": frappe.session.user}):
+				frappe.throw(_("You are not enrolled in this batch."))
+			members = frappe.get_all("LMS Batch Enrollment", {"batch": batch}, pluck="member")
 	else:
 		members = frappe.get_all("LMS Enrollment", group_by="member", pluck="member")
 
@@ -2280,21 +2300,19 @@ def get_leaderboard(batch=None, limit=10):
 
 	leaderboard = []
 	for member in members:
-		stats = calculate_composite_score(member)
+		stats = calculate_composite_score(member, batch=batch)
 		stats["member"] = member
 		leaderboard.append(stats)
 
 	leaderboard.sort(key=lambda x: x["composite_score"], reverse=True)
 
-	# Assign ranks (handle ties)
 	for i, entry in enumerate(leaderboard):
 		if i > 0 and entry["composite_score"] == leaderboard[i - 1]["composite_score"]:
 			entry["rank"] = leaderboard[i - 1]["rank"]
 		else:
 			entry["rank"] = i + 1
 
-	# Enrich with user details (only for top N)
-	for entry in leaderboard[:limit]:
+	for entry in leaderboard:
 		user_data = frappe.db.get_value(
 			"User", entry["member"], ["full_name", "user_image", "username"], as_dict=True
 		)
@@ -2302,6 +2320,19 @@ def get_leaderboard(batch=None, limit=10):
 		entry["member_image"] = user_data.user_image if user_data else ""
 		entry["username"] = user_data.username if user_data else ""
 
+	return leaderboard
+
+
+@frappe.whitelist()
+def get_leaderboard(batch=None, limit=10):
+	"""Get leaderboard with composite scores."""
+	limit = cint(limit)
+	cache_key = _leaderboard_cache_key(batch)
+	cached = frappe.cache().get_value(cache_key)
+	if cached:
+		return cached[:limit]
+	leaderboard = _build_leaderboard(batch=batch)
+	frappe.cache().set_value(cache_key, leaderboard, expires_in_sec=900)
 	return leaderboard[:limit]
 
 
@@ -3460,14 +3491,20 @@ def get_user_badges(member=None):
 @frappe.whitelist()
 def get_user_game_profile():
 	member = frappe.session.user
+	cache_key = f"game_profile:{member}"
+	cached = frappe.cache().get_value(cache_key)
+	if cached:
+		return cached
 	member_name = frappe.get_value("User", member, "full_name") or member
 	score_data = calculate_composite_score(member)
 	streak_data = get_streak_info()
 
 	total_score = score_data.get("composite_score", 0)
-	level = int(total_score // 100) + 1
-	xp_in_level = round(total_score % 100, 1)
-	xp_to_next = 100
+	level = 1 + int(math.sqrt(total_score / 50)) if total_score > 0 else 1
+	xp_for_current = 50 * (level - 1) ** 2
+	xp_for_next = 50 * level**2
+	xp_in_level = round(total_score - xp_for_current, 1)
+	xp_to_next = xp_for_next - xp_for_current
 
 	enrollments = frappe.db.get_all(
 		"LMS Enrollment",
@@ -3483,7 +3520,7 @@ def get_user_game_profile():
 	quiz_count = frappe.db.count("LMS Quiz Submission", {"member": member})
 	assignment_count = frappe.db.count("LMS Assignment Submission", {"member": member, "status": ["in", ["Pass", "Fail"]]})
 
-	return {
+	result = {
 		"member_name": member_name,
 		"level": level,
 		"xp": xp_in_level,
@@ -3503,3 +3540,225 @@ def get_user_game_profile():
 		"total_badges": frappe.db.count("LMS Badge Assignment", {"member": member}),
 		"total_available": frappe.db.count("LMS Badge", {"enabled": 1}),
 	}
+	frappe.cache().set_value(cache_key, result, expires_in_sec=300)
+	return result
+
+
+@frappe.whitelist()
+def list_class_games(batch=None, member=None):
+	member = member or frappe.session.user
+	filters = {}
+	if batch:
+		filters["batch"] = batch
+	games = frappe.get_all(
+		"LMS Class Game",
+		filters=filters,
+		fields=["name", "game", "batch", "settings", "max_attempts", "available_from", "available_until"],
+	)
+	for game in games:
+		game_details = frappe.get_value(
+			"LMS Game",
+			game.game,
+			["name", "title", "game_type", "delivery_mode", "scoring_model", "max_score"],
+			as_dict=1,
+		)
+		game.game_details = game_details
+	return games
+
+
+@frappe.whitelist()
+def get_game_progress(class_game, member=None):
+	member = frappe.session.user
+	return frappe.get_value(
+		"LMS Game Progress",
+		{"class_game": class_game, "member": member},
+		[
+			"class_game",
+			"member",
+			"best_score",
+			"average_score",
+			"total_score",
+			"attempt_count",
+			"progress_percentage",
+			"last_session",
+		],
+		as_dict=1,
+	)
+
+
+@frappe.whitelist()
+def start_game_session(class_game):
+	class_game_doc = frappe.get_doc("LMS Class Game", class_game)
+	game_doc = frappe.get_doc("LMS Game", class_game_doc.game)
+	if not game_doc.is_active:
+		frappe.throw(_("This game is not active."))
+	if class_game_doc.available_from and class_game_doc.available_from > now_datetime():
+		frappe.throw(_("This game is not available yet."))
+	if class_game_doc.available_until and class_game_doc.available_until < now_datetime():
+		frappe.throw(_("This game is no longer available."))
+	if class_game_doc.max_attempts:
+		attempts = frappe.db.count(
+			"LMS Game Session",
+			{"class_game": class_game_doc.name, "member": frappe.session.user, "status": ["in", ["Started", "Completed"]]},
+		)
+		if attempts >= class_game_doc.max_attempts:
+			frappe.throw(_("You have reached the maximum number of attempts."))
+	else:
+		attempts = frappe.db.count(
+			"LMS Game Session", {"class_game": class_game_doc.name, "member": frappe.session.user}
+		)
+	session = frappe.new_doc("LMS Game Session")
+	session.class_game = class_game_doc.name
+	session.member = frappe.session.user
+	session.attempt_no = attempts + 1
+	session.status = "Started"
+	session.started_at = now_datetime()
+	session.insert(ignore_permissions=True)
+	return {"session_id": session.name}
+
+
+@frappe.whitelist()
+def submit_game_session(session_id, raw_score, metadata=None):
+	session = frappe.get_doc("LMS Game Session", session_id)
+	if session.member != frappe.session.user:
+		frappe.throw(_("Unauthorized."), frappe.PermissionError)
+	if session.status == "Completed":
+		frappe.throw(_("Session already submitted."))
+
+	class_game = frappe.get_doc("LMS Class Game", session.class_game)
+	game = frappe.get_doc("LMS Game", class_game.game)
+	max_score = cint(game.max_score) or 1000
+	raw_score = max(0, min(cint(raw_score), max_score))
+	completed_at = now_datetime()
+	session.raw_score = raw_score
+	session.normalized_score = round(raw_score / max_score * 100, 1)
+	session.status = "Completed"
+	session.completed_at = completed_at
+	session.duration_seconds = int((completed_at - session.started_at).total_seconds())
+	session.metadata = json.dumps(metadata) if metadata else None
+	session.save(ignore_permissions=True)
+	update_game_progress(session)
+	return {"score": raw_score, "normalized": session.normalized_score}
+
+
+def update_game_progress(session):
+	class_game = frappe.get_doc("LMS Class Game", session.class_game)
+	game = frappe.get_doc("LMS Game", class_game.game)
+	progress_name = frappe.db.get_value(
+		"LMS Game Progress", {"class_game": session.class_game, "member": session.member}
+	)
+	if progress_name:
+		progress = frappe.get_doc("LMS Game Progress", progress_name)
+	else:
+		progress = frappe.new_doc("LMS Game Progress")
+		progress.class_game = session.class_game
+		progress.member = session.member
+		progress.best_score = 0
+		progress.total_score = 0
+		progress.attempt_count = 0
+
+	progress.attempt_count += 1
+	progress.last_session = session.name
+
+	if game.scoring_model == "best":
+		progress.best_score = max(progress.best_score or 0, session.raw_score)
+	elif game.scoring_model == "sum":
+		progress.total_score = (progress.total_score or 0) + session.raw_score
+		progress.best_score = progress.total_score
+	elif game.scoring_model == "avg":
+		total = (progress.average_score or 0) * (progress.attempt_count - 1) + session.raw_score
+		progress.average_score = round(total / progress.attempt_count, 1)
+		progress.best_score = round(progress.average_score)
+
+	progress.progress_percentage = round(progress.best_score / (cint(game.max_score) or 1) * 100, 1)
+	progress.save(ignore_permissions=True)
+	frappe.db.commit()
+	frappe.cache().delete_value(_leaderboard_cache_key())
+	frappe.cache().delete_value(_leaderboard_cache_key(class_game.batch))
+	frappe.cache().delete_value(f"game_profile:{session.member}")
+	leaderboard = _build_leaderboard(batch=class_game.batch)
+	frappe.publish_realtime(
+		"game_score_updated",
+		{"class_game": session.class_game, "member": session.member, "best_score": progress.best_score},
+		user=session.member,
+		after_commit=True,
+	)
+	frappe.publish_realtime(
+		"leaderboard_updated",
+		{"batch": class_game.batch, "top_5": leaderboard[:5]},
+		after_commit=True,
+	)
+
+
+@frappe.whitelist()
+def create_game(data):
+	frappe.only_for("Moderator")
+	game = frappe.get_doc(json.loads(data))
+	game.insert(ignore_permissions=True)
+	return game.name
+
+
+@frappe.whitelist()
+def assign_game_to_batch(game, batch, settings=None):
+	frappe.only_for(["Moderator", "Course Creator"])
+	doc = frappe.new_doc("LMS Class Game")
+	doc.game = game
+	doc.batch = batch
+	doc.settings = json.loads(settings) if settings else None
+	doc.insert(ignore_permissions=True)
+	return doc.name
+
+
+@frappe.whitelist()
+def create_batch_quiz(batch, title, questions, duration, passing_pct):
+	frappe.only_for(["Moderator", "Course Creator"])
+	if "Moderator" not in frappe.get_roles():
+		if not frappe.db.exists("Course Instructor", {"parent": batch, "instructor": frappe.session.user}):
+			frappe.throw(_("You can only create quizzes for your own batches."))
+	quiz = frappe.new_doc("LMS Quiz")
+	quiz.title = title
+	quiz.duration = duration
+	quiz.passing_percentage = passing_pct
+	quiz.insert(ignore_permissions=True)
+	assignment = frappe.new_doc("LMS Assessment Assignment")
+	assignment.quiz = quiz.name
+	assignment.batch = batch
+	assignment.assigned_by = frappe.session.user
+	assignment.insert(ignore_permissions=True)
+	return {"quiz": quiz.name, "assignment": assignment.name}
+
+
+@frappe.whitelist()
+def get_batch_statistics(batch):
+	frappe.only_for(["Moderator", "Course Creator", "Batch Evaluator"])
+	if "Moderator" not in frappe.get_roles():
+		if "Course Creator" in frappe.get_roles():
+			if not frappe.db.exists("Course Instructor", {"parent": batch, "instructor": frappe.session.user}):
+				frappe.throw(_("You can only view batches you teach."))
+		elif "Batch Evaluator" in frappe.get_roles():
+			if not frappe.db.exists("Course Evaluator", {"parent": batch, "evaluator": frappe.session.user}):
+				frappe.throw(_("You can only view batches assigned to you."))
+	members = frappe.get_all("LMS Batch Enrollment", {"batch": batch}, pluck="member")
+	return {"total_students": len(members)}
+
+
+@frappe.whitelist()
+def award_badge(badge, member, batch=None):
+	frappe.only_for("Moderator")
+	assignment = frappe.new_doc("LMS Badge Assignment")
+	assignment.badge = badge
+	assignment.member = member
+	assignment.issued_on = now_datetime().date()
+	assignment.insert(ignore_permissions=True)
+	return assignment.name
+
+
+@frappe.whitelist()
+def create_badge(title, description, image, category=None):
+	frappe.only_for("Moderator")
+	badge = frappe.new_doc("LMS Badge")
+	badge.title = title
+	badge.description = description
+	badge.image = image
+	badge.insert(ignore_permissions=True)
+	return badge.name

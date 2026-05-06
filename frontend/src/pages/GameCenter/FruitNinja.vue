@@ -78,6 +78,12 @@ import { ref, computed, onUnmounted } from 'vue'
 import { call } from 'frappe-ui'
 import { Clock, Heart, Star } from 'lucide-vue-next'
 
+const props = defineProps({
+	classGame: { type: String, default: null },
+})
+
+const emit = defineEmits(["completed"])
+
 const gameState = ref('start')
 const score = ref(0)
 const lives = ref(3)
@@ -87,6 +93,7 @@ const timeLeft = ref(40)
 const statusText = ref('Ready to slice')
 const visibleFruits = ref([])
 const targetScore = 250
+const sessionId = ref(null)
 let spawnTimer = null
 let countdownTimer = null
 let fruitId = 0
@@ -144,8 +151,9 @@ function spawnFruit() {
 	if (lives.value <= 0) endGame('Out of lives')
 }
 
-function startGame() {
+async function startGame() {
 	resetGame()
+	await startSession()
 	gameState.value = 'playing'
 	spawnFruit()
 	spawnTimer = setInterval(spawnFruit, 850)
@@ -165,17 +173,24 @@ function endGame(status) {
 	countdownTimer = null
 }
 
-function recordSession(result) {
-	call('lms.lms.api.record_game_session', {
-		game: 'Fruit Ninja',
-		score: score.value,
-		max_score: targetScore,
-		result,
+async function startSession() {
+	if (!props.classGame) return
+	const res = await call('lms.lms.api.start_game_session', { class_game: props.classGame })
+	sessionId.value = res.session_id
+}
+
+async function recordSession(result) {
+	if (!sessionId.value) return
+	await call('lms.lms.api.submit_game_session', {
+		session_id: sessionId.value,
+		raw_score: score.value,
 		metadata: {
+			result,
 			combo: combo.value,
 			sliced_count: slicedCount.value,
 		},
 	})
+	emit('completed')
 }
 
 function sliceFruit(fruit) {

@@ -127,7 +127,14 @@
 
 <script setup>
 import { ref, computed, nextTick } from "vue"
+import { call } from "frappe-ui"
 import { Star, Heart } from "lucide-vue-next"
+
+const props = defineProps({
+	classGame: { type: String, default: null },
+})
+
+const emit = defineEmits(["completed"])
 
 const score = ref(0)
 const lives = ref(3)
@@ -140,6 +147,7 @@ const feedback = ref(null)
 const gameOver = ref(false)
 const hintsLeft = ref(3)
 const wordResults = ref([])
+const sessionId = ref(null)
 
 const words = [
 	{ answer: "ALGORITHM", hint: "A step-by-step procedure", category: "tech" },
@@ -243,16 +251,34 @@ function checkAnswer() {
 		feedback.value = { correct: false, message: __("Wrong! The answer was: " + correct) }
 		wordResults.value.push(false)
 		setTimeout(() => {
-			if (lives.value <= 0) {
-				gameOver.value = true
-			} else if (currentIndex.value < words.length - 1) {
-				currentIndex.value++
-				loadWord()
-			} else {
-				gameOver.value = true
-			}
-		}, 1500)
-	}
+		if (lives.value <= 0) {
+			gameOver.value = true
+			submitScore()
+		} else if (currentIndex.value < words.length - 1) {
+			currentIndex.value++
+			loadWord()
+		} else {
+			gameOver.value = true
+			submitScore()
+		}
+	}, 1500)
+}
+
+async function startSession() {
+	if (!props.classGame) return
+	const res = await call("lms.lms.api.start_game_session", { class_game: props.classGame })
+	sessionId.value = res.session_id
+}
+
+async function submitScore() {
+	if (!sessionId.value) return
+	await call("lms.lms.api.submit_game_session", {
+		session_id: sessionId.value,
+		raw_score: score.value,
+		metadata: { word_results: wordResults.value },
+	})
+	emit("completed")
+}
 }
 
 function resetGame() {
@@ -263,7 +289,9 @@ function resetGame() {
 	wordResults.value = []
 	gameOver.value = false
 	loadWord()
+	startSession()
 }
 
 loadWord()
+startSession()
 </script>

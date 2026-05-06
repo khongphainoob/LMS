@@ -133,8 +133,15 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from "vue"
+import { ref, computed, reactive, onMounted } from "vue"
+import { call } from "frappe-ui"
 import { Star, Zap } from "lucide-vue-next"
+
+const props = defineProps({
+	classGame: { type: String, default: null },
+})
+
+const emit = defineEmits(["completed"])
 
 const score = ref(0)
 const currentRound = ref(0)
@@ -143,6 +150,7 @@ const feedback = ref(null)
 const isDragOver = ref(false)
 const finished = ref(false)
 const roundResults = ref([])
+const sessionId = ref(null)
 let dragData = null
 
 const rounds = [
@@ -270,8 +278,25 @@ function submitAnswer() {
 			feedback.value = null
 		} else {
 			finished.value = true
+			submitScore()
 		}
 	}, 1500)
+}
+
+async function startSession() {
+	if (!props.classGame) return
+	const res = await call("lms.lms.api.start_game_session", { class_game: props.classGame })
+	sessionId.value = res.session_id
+}
+
+async function submitScore() {
+	if (!sessionId.value) return
+	await call("lms.lms.api.submit_game_session", {
+		session_id: sessionId.value,
+		raw_score: score.value,
+		metadata: { round_results: roundResults.value },
+	})
+	emit("completed")
 }
 
 function resetGame() {
@@ -281,5 +306,8 @@ function resetGame() {
 	feedback.value = null
 	finished.value = false
 	roundResults.value = []
+	startSession()
 }
+
+onMounted(startSession)
 </script>

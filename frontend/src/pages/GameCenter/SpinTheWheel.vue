@@ -121,6 +121,13 @@
 
 <script setup>
 import { ref, onMounted } from "vue"
+import { call } from "frappe-ui"
+
+const props = defineProps({
+	classGame: { type: String, default: null },
+})
+
+const emit = defineEmits(["completed"])
 
 const wheelSize = 280
 const textRadius = (wheelSize / 2) - 40
@@ -131,6 +138,7 @@ const lastResult = ref(null)
 const totalPoints = ref(0)
 const spinsLeft = ref(5)
 const history = ref([])
+const sessionId = ref(null)
 
 const segments = [
 	{ points: 10, label: "", color: "#3B82F6" },
@@ -191,6 +199,25 @@ function spin() {
 		}
 		history.value.push(result)
 		isSpinning.value = false
+		if (spinsLeft.value <= 0) submitScore()
 	}, 4200)
 }
+
+async function startSession() {
+	if (!props.classGame) return
+	const res = await call("lms.lms.api.start_game_session", { class_game: props.classGame })
+	sessionId.value = res.session_id
+}
+
+async function submitScore() {
+	if (!sessionId.value) return
+	await call("lms.lms.api.submit_game_session", {
+		session_id: sessionId.value,
+		raw_score: totalPoints.value,
+		metadata: { history: history.value },
+	})
+	emit("completed")
+}
+
+onMounted(startSession)
 </script>

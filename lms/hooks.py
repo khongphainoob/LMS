@@ -135,6 +135,11 @@ scheduler_events = {
 		"lms.lms.doctype.lms_certificate_request.lms_certificate_request.mark_eval_as_completed",
 		"lms.lms.doctype.lms_live_class.lms_live_class.update_attendance",
 	],
+	"cron": {
+		"*/15 * * * *": [
+			"lms.lms.tasks.recalculate_leaderboard",
+		],
+	},
 	"daily": [
 		"lms.job.doctype.job_opportunity.job_opportunity.update_job_openings",
 		"lms.lms.doctype.lms_payment.lms_payment.send_payment_reminder",

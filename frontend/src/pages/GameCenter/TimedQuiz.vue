@@ -93,7 +93,14 @@
 
 <script setup>
 import { ref, computed, onUnmounted } from "vue"
+import { call } from "frappe-ui"
 import { Clock, CheckCircle2, XCircle } from "lucide-vue-next"
+
+const props = defineProps({
+	classGame: { type: String, default: null },
+})
+
+const emit = defineEmits(["completed"])
 
 const timePerQuestion = 15
 const timeLeft = ref(timePerQuestion)
@@ -104,6 +111,7 @@ const score = ref(0)
 const quizFinished = ref(false)
 const questionTimes = ref([])
 const questionStartTime = ref(null)
+const sessionId = ref(null)
 let timerInterval = null
 
 const questions = [
@@ -213,7 +221,24 @@ function nextQuestion() {
 	} else {
 		quizFinished.value = true
 		clearInterval(timerInterval)
+		submitScore()
 	}
+}
+
+async function startSession() {
+	if (!props.classGame) return
+	const res = await call("lms.lms.api.start_game_session", { class_game: props.classGame })
+	sessionId.value = res.session_id
+}
+
+async function submitScore() {
+	if (!sessionId.value) return
+	await call("lms.lms.api.submit_game_session", {
+		session_id: sessionId.value,
+		raw_score: score.value * 100,
+		metadata: { question_times: questionTimes.value },
+	})
+	emit("completed")
 }
 
 function getOptionClass(idx) {
@@ -272,6 +297,7 @@ function resetQuiz() {
 	quizFinished.value = false
 	questionTimes.value = []
 	startTimer()
+	startSession()
 }
 
 onUnmounted(() => {
@@ -279,4 +305,5 @@ onUnmounted(() => {
 })
 
 startTimer()
+startSession()
 </script>
