@@ -171,7 +171,10 @@ async function startSession() {
 }
 
 async function recordSession(result) {
-	if (!sessionId.value) return
+	if (!sessionId.value) {
+		emit('completed')
+		return
+	}
 	await call('lms.lms.api.submit_game_session', {
 		session_id: sessionId.value,
 		raw_score: score.value,

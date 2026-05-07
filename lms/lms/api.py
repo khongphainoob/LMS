@@ -2194,10 +2194,12 @@ def calculate_composite_score(member, batch=None):
 	HOURS_CAP = 100
 	GAMES_CAP = 100
 	filters = {"member": member}
+	class_games = []
 	if batch:
 		courses = frappe.get_all("Batch Course", {"parent": batch}, pluck="course")
 		if courses:
 			filters["course"] = ["in", courses]
+		class_games = frappe.get_all("LMS Class Game", {"batch": batch}, pluck="name")
 
 	# Quiz score
 	quiz_data = frappe.db.get_all("LMS Quiz Submission", filters=filters, fields=["percentage"])
@@ -2241,14 +2243,17 @@ def calculate_composite_score(member, batch=None):
 	total_hours = flt(total_seconds) / 3600
 
 	# Game score
+	game_filters = dict(filters)
+	if batch:
+		game_filters["class_game"] = ["in", class_games] if class_games else ["in", [""]]
 	game_data = frappe.db.get_all(
 		"LMS Game Session",
-		filters=filters,
-		fields=["percentage"],
+		filters=game_filters,
+		fields=["normalized_score"],
 	)
 	avg_game_pct = 0
 	if game_data:
-		avg_game_pct = sum(flt(g.percentage) for g in game_data) / len(game_data)
+		avg_game_pct = sum(flt(g.normalized_score) for g in game_data) / len(game_data)
 
 	streak_score = min(current_streak / STREAK_CAP, 1) * 100
 	hours_score = min(total_hours / HOURS_CAP, 1) * 100
@@ -2259,7 +2264,7 @@ def calculate_composite_score(member, batch=None):
 		+ (W_ASSIGNMENT * avg_assignment_pct)
 		+ (W_COMPLETION * completion_pct)
 		+ (W_STREAK * streak_score)
-		+ (W_HOURS * hours_score),
+		+ (W_HOURS * hours_score)
 		+ (W_GAMES * game_score),
 		1,
 	)
@@ -2279,19 +2284,26 @@ def _leaderboard_cache_key(batch=None):
 	return f"game_leaderboard:{batch or 'global'}"
 
 
-def _build_leaderboard(batch=None):
+def _can_access_batch(batch):
 	roles = frappe.get_roles()
+	if "Moderator" in roles:
+		return True
+	if "Course Creator" in roles:
+		return frappe.db.exists("Course Instructor", {"parent": batch, "instructor": frappe.session.user})
+	if "Batch Evaluator" in roles:
+		return frappe.db.exists("Course Evaluator", {"parent": batch, "evaluator": frappe.session.user})
+	return frappe.db.exists("LMS Batch Enrollment", {"batch": batch, "member": frappe.session.user})
+
+
+def _assert_batch_access(batch):
+	if batch and not _can_access_batch(batch):
+		frappe.throw(_("You are not allowed to access this batch."))
+
+
+def _build_leaderboard(batch=None):
 	if batch:
-		if "Moderator" not in roles:
-			if "Course Creator" in roles:
-				if not frappe.db.exists("Course Instructor", {"parent": batch, "instructor": frappe.session.user}):
-					frappe.throw(_("You can only view batches you teach."))
-			elif "Batch Evaluator" in roles:
-				if not frappe.db.exists("Course Evaluator", {"parent": batch, "evaluator": frappe.session.user}):
-					frappe.throw(_("You can only view batches assigned to you."))
-			elif not frappe.db.exists("LMS Batch Enrollment", {"batch": batch, "member": frappe.session.user}):
-				frappe.throw(_("You are not enrolled in this batch."))
-			members = frappe.get_all("LMS Batch Enrollment", {"batch": batch}, pluck="member")
+		_assert_batch_access(batch)
+		members = frappe.get_all("LMS Batch Enrollment", {"batch": batch}, pluck="member")
 	else:
 		members = frappe.get_all("LMS Enrollment", group_by="member", pluck="member")
 
@@ -2326,7 +2338,8 @@ def _build_leaderboard(batch=None):
 @frappe.whitelist()
 def get_leaderboard(batch=None, limit=10):
 	"""Get leaderboard with composite scores."""
-	limit = cint(limit)
+	limit = max(1, min(cint(limit) or 10, 100))
+	_assert_batch_access(batch)
 	cache_key = _leaderboard_cache_key(batch)
 	cached = frappe.cache().get_value(cache_key)
 	if cached:
@@ -3461,6 +3474,8 @@ def get_game_center_stats():
 def get_user_badges(member=None):
 	if not member:
 		member = frappe.session.user
+	elif member != frappe.session.user and "Moderator" not in frappe.get_roles():
+		frappe.throw(_("You can only view your own badges."))
 
 	badges = frappe.get_all(
 		"LMS Badge",
@@ -3547,6 +3562,8 @@ def get_user_game_profile():
 @frappe.whitelist()
 def list_class_games(batch=None, member=None):
 	member = member or frappe.session.user
+	if batch:
+		_assert_batch_access(batch)
 	filters = {}
 	if batch:
 		filters["batch"] = batch
@@ -3569,6 +3586,8 @@ def list_class_games(batch=None, member=None):
 @frappe.whitelist()
 def get_game_progress(class_game, member=None):
 	member = frappe.session.user
+	class_game_doc = frappe.get_doc("LMS Class Game", class_game)
+	_assert_batch_access(class_game_doc.batch)
 	return frappe.get_value(
 		"LMS Game Progress",
 		{"class_game": class_game, "member": member},
@@ -3589,6 +3608,7 @@ def get_game_progress(class_game, member=None):
 @frappe.whitelist()
 def start_game_session(class_game):
 	class_game_doc = frappe.get_doc("LMS Class Game", class_game)
+	_assert_batch_access(class_game_doc.batch)
 	game_doc = frappe.get_doc("LMS Game", class_game_doc.game)
 	if not game_doc.is_active:
 		frappe.throw(_("This game is not active."))
@@ -3596,6 +3616,16 @@ def start_game_session(class_game):
 		frappe.throw(_("This game is not available yet."))
 	if class_game_doc.available_until and class_game_doc.available_until < now_datetime():
 		frappe.throw(_("This game is no longer available."))
+	recent = frappe.db.count(
+		"LMS Game Session",
+		{
+			"member": frappe.session.user,
+			"class_game": class_game_doc.name,
+			"started_at": [">", now_datetime() - timedelta(seconds=30)],
+		},
+	)
+	if recent > 0:
+		frappe.throw(_("Please wait before starting another session."))
 	if class_game_doc.max_attempts:
 		attempts = frappe.db.count(
 			"LMS Game Session",
@@ -3701,6 +3731,8 @@ def create_game(data):
 @frappe.whitelist()
 def assign_game_to_batch(game, batch, settings=None):
 	frappe.only_for(["Moderator", "Course Creator"])
+	if "Moderator" not in frappe.get_roles() and not can_modify_batch(batch):
+		frappe.throw(_("You can only assign games to your own batches."))
 	doc = frappe.new_doc("LMS Class Game")
 	doc.game = game
 	doc.batch = batch
@@ -3712,13 +3744,22 @@ def assign_game_to_batch(game, batch, settings=None):
 @frappe.whitelist()
 def create_batch_quiz(batch, title, questions, duration, passing_pct):
 	frappe.only_for(["Moderator", "Course Creator"])
-	if "Moderator" not in frappe.get_roles():
-		if not frappe.db.exists("Course Instructor", {"parent": batch, "instructor": frappe.session.user}):
-			frappe.throw(_("You can only create quizzes for your own batches."))
+	if "Moderator" not in frappe.get_roles() and not can_modify_batch(batch):
+		frappe.throw(_("You can only create quizzes for your own batches."))
+	questions = json.loads(questions) if isinstance(questions, str) else (questions or [])
 	quiz = frappe.new_doc("LMS Quiz")
 	quiz.title = title
 	quiz.duration = duration
 	quiz.passing_percentage = passing_pct
+	quiz.questions = []
+	for question in questions:
+		quiz.append(
+			"questions",
+			{
+				"question": question.get("question"),
+				"marks": question.get("marks", 1),
+			},
+		)
 	quiz.insert(ignore_permissions=True)
 	assignment = frappe.new_doc("LMS Assessment Assignment")
 	assignment.quiz = quiz.name
@@ -3745,6 +3786,8 @@ def get_batch_statistics(batch):
 @frappe.whitelist()
 def award_badge(badge, member, batch=None):
 	frappe.only_for("Moderator")
+	if frappe.db.exists("LMS Badge Assignment", {"badge": badge, "member": member}):
+		return {"name": frappe.db.get_value("LMS Badge Assignment", {"badge": badge, "member": member}, "name")}
 	assignment = frappe.new_doc("LMS Badge Assignment")
 	assignment.badge = badge
 	assignment.member = member

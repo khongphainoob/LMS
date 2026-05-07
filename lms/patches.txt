@@ -122,3 +122,7 @@ lms.patches.v2_0.certified_members_to_certifications #05-10-2025
 lms.patches.v2_0.fix_job_application_resume_urls
 lms.patches.v2_0.open_to_opportunities
 lms.patches.v2_0.open_to_work
+lms.lms.patches.v0_gamification.create_gamification_doctypes
+lms.lms.patches.v0_gamification.create_default_games
+lms.lms.patches.v0_gamification.seed_question_bank
+lms.lms.patches.v0_gamification.backfill_leaderboard
