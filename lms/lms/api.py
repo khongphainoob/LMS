@@ -2350,6 +2350,25 @@ def get_leaderboard(batch=None, limit=10):
 
 
 @frappe.whitelist()
+def get_gamification_questions(question_type=None, category=None, difficulty=None, limit=10):
+	filters = {"disabled": 0}
+	if question_type:
+		filters["question_type"] = question_type
+	if category:
+		filters["category"] = category
+	if difficulty:
+		filters["difficulty"] = difficulty
+	questions = frappe.get_all(
+		"LMS Gamification Question Bank",
+		filters=filters,
+		fields=["name", "question_text", "question_type", "options", "correct_answer", "hint", "category", "difficulty", "sort_items"],
+		limit=cint(limit) or 10,
+		order_by="modified desc",
+	)
+	return questions
+
+
+@frappe.whitelist()
 def record_game_session(game, score, max_score=100, result="Completed", metadata=None):
 	if not frappe.session.user or frappe.session.user == "Guest":
 		frappe.throw(_("Please log in to save game progress."))
@@ -3564,22 +3583,33 @@ def list_class_games(batch=None, member=None):
 	member = member or frappe.session.user
 	if batch:
 		_assert_batch_access(batch)
-	filters = {}
-	if batch:
-		filters["batch"] = batch
+		games = frappe.get_all(
+			"LMS Class Game",
+			{"batch": batch},
+			fields=["name", "game", "batch", "settings", "max_attempts", "available_from", "available_until"],
+		)
+		for game in games:
+			game_details = frappe.get_value(
+				"LMS Game",
+				game.game,
+				["name", "title", "game_type", "delivery_mode", "scoring_model", "max_score"],
+				as_dict=1,
+			)
+			game.game_details = game_details
+			game.class_game = game.name
+			game.playable = 1
+		return games
+
 	games = frappe.get_all(
-		"LMS Class Game",
-		filters=filters,
-		fields=["name", "game", "batch", "settings", "max_attempts", "available_from", "available_until"],
+		"LMS Game",
+		{"is_active": 1},
+		fields=["name", "title", "game_type", "delivery_mode", "scoring_model", "max_score"],
+		order_by="creation asc",
 	)
 	for game in games:
-		game_details = frappe.get_value(
-			"LMS Game",
-			game.game,
-			["name", "title", "game_type", "delivery_mode", "scoring_model", "max_score"],
-			as_dict=1,
-		)
-		game.game_details = game_details
+		game.game_details = game
+		game.class_game = None
+		game.playable = 1
 	return games
 
 

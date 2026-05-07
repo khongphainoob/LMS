@@ -61,7 +61,21 @@ const recentBadges = computed(() => (badgesResource.data || []).map((b) => ({
 const games = computed(() => {
 	const apiGames = classGamesResource.data || []
 	const componentMap = { memory_match: markRaw(MemoryMatch), timed_quiz: markRaw(TimedQuiz), spin_wheel: markRaw(SpinTheWheel), word_scramble: markRaw(WordScramble), drag_drop: markRaw(DragDropSort) }
-	return apiGames.map((game) => ({ id: game.name, classGame: game.name, title: game.game_details?.title || game.game, description: game.game_details?.game_type || game.game, component: componentMap[game.game_details?.game_type] || markRaw(MemoryMatch), tag: game.game_details?.delivery_mode || __("Game"), icon: Gamepad2, bgClass: "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20", iconClass: "text-ink-blue-4", tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" }))
+	return apiGames.map((game) => {
+		const details = game.game_details || game
+		return {
+			id: game.class_game || game.name,
+			classGame: game.class_game || game.name,
+			title: details.title,
+			description: details.game_type,
+			component: componentMap[details.game_type] || markRaw(MemoryMatch),
+			tag: details.delivery_mode || __("Game"),
+			icon: Gamepad2,
+			bgClass: "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20",
+			iconClass: "text-ink-blue-4",
+			tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+		}
+	})
 })
 
 const badgeCards = computed(() => recentBadges.value)
