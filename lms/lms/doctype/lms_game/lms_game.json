@@ -29,7 +29,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Game Type",
-   "options": "memory_match\ntimed_quiz\nspin_wheel\nword_scramble\ndrag_drop",
+   "options": "memory_match\ntimed_quiz\nspin_wheel\nword_scramble\ndrag_drop\nduck_race\nfruit_ninja",
    "reqd": 1
   },
   {

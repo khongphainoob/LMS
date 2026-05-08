@@ -35,9 +35,9 @@
 				<span>{{ statusText }}</span>
 			</div>
 
-			<div class="w-full h-1.5 bg-surface-gray-2 rounded-full overflow-hidden">
-				<div class="h-full rounded-full bg-ink-blue-4 transition-all duration-300" :style="{ width: progress + '%' }"></div>
-			</div>
+		<div class="w-full h-1.5 bg-surface-gray-2 rounded-full overflow-hidden">
+			<div class="h-full rounded-full bg-ink-blue-4 transition-all duration-300" :style="{ width: progress + '%' }"></div>
+		</div>
 
 			<div class="relative rounded-2xl bg-gradient-to-b from-slate-900 to-slate-800 p-4 overflow-hidden min-h-[280px]">
 				<div class="absolute inset-x-4 top-12 border-t border-dashed border-white/15"></div>
@@ -51,22 +51,16 @@
 					<div class="w-3.5 h-16 mx-auto rounded-full bg-gradient-to-b from-amber-400 to-orange-500 shadow-lg" :class="smashedCounters.includes(counter.id) ? 'opacity-40 grayscale' : ''"></div>
 				</div>
 
-				<div class="absolute bottom-6 left-6 right-6">
-					<div class="rounded-2xl border border-white/10 bg-white/10 backdrop-blur px-4 py-4 text-white shadow-xl">
-						<p class="text-sm font-medium text-white/90 mb-3">{{ currentQuestion.prompt }}</p>
-						<div v-if="currentQuestion.type === 'choice'" class="grid gap-2 sm:grid-cols-2">
-							<button v-for="choice in currentQuestion.choices" :key="choice" @click="submit(choice)" class="rounded-lg px-3 py-2 text-sm text-left bg-white/10 hover:bg-white/20 transition-colors">
-								{{ choice }}
-							</button>
-						</div>
-						<div v-else class="flex gap-2">
-							<input v-model="typedAnswer" @keyup.enter="submit(typedAnswer)" class="flex-1 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none" :placeholder="currentQuestion.placeholder" />
-							<button @click="submit(typedAnswer)" class="rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-slate-900">
-								{{ __('Answer') }}
-							</button>
-						</div>
+			<div class="absolute bottom-6 left-6 right-6">
+				<div class="rounded-2xl border border-white/10 bg-white/10 backdrop-blur px-4 py-4 text-white shadow-xl">
+					<p class="text-sm font-medium text-white/90 mb-3">{{ currentQuestion.prompt }}</p>
+					<div class="grid gap-2 sm:grid-cols-2">
+						<button v-for="choice in currentQuestion.options" :key="choice" @click="submit(choice)" class="rounded-lg px-3 py-2 text-sm text-left bg-white/10 hover:bg-white/20 transition-colors">
+							{{ choice }}
+						</button>
 					</div>
 				</div>
+			</div>
 
 				<div class="absolute top-4 right-4 text-right text-white">
 					<div class="text-xs uppercase tracking-[0.2em] text-white/60">{{ __('Duck') }}</div>
@@ -93,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { call } from 'frappe-ui'
 import { Timer, Trophy } from 'lucide-vue-next'
 
@@ -110,17 +104,18 @@ const currentRound = ref(1)
 const progress = ref(0)
 const timeLeft = ref(45)
 const statusText = ref('Ready to race')
-const typedAnswer = ref('')
 const smashedCounters = ref([])
 const sessionId = ref(null)
+const questions = ref([])
+const loading = ref(false)
 let timer = null
 
-const questions = [
-	{ type: 'choice', prompt: '2 + 3 = ?', choices: ['4', '5', '6', '8'], answer: '5' },
-	{ type: 'short', prompt: 'Spell the first month of the year', placeholder: 'Type your answer', answer: 'january' },
-	{ type: 'choice', prompt: 'Which is a prime number?', choices: ['9', '12', '13', '15'], answer: '13' },
-	{ type: 'short', prompt: 'What is 10 - 4?', placeholder: 'Type a number', answer: '6' },
-	{ type: 'choice', prompt: 'Which animal says meow?', choices: ['Dog', 'Cow', 'Cat', 'Duck'], answer: 'Cat' },
+const fallbackQuestions = [
+	{ prompt: '2 + 3 = ?', options: ['4', '5', '6', '8'], answer: '5' },
+	{ prompt: 'Which is a prime number?', options: ['9', '12', '13', '15'], answer: '13' },
+	{ prompt: 'Which animal says meow?', options: ['Dog', 'Cow', 'Cat', 'Duck'], answer: 'Cat' },
+	{ prompt: 'What is 10 - 4?', options: ['3', '4', '5', '6'], answer: '6' },
+	{ prompt: 'Spell the first month of the year', options: ['March', 'January', 'June', 'May'], answer: 'January' },
 ]
 
 const counters = [
@@ -131,7 +126,7 @@ const counters = [
 	{ id: 5, left: 88, label: 'Finish' },
 ]
 
-const currentQuestion = computed(() => questions[currentRound.value - 1] || questions[questions.length - 1])
+const currentQuestion = computed(() => questions.value[currentRound.value - 1] || questions.value[questions.value.length - 1])
 const finishTitle = computed(() => (progress.value >= 100 ? 'Victory!' : 'Race Complete'))
 
 function resetGame() {
@@ -140,7 +135,6 @@ function resetGame() {
 	progress.value = 0
 	timeLeft.value = 45
 	statusText.value = 'The race is on'
-	typedAnswer.value = ''
 	smashedCounters.value = []
 	clearInterval(timer)
 	timer = null
@@ -168,6 +162,27 @@ async function startSession() {
 	if (!props.classGame) return
 	const res = await call('lms.lms.api.start_game_session', { class_game: props.classGame })
 	sessionId.value = res.session_id
+}
+
+async function loadQuestions() {
+	loading.value = true
+	try {
+		const res = await call('lms.lms.api.get_gamification_questions', { question_type: 'mcq', limit: 5 })
+		const loaded = (res || [])
+			.map((q) => {
+				const options = Array.isArray(q.options) ? q.options.map((o) => o.label).filter(Boolean) : []
+				const correctIndex = Array.isArray(q.options) ? Math.max(0, q.options.findIndex((o) => o.is_correct)) : 0
+				return {
+					prompt: q.question_text,
+					options,
+					answer: options[correctIndex] || options[0] || '',
+				}
+			})
+			.filter((q) => q.prompt && q.answer)
+		questions.value = loaded.length ? loaded : fallbackQuestions
+	} finally {
+		loading.value = false
+	}
 }
 
 async function recordSession(result) {
@@ -203,16 +218,21 @@ function boostDuck(correct) {
 
 function submit(answer) {
 	if (gameState.value !== 'playing') return
-	const expected = currentQuestion.value.answer.toLowerCase().trim()
+	const expected = String(currentQuestion.value.answer || '').toLowerCase().trim()
 	const actual = String(answer || '').toLowerCase().trim()
 	boostDuck(actual === expected)
-	if (progress.value >= 100 || currentRound.value >= questions.length) {
+	if (progress.value >= 100 || currentRound.value >= questions.value.length) {
 		endGame(progress.value >= 100 ? 'Victory!' : 'Race Complete')
 		return
 	}
 	currentRound.value += 1
-	typedAnswer.value = ''
 }
+
+onMounted(async () => {
+	await loadQuestions()
+	if (!questions.value.length) questions.value = fallbackQuestions
+	startSession()
+})
 
 onUnmounted(() => {
 	clearInterval(timer)

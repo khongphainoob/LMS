@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { call } from 'frappe-ui'
 import { Clock, Heart, Star } from 'lucide-vue-next'
 
@@ -94,21 +94,37 @@ const statusText = ref('Ready to slice')
 const visibleFruits = ref([])
 const targetScore = 250
 const sessionId = ref(null)
+const questions = ref([])
+const loading = ref(false)
+const currentQuestionIndex = ref(0)
 let spawnTimer = null
 let countdownTimer = null
 let fruitId = 0
 
-const fruitPool = [
-	{ emoji: '🍎', points: 10 },
-	{ emoji: '🍊', points: 12 },
-	{ emoji: '🍇', points: 14 },
-	{ emoji: '🍓', points: 16 },
-	{ emoji: '🍍', points: 20 },
-	{ emoji: '🍉', points: 18 },
-]
+const fruitEmojiMap = {
+	apple: '🍎',
+	banana: '🍌',
+	grapes: '🍇',
+	orange: '🍊',
+	watermelon: '🍉',
+	mango: '🥭',
+	pear: '🍐',
+	plum: '🍑',
+	peach: '🍑',
+	berry: '🍓',
+}
 
 const finishTitle = computed(() => (score.value >= targetScore ? 'Perfect Slice!' : 'Game Over'))
 const timePercent = computed(() => Math.max((timeLeft.value / 40) * 100, 0))
+const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || null)
+
+const fallbackQuestions = [
+	{ prompt: 'Select the fruit that is red', options: ['Apple', 'Banana', 'Grapes', 'Orange'], answer: 'Apple' },
+	{ prompt: 'Select the fruit that is yellow', options: ['Apple', 'Banana', 'Grapes', 'Watermelon'], answer: 'Banana' },
+	{ prompt: 'Select the fruit that grows in bunches', options: ['Apple', 'Banana', 'Grapes', 'Peach'], answer: 'Grapes' },
+	{ prompt: 'Select the big green fruit', options: ['Apple', 'Orange', 'Watermelon', 'Mango'], answer: 'Watermelon' },
+	{ prompt: 'Select the tropical fruit', options: ['Banana', 'Mango', 'Pear', 'Plum'], answer: 'Mango' },
+]
 
 function resetGame() {
 	score.value = 0
@@ -118,17 +134,25 @@ function resetGame() {
 	timeLeft.value = 40
 	statusText.value = 'The orchard is open'
 	visibleFruits.value = []
+	currentQuestionIndex.value = 0
 	clearInterval(spawnTimer)
 	clearInterval(countdownTimer)
 	spawnTimer = null
 	countdownTimer = null
 }
 
-function randomFruit() {
-	const base = fruitPool[Math.floor(Math.random() * fruitPool.length)]
+function normalizeLabel(label) {
+	return String(label || '').toLowerCase().replace(/[^a-z]/g, '')
+}
+
+function fruitForLabel(label, isCorrect) {
+	const key = normalizeLabel(label)
+	const emoji = fruitEmojiMap[key] || '🍓'
 	return {
 		id: ++fruitId,
-		...base,
+		label,
+		emoji,
+		points: isCorrect ? 18 : 8,
 		x: 10 + Math.random() * 75,
 		y: 12 + Math.random() * 55,
 		spin: Math.floor(Math.random() * 360),
@@ -136,9 +160,21 @@ function randomFruit() {
 	}
 }
 
+function buildFruitsForQuestion() {
+	const question = currentQuestion.value
+	if (!question) return []
+	const correct = question.answer
+	const options = question.options.length ? question.options : [correct]
+	return options.map((option) => fruitForLabel(option, option === correct))
+}
+
+function loadRound() {
+	visibleFruits.value = buildFruitsForQuestion()
+	statusText.value = currentQuestion.value?.prompt || 'Slice the correct fruit'
+}
+
 function spawnFruit() {
 	if (gameState.value !== 'playing') return
-	visibleFruits.value.push(randomFruit())
 	visibleFruits.value = visibleFruits.value.filter((fruit) => {
 		if (fruit.expiresAt <= Date.now()) {
 			lives.value -= 1
@@ -148,15 +184,20 @@ function spawnFruit() {
 		}
 		return true
 	})
+	if (visibleFruits.value.length === 0) {
+		loadRound()
+	}
 	if (lives.value <= 0) endGame('Out of lives')
 }
 
 async function startGame() {
 	resetGame()
+	if (!questions.value.length) await loadQuestions()
+	if (!questions.value.length) questions.value = fallbackQuestions
 	await startSession()
 	gameState.value = 'playing'
-	spawnFruit()
-	spawnTimer = setInterval(spawnFruit, 850)
+	loadRound()
+	spawnTimer = setInterval(spawnFruit, 350)
 	countdownTimer = setInterval(() => {
 		timeLeft.value -= 1
 		if (timeLeft.value <= 0) endGame('Time is up')
@@ -179,6 +220,27 @@ async function startSession() {
 	sessionId.value = res.session_id
 }
 
+async function loadQuestions() {
+	loading.value = true
+	try {
+		const res = await call('lms.lms.api.get_gamification_questions', { question_type: 'mcq', limit: 5 })
+		const loaded = (res || [])
+			.map((q) => {
+				const options = Array.isArray(q.options) ? q.options.map((o) => o.label).filter(Boolean) : []
+				const correctIndex = Array.isArray(q.options) ? Math.max(0, q.options.findIndex((o) => o.is_correct)) : 0
+				return {
+					prompt: q.question_text,
+					options,
+					answer: options[correctIndex] || options[0] || '',
+				}
+			})
+			.filter((q) => q.prompt && q.answer)
+		questions.value = loaded.length ? loaded : fallbackQuestions
+	} finally {
+		loading.value = false
+	}
+}
+
 async function recordSession(result) {
 	if (!sessionId.value) {
 		emit('completed')
@@ -199,15 +261,33 @@ async function recordSession(result) {
 function sliceFruit(fruit) {
 	if (gameState.value !== 'playing') return
 	visibleFruits.value = visibleFruits.value.filter((item) => item.id !== fruit.id)
-	combo.value += 1
-	slicedCount.value += 1
-	const points = fruit.points + combo.value * 2
-	score.value += points
-	statusText.value = '+' + points + ' pts'
-	if (score.value >= targetScore) {
-		endGame('Perfect Slice!')
+	const correct = currentQuestion.value?.answer || ''
+	const isCorrect = String(fruit.label || '').toLowerCase() === String(correct).toLowerCase()
+	if (isCorrect) {
+		combo.value += 1
+		slicedCount.value += 1
+		const points = fruit.points + combo.value * 2
+		score.value += points
+		statusText.value = '+' + points + ' pts'
+		currentQuestionIndex.value += 1
+		if (currentQuestionIndex.value >= questions.value.length) {
+			endGame(score.value >= targetScore ? 'Perfect Slice!' : 'Game Over')
+			return
+		}
+		loadRound()
+		return
 	}
+	lives.value -= 1
+	combo.value = 0
+	statusText.value = 'Missed!'
+	if (lives.value <= 0) endGame('Out of lives')
 }
+
+onMounted(async () => {
+	await loadQuestions()
+	if (!questions.value.length) questions.value = fallbackQuestions
+	startSession()
+})
 
 onUnmounted(() => {
 	clearInterval(spawnTimer)

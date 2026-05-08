@@ -1,0 +1,2 @@
+import{r,K as l,b6 as s,b3 as u}from"./index-BKOTrss0.js";function o(t,n){if(t)return t;let e=n??"button";if(typeof e=="string"&&e.toLowerCase()==="button")return"button"}function i(t,n){let e=r(o(t.value.type,t.value.as));return l(()=>{e.value=o(t.value.type,t.value.as)}),s(()=>{var a;e.value||u(n)&&u(n)instanceof HTMLButtonElement&&!((a=u(n))!=null&&a.hasAttribute("type"))&&(e.value="button")}),e}export{i as s};
+//# sourceMappingURL=use-resolve-button-type-sLxu5uXf.js.map

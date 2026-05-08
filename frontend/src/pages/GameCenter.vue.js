@@ -102,6 +102,8 @@ const games = computed(() => {
         spin_wheel: markRaw(SpinTheWheel),
         word_scramble: markRaw(WordScramble),
         drag_drop: markRaw(DragDropSort),
+        duck_race: markRaw(DuckRace),
+        fruit_ninja: markRaw(FruitNinja),
     };
     return apiGames.map((game) => ({
         id: game.name,

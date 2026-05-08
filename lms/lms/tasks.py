@@ -54,6 +54,8 @@ def create_default_games():
 		{"title": "Spin the Wheel", "game_type": "spin_wheel", "scoring_model": "sum", "max_score": 500},
 		{"title": "Word Scramble", "game_type": "word_scramble", "scoring_model": "best", "max_score": 300},
 		{"title": "Drag & Drop Sort", "game_type": "drag_drop", "scoring_model": "best", "max_score": 500},
+		{"title": "Duck Race", "game_type": "duck_race", "scoring_model": "sum", "max_score": 500},
+		{"title": "Fruit Ninja", "game_type": "fruit_ninja", "scoring_model": "sum", "max_score": 500},
 	]
 	for game in games:
 		if not frappe.db.exists("LMS Game", game["title"]):

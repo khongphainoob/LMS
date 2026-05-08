@@ -48,9 +48,8 @@
 				class="aspect-square rounded-xl text-2xl font-bold transition-all duration-500 cursor-pointer select-none"
 				:class="getCardClass(card)"
 			>
-				<div v-if="card.flipped || card.matched" class="flex flex-col items-center justify-center h-full">
-					<span>{{ card.emoji }}</span>
-					<span class="text-[10px] mt-0.5 opacity-70">{{ card.label }}</span>
+				<div v-if="card.flipped || card.matched" class="flex flex-col items-center justify-center h-full px-1 text-center">
+					<span class="text-[10px] leading-tight">{{ card.text }}</span>
 				</div>
 				<div v-else class="flex items-center justify-center h-full">
 					<HelpCircle class="size-6 text-ink-gray-4" />
@@ -73,7 +72,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onUnmounted, computed } from "vue"
+import { ref, onMounted, onUnmounted } from "vue"
+import { call } from "frappe-ui"
 import { Timer, MousePointerClick, HelpCircle } from "lucide-vue-next"
 
 const gridSize = ref(4)
@@ -83,47 +83,45 @@ const isChecking = ref(false)
 const moves = ref(0)
 const elapsedTime = ref(0)
 const gameWon = ref(false)
+const loading = ref(false)
 let timerInterval = null
 
-const emojis = [
-	{ emoji: "\u{1F4DA}", label: "Book" },
-	{ emoji: "\u{1F4BB}", label: "Code" },
-	{ emoji: "\u{1F9E0}", label: "Brain" },
-	{ emoji: "\u{1F3AF}", label: "Target" },
-	{ emoji: "\u{1F680}", label: "Rocket" },
-	{ emoji: "\u{1F4A1}", label: "Idea" },
-	{ emoji: "\u{1F48E}", label: "Gem" },
-	{ emoji: "\u{1F525}", label: "Fire" },
-	{ emoji: "\u{1F916}", label: "Robot" },
-	{ emoji: "\u{1F393}", label: "Grad" },
-	{ emoji: "\u{1F4CA}", label: "Chart" },
-	{ emoji: "\u{1F52C}", label: "Science" },
-	{ emoji: "\u{270F}\u{FE0F}", label: "Edit" },
-	{ emoji: "\u{1F3B5}", label: "Music" },
-	{ emoji: "\u{1F308}", label: "Rainbow" },
-	{ emoji: "\u{1F31F}", label: "Star" },
-	{ emoji: "\u{1F0CF}", label: "Puzzle" },
-	{ emoji: "\u{1F6E0}\u{FE0F}", label: "Tools" },
+const fallbackPairs = [
+	{ question: "What does HTML stand for?", answer: "Hyper Text Markup Language" },
+	{ question: "What is 2 + 2?", answer: "4" },
+	{ question: "Which planet is called the Blue Planet?", answer: "Earth" },
+	{ question: "What color is the sky?", answer: "Blue" },
+	{ question: "Which animal barks?", answer: "Dog" },
+	{ question: "What do bees make?", answer: "Honey" },
+	{ question: "Which season is coldest?", answer: "Winter" },
+	{ question: "What is the first letter of the alphabet?", answer: "A" },
 ]
+
+const questionPairs = ref([])
 
 function shuffleArray(arr) {
 	const a = [...arr]
 	for (let i = a.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[a[i], a[j]] = [a[j], a[i]]
+		const j = Math.floor(Math.random() * (i + 1))
+		;[a[i], a[j]] = [a[j], a[i]]
 	}
 	return a
 }
 
+function normalizeText(value) {
+	return String(value || "").trim()
+}
+
 function initGame() {
-	const pairCount = Math.floor((gridSize.value * gridSize.value) / 2)
-	const selected = shuffleArray(emojis).slice(0, pairCount)
-	const paired = shuffleArray([...selected, ...selected])
-	cards.value = paired.map((item) => ({
-		...item,
-		flipped: false,
-		matched: false,
-	}))
+	const pairCount = Math.min(Math.floor((gridSize.value * gridSize.value) / 2), questionPairs.value.length)
+	const selected = shuffleArray(questionPairs.value).slice(0, pairCount)
+	const paired = shuffleArray(
+		selected.flatMap((pair, idx) => [
+			{ id: `${idx}-q`, pairId: idx, kind: "question", text: pair.question },
+			{ id: `${idx}-a`, pairId: idx, kind: "answer", text: pair.answer },
+		]),
+	)
+	cards.value = paired.map((item) => ({ ...item, flipped: false, matched: false }))
 	flippedIndices.value = []
 	isChecking.value = false
 	moves.value = 0
@@ -131,6 +129,25 @@ function initGame() {
 	gameWon.value = false
 	clearInterval(timerInterval)
 	timerInterval = null
+}
+
+async function loadPairs() {
+	loading.value = true
+	try {
+		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "mcq", limit: 8 })
+		const loaded = (res || [])
+			.map((q) => {
+				const correct = Array.isArray(q.options) ? q.options.find((o) => o.is_correct) : null
+				return {
+					question: normalizeText(q.question_text),
+					answer: normalizeText(correct?.label),
+				}
+			})
+			.filter((pair) => pair.question && pair.answer)
+		questionPairs.value = loaded.length ? loaded : fallbackPairs
+	} finally {
+		loading.value = false
+	}
 }
 
 function startTimer() {
@@ -157,7 +174,7 @@ function flipCard(index) {
 		moves.value++
 		isChecking.value = true
 		const [i1, i2] = flippedIndices.value
-		if (cards.value[i1].label === cards.value[i2].label) {
+		if (cards.value[i1].pairId === cards.value[i2].pairId && cards.value[i1].kind !== cards.value[i2].kind) {
 			cards.value[i1].matched = true
 			cards.value[i2].matched = true
 			flippedIndices.value = []
@@ -202,9 +219,13 @@ function changeGridSize(size) {
 	initGame()
 }
 
+onMounted(async () => {
+	await loadPairs()
+	initGame()
+})
+
 onUnmounted(() => {
 	clearInterval(timerInterval)
 })
 
-initGame()
 </script>
