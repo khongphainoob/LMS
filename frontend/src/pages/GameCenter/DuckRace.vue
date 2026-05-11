@@ -126,7 +126,8 @@ const counters = [
 	{ id: 5, left: 88, label: 'Finish' },
 ]
 
-const currentQuestion = computed(() => questions.value[currentRound.value - 1] || questions.value[questions.value.length - 1])
+const defaultQuestion = { prompt: '', options: [], answer: '' }
+const currentQuestion = computed(() => questions.value[currentRound.value - 1] || questions.value[questions.value.length - 1] || defaultQuestion)
 const finishTitle = computed(() => (progress.value >= 100 ? 'Victory!' : 'Race Complete'))
 
 function resetGame() {
@@ -136,8 +137,31 @@ function resetGame() {
 	timeLeft.value = 45
 	statusText.value = 'The race is on'
 	smashedCounters.value = []
+	gameState.value = 'start'
+	sessionId.value = null
 	clearInterval(timer)
 	timer = null
+}
+
+function normalizeQuestion(q) {
+	const options = Array.isArray(q?.options)
+		? q.options.map((option) => {
+			if (typeof option === "string") {
+				return { label: option, is_correct: false }
+			}
+			return {
+				label: option?.label || option?.option_value || option?.value || "",
+				is_correct: Boolean(option?.is_correct),
+			}
+		})
+		: []
+	const correctIndex = options.findIndex((o) => o.is_correct)
+	const labels = options.map((o) => o.label).filter(Boolean)
+	return {
+		prompt: q?.question || q?.question_text || "",
+		options: labels,
+		answer: labels[correctIndex >= 0 ? correctIndex : 0] || q?.correct_answer || q?.correct_option || labels[0] || "",
+	}
 }
 
 async function startGame() {
@@ -169,17 +193,9 @@ async function loadQuestions() {
 	try {
 		const res = await call('lms.lms.api.get_gamification_questions', { question_type: 'mcq', limit: 5 })
 		const loaded = (res || [])
-			.map((q) => {
-				const options = Array.isArray(q.options) ? q.options.map((o) => o.label).filter(Boolean) : []
-				const correctIndex = Array.isArray(q.options) ? Math.max(0, q.options.findIndex((o) => o.is_correct)) : 0
-				return {
-					prompt: q.question_text,
-					options,
-					answer: options[correctIndex] || options[0] || '',
-				}
-			})
+			.map(normalizeQuestion)
 			.filter((q) => q.prompt && q.answer)
-		questions.value = loaded.length ? loaded : fallbackQuestions
+		questions.value = [...loaded, ...fallbackQuestions].slice(0, 5)
 	} finally {
 		loading.value = false
 	}
@@ -231,7 +247,6 @@ function submit(answer) {
 onMounted(async () => {
 	await loadQuestions()
 	if (!questions.value.length) questions.value = fallbackQuestions
-	startSession()
 })
 
 onUnmounted(() => {

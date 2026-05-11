@@ -116,7 +116,7 @@ const fruitEmojiMap = {
 
 const finishTitle = computed(() => (score.value >= targetScore ? 'Perfect Slice!' : 'Game Over'))
 const timePercent = computed(() => Math.max((timeLeft.value / 40) * 100, 0))
-const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || null)
+const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || { prompt: '', options: [], answer: '' })
 
 const fallbackQuestions = [
 	{ prompt: 'Select the fruit that is red', options: ['Apple', 'Banana', 'Grapes', 'Orange'], answer: 'Apple' },
@@ -135,10 +135,33 @@ function resetGame() {
 	statusText.value = 'The orchard is open'
 	visibleFruits.value = []
 	currentQuestionIndex.value = 0
+	gameState.value = 'start'
+	sessionId.value = null
 	clearInterval(spawnTimer)
 	clearInterval(countdownTimer)
 	spawnTimer = null
 	countdownTimer = null
+}
+
+function normalizeQuestion(q) {
+	const options = Array.isArray(q?.options)
+		? q.options.map((option) => {
+			if (typeof option === "string") {
+				return { label: option, is_correct: false }
+			}
+			return {
+				label: option?.label || option?.option_value || option?.value || "",
+				is_correct: Boolean(option?.is_correct),
+			}
+		})
+		: []
+	const correctIndex = options.findIndex((o) => o.is_correct)
+	const labels = options.map((o) => o.label).filter(Boolean)
+	return {
+		prompt: q?.question || q?.question_text || "",
+		options: labels,
+		answer: labels[correctIndex >= 0 ? correctIndex : 0] || q?.correct_answer || q?.correct_option || labels[0] || "",
+	}
 }
 
 function normalizeLabel(label) {
@@ -225,17 +248,9 @@ async function loadQuestions() {
 	try {
 		const res = await call('lms.lms.api.get_gamification_questions', { question_type: 'mcq', limit: 5 })
 		const loaded = (res || [])
-			.map((q) => {
-				const options = Array.isArray(q.options) ? q.options.map((o) => o.label).filter(Boolean) : []
-				const correctIndex = Array.isArray(q.options) ? Math.max(0, q.options.findIndex((o) => o.is_correct)) : 0
-				return {
-					prompt: q.question_text,
-					options,
-					answer: options[correctIndex] || options[0] || '',
-				}
-			})
+			.map(normalizeQuestion)
 			.filter((q) => q.prompt && q.answer)
-		questions.value = loaded.length ? loaded : fallbackQuestions
+		questions.value = [...loaded, ...fallbackQuestions].slice(0, 5)
 	} finally {
 		loading.value = false
 	}
@@ -286,7 +301,6 @@ function sliceFruit(fruit) {
 onMounted(async () => {
 	await loadQuestions()
 	if (!questions.value.length) questions.value = fallbackQuestions
-	startSession()
 })
 
 onUnmounted(() => {

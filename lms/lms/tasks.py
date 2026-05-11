@@ -71,7 +71,42 @@ def seed_question_bank():
 			"question_type": "mcq",
 			"category": "Tech",
 			"difficulty": "Easy",
-			"options": [{"label": "Hyper Text Markup Language", "is_correct": True}],
+			"options": {
+				"items": [
+					{"label": "Hyper Text Markup Language", "is_correct": True},
+					{"label": "High Text Markdown Language", "is_correct": False},
+					{"label": "Home Tool Markup Language", "is_correct": False},
+					{"label": "Hyperlinks and Text Markup Language", "is_correct": False},
+				]
+			},
+		},
+		{
+			"question_text": "Which planet is known as the Red Planet?",
+			"question_type": "mcq",
+			"category": "Science",
+			"difficulty": "Easy",
+			"options": {
+				"items": [
+					{"label": "Mars", "is_correct": True},
+					{"label": "Venus", "is_correct": False},
+					{"label": "Jupiter", "is_correct": False},
+					{"label": "Mercury", "is_correct": False},
+				]
+			},
+		},
+		{
+			"question_text": "Which animal says meow?",
+			"question_type": "mcq",
+			"category": "General",
+			"difficulty": "Easy",
+			"options": {
+				"items": [
+					{"label": "Cat", "is_correct": True},
+					{"label": "Dog", "is_correct": False},
+					{"label": "Cow", "is_correct": False},
+					{"label": "Duck", "is_correct": False},
+				]
+			},
 		},
 		{
 			"question_text": "ALGORITHM",
@@ -81,9 +116,53 @@ def seed_question_bank():
 			"correct_answer": "ALGORITHM",
 			"hint": "A step-by-step procedure",
 		},
+		{
+			"question_text": "PYTHON",
+			"question_type": "word_scramble",
+			"category": "Tech",
+			"difficulty": "Easy",
+			"correct_answer": "PYTHON",
+			"hint": "A popular programming language",
+		},
+		{
+			"question_text": "JUPITER",
+			"question_type": "word_scramble",
+			"category": "Science",
+			"difficulty": "Easy",
+			"correct_answer": "JUPITER",
+			"hint": "The largest planet in our solar system",
+		},
+		{
+			"question_text": "Arrange numbers from smallest to largest",
+			"question_type": "sort_order",
+			"category": "Math",
+			"difficulty": "Easy",
+			"sort_items": {"items": [{"item": "3", "order": 2}, {"item": "1", "order": 0}, {"item": "2", "order": 1}]},
+		},
+		{
+			"question_text": "Arrange planets from closest to farthest from the Sun",
+			"question_type": "sort_order",
+			"category": "Science",
+			"difficulty": "Medium",
+			"sort_items": {
+				"items": [
+					{"item": "Mercury", "order": 0},
+					{"item": "Venus", "order": 1},
+					{"item": "Earth", "order": 2},
+					{"item": "Mars", "order": 3},
+				]
+			},
+		},
 	]
 	for question in questions:
-		if not frappe.db.exists("LMS Gamification Question Bank", {"question_text": question["question_text"]}):
+		existing = frappe.db.get_value(
+			"LMS Gamification Question Bank",
+			{"question_text": question["question_text"]},
+			"name",
+		)
+		if existing:
+			frappe.db.set_value("LMS Gamification Question Bank", existing, question, update_modified=False)
+		else:
 			doc = frappe.new_doc("LMS Gamification Question Bank")
 			doc.update(question)
 			doc.insert(ignore_permissions=True)

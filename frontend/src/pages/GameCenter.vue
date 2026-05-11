@@ -43,7 +43,7 @@ import DuckRace from "@/pages/GameCenter/DuckRace.vue"
 import FruitNinja from "@/pages/GameCenter/FruitNinja.vue"
 
 const { brand } = sessionStore()
-const activeTab = ref("Overview")
+const activeTab = ref("Games")
 const leaderboardPeriod = ref("all_time")
 const activeGame = ref(null)
 
@@ -58,24 +58,131 @@ const recentBadges = computed(() => (badgesResource.data || []).map((b) => ({
 	...b,
 })))
 
+function resolveGameType(game) {
+	return String(game?.game_type || game?.game || game?.name || "").trim()
+}
+
+const fallbackGames = [
+	{
+		id: "memory-match",
+		classGame: null,
+		title: __("Memory Match"),
+		description: __("Flip cards and match pairs to test your memory"),
+		component: markRaw(MemoryMatch),
+		tag: __("Puzzle"),
+		icon: Gamepad2,
+		bgClass: "bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/20 dark:to-violet-900/20",
+		iconClass: "text-ink-purple-5",
+		tagClass: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
+	},
+	{
+		id: "timed-quiz",
+		classGame: null,
+		title: __("Timed Quiz"),
+		description: __("Answer questions before time runs out"),
+		component: markRaw(TimedQuiz),
+		tag: __("Speed"),
+		icon: Gamepad2,
+		bgClass: "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20",
+		iconClass: "text-ink-blue-4",
+		tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+	},
+	{
+		id: "spin-wheel",
+		classGame: null,
+		title: __("Spin the Wheel"),
+		description: __("Spin and win learning rewards"),
+		component: markRaw(SpinTheWheel),
+		tag: __("Luck"),
+		icon: Gamepad2,
+		bgClass: "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20",
+		iconClass: "text-ink-amber-5",
+		tagClass: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+	},
+	{
+		id: "word-scramble",
+		classGame: null,
+		title: __("Word Scramble"),
+		description: __("Unscramble words as fast as you can"),
+		component: markRaw(WordScramble),
+		tag: __("Language"),
+		icon: Gamepad2,
+		bgClass: "bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20",
+		iconClass: "text-ink-green-5",
+		tagClass: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+	},
+	{
+		id: "drag-drop",
+		classGame: null,
+		title: __("Drag & Drop Sort"),
+		description: __("Sort items in the correct order"),
+		component: markRaw(DragDropSort),
+		tag: __("Logic"),
+		icon: Gamepad2,
+		bgClass: "bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900/20 dark:to-gray-900/20",
+		iconClass: "text-ink-gray-7",
+		tagClass: "bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400",
+	},
+	{
+		id: "duck-race",
+		classGame: null,
+		title: __("Duck Race"),
+		description: __("Race your duck by answering questions"),
+		component: markRaw(DuckRace),
+		tag: __("Arcade"),
+		icon: Gamepad2,
+		bgClass: "bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/20",
+		iconClass: "text-yellow-600",
+		tagClass: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+	},
+	{
+		id: "fruit-ninja",
+		classGame: null,
+		title: __("Fruit Ninja"),
+		description: __("Slice fruits and avoid the bombs"),
+		component: markRaw(FruitNinja),
+		tag: __("Action"),
+		icon: Gamepad2,
+		bgClass: "bg-gradient-to-br from-red-50 to-pink-100 dark:from-red-900/20 dark:to-pink-900/20",
+		iconClass: "text-red-500",
+		tagClass: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+	},
+]
+
 const games = computed(() => {
-	const apiGames = classGamesResource.data || []
-	const componentMap = { memory_match: markRaw(MemoryMatch), timed_quiz: markRaw(TimedQuiz), spin_wheel: markRaw(SpinTheWheel), word_scramble: markRaw(WordScramble), drag_drop: markRaw(DragDropSort) }
-	return apiGames.map((game) => {
-		const details = game.game_details || game
-		return {
-			id: game.class_game || game.name,
-			classGame: game.class_game || game.name,
-			title: details.title,
-			description: details.game_type,
-			component: componentMap[details.game_type] || markRaw(MemoryMatch),
-			tag: details.delivery_mode || __("Game"),
-			icon: Gamepad2,
-			bgClass: "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20",
-			iconClass: "text-ink-blue-4",
-			tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+		const apiGames = classGamesResource.data || []
+		if (!apiGames.length) {
+			return fallbackGames
 		}
-	})
+
+		const componentMap = {
+			"memory_match": markRaw(MemoryMatch),
+			"timed_quiz": markRaw(TimedQuiz),
+			"spin_wheel": markRaw(SpinTheWheel),
+			"word_scramble": markRaw(WordScramble),
+			"drag_drop": markRaw(DragDropSort),
+			"duck_race": markRaw(DuckRace),
+			"fruit_ninja": markRaw(FruitNinja),
+		}
+
+		return apiGames.map((game) => {
+			const title = game.title || game.game || game.name
+			const gType = resolveGameType(game)
+			const delivery = game.delivery_mode
+
+			return {
+				id: game.class_game || game.name,
+				classGame: game.class_game || game.name,
+				title: title,
+				description: gType,
+				component: componentMap[gType] || null,
+				tag: delivery || __("Game"),
+				icon: Gamepad2,
+				bgClass: "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20",
+            iconClass: "text-ink-blue-4",
+            tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+        }
+    })
 })
 
 const badgeCards = computed(() => recentBadges.value)

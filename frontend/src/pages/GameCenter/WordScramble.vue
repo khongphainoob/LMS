@@ -48,6 +48,14 @@ const loading = ref(false)
 
 const correctCount = computed(() => wordResults.value.filter(Boolean).length)
 
+function normalizeQuestion(q) {
+	return {
+		answer: String(q?.correct_answer || q?.correct_option || q?.question_text || "").toUpperCase(),
+		hint: q?.hint || "",
+		category: q?.category || "general",
+	}
+}
+
 function getCategoryLabel(cat) {
 	return ({ tech: "💻 Tech", science: "🔬 Science", math: "🔢 Math", history: "📜 History", nature: "🌿 Nature" })[String(cat || "").toLowerCase()] || cat
 }
@@ -62,7 +70,8 @@ function scrambleWord(word) {
 }
 
 function loadWord() {
-	const word = words.value[currentIndex.value]
+	const word = words.value[currentIndex.value] || words.value[0]
+	if (!word) return
 	scrambledLetters.value = scrambleWord(word.answer)
 	answerSlots.value = new Array(word.answer.length).fill(null)
 	isWrong.value = false
@@ -137,7 +146,7 @@ async function loadWords() {
 	try {
 		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "word_scramble", limit: 10 })
 		words.value = (res || [])
-			.map((q) => ({ answer: String(q.correct_answer || q.question_text || "").toUpperCase(), hint: q.hint || "", category: q.category || "general" }))
+			.map(normalizeQuestion)
 			.filter((w) => w.answer)
 		if (!words.value.length) words.value = [{ answer: "ALGORITHM", hint: __("A step-by-step procedure"), category: "tech" }]
 	} finally {

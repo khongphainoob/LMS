@@ -1980,8 +1980,8 @@ def get_home_stats():
 	if enrolled_courses:
 		total_lessons = frappe.db.sql(
 			"""SELECT COALESCE(SUM(lesson_count), 0) FROM `tabLMS Course`
-			   WHERE name IN %s""",
-			[enrolled_courses],
+			   WHERE name IN %(courses)s""",
+			{"courses": tuple(enrolled_courses)},
 		)[0][0]
 
 	# Count completed lessons
@@ -2078,7 +2078,7 @@ def get_hours_spent(member=None):
 		member = frappe.session.user
 
 	total_seconds = frappe.db.get_value(
-		"LMS Video Watch Duration", {"member": member}, "SUM(CAST(watch_time AS DECIMAL(16,2)))"
+		"LMS Video Watch Duration", {"member": member}, "SUM(watch_time + 0)"
 	) or 0
 
 	total_seconds = flt(total_seconds)
@@ -2090,7 +2090,7 @@ def get_hours_spent(member=None):
 
 	# Per-course breakdown (top 5)
 	course_breakdown = frappe.db.sql(
-		"""SELECT course, COALESCE(SUM(CAST(watch_time AS DECIMAL(16,2))), 0) as total_seconds
+		"""SELECT course, COALESCE(SUM(watch_time + 0), 0) as total_seconds
 		   FROM `tabLMS Video Watch Duration`
 		   WHERE member = %s AND course IS NOT NULL
 		   GROUP BY course ORDER BY total_seconds DESC LIMIT 5""",
@@ -2145,24 +2145,26 @@ def get_admin_performance_stats():
 		}
 
 	avg_completion = frappe.db.sql(
-		"SELECT AVG(progress) FROM `tabLMS Enrollment` WHERE member IN %s", [members]
+		"SELECT AVG(progress) FROM `tabLMS Enrollment` WHERE member IN %(members)s",
+		{"members": tuple(members)},
 	)[0][0] or 0
 
 	avg_quiz = frappe.db.sql(
-		"SELECT AVG(percentage) FROM `tabLMS Quiz Submission` WHERE member IN %s", [members]
+		"SELECT AVG(percentage) FROM `tabLMS Quiz Submission` WHERE member IN %(members)s",
+		{"members": tuple(members)},
 	)[0][0] or 0
 
 	avg_assignment = frappe.db.sql(
 		"""SELECT AVG(numeric_score / NULLIF(score_out_of, 0) * 100)
 		   FROM `tabLMS Assignment Submission`
-		   WHERE member IN %s AND status IN ('Pass', 'Fail') AND score_out_of > 0""",
-		[members],
+		   WHERE member IN %(members)s AND status IN ('Pass', 'Fail') AND score_out_of > 0""",
+		{"members": tuple(members)},
 	)[0][0] or 0
 
 	total_hours = frappe.db.sql(
-		"""SELECT COALESCE(SUM(CAST(watch_time AS DECIMAL(16,2))), 0) / 3600
-		   FROM `tabLMS Video Watch Duration` WHERE member IN %s""",
-		[members],
+		"""SELECT COALESCE(SUM(watch_time + 0), 0) / 3600
+		   FROM `tabLMS Video Watch Duration` WHERE member IN %(members)s""",
+		{"members": tuple(members)},
 	)[0][0] or 0
 
 	return {
@@ -2237,9 +2239,11 @@ def calculate_composite_score(member, batch=None):
 	current_streak = calculate_current_streak(all_dates, streak)
 
 	# Hours spent
-	total_seconds = frappe.db.get_value(
-		"LMS Video Watch Duration", {"member": member}, "SUM(CAST(watch_time AS DECIMAL(16,2)))"
-	) or 0
+	total_seconds = frappe.db.sql("""
+    SELECT SUM(watch_time + 0) 
+    FROM `tabLMS Video Watch Duration` 
+    WHERE member = %s
+""", (member,))[0][0] or 0
 	total_hours = flt(total_seconds) / 3600
 
 	# Game score
@@ -2348,24 +2352,75 @@ def get_leaderboard(batch=None, limit=10):
 	frappe.cache().set_value(cache_key, leaderboard, expires_in_sec=900)
 	return leaderboard[:limit]
 
-
 @frappe.whitelist()
-def get_gamification_questions(question_type=None, category=None, difficulty=None, limit=10):
-	filters = {"disabled": 0}
-	if question_type:
-		filters["question_type"] = question_type
-	if category:
-		filters["category"] = category
-	if difficulty:
-		filters["difficulty"] = difficulty
-	questions = frappe.get_all(
-		"LMS Gamification Question Bank",
-		filters=filters,
-		fields=["name", "question_text", "question_type", "options", "correct_answer", "hint", "category", "difficulty", "sort_items"],
-		limit=cint(limit) or 10,
-		order_by="modified desc",
-	)
-	return questions
+def get_gamification_questions(**kwargs):
+    # Nhận diện loại game linh hoạt từ các tham số khác nhau
+    question_type = kwargs.get('question_type')
+    game_type = kwargs.get('game_type')
+    category = kwargs.get('category')
+    limit = frappe.utils.cint(kwargs.get('limit')) or 10
+    
+    filters = {"disabled": 0}
+    
+    # Lọc theo game_type nếu có
+    if question_type:
+        filters["question_type"] = question_type
+    elif game_type:
+        filters["category"] = game_type
+    elif category:
+        filters["category"] = category
+
+    try:
+        # Truy vấn dữ liệu từ bảng mới của bạn
+        questions = frappe.get_all(
+            "LMS Gamification Question Bank",
+            filters=filters,
+            fields=[
+                "name", 
+                "question_text as question", 
+                "question_type", 
+                "options", 
+                "correct_answer as correct_option", 
+                "hint", 
+                "category", 
+                "difficulty", 
+                "sort_items"
+            ],
+            limit=limit,
+            order_by="modified desc",
+        )
+    except frappe.db.OperationalError:
+        # Nếu vẫn lỗi này, bạn BẮT BUỘC phải chạy lệnh 'bench --site [tên-site] migrate'
+        frappe.log_error("Lỗi OperationalError: Kiểm tra lại schema của bảng LMS Gamification Question Bank")
+        return []
+
+    for question in questions:
+        # 1. Giải mã JSON cho options nếu cần
+        if isinstance(question.options, str):
+            import json
+            try:
+                question.options = json.loads(question.options)
+            except (ValueError, TypeError):
+                question.options = []
+
+        # 2. Xử lý định dạng options từ Frappe (thường bọc trong dict 'items')
+        if isinstance(question.options, dict) and "items" in question.options:
+            question.options = question.options.get("items")
+
+        # 3. FIX QUAN TRỌNG CHO DUCK RACE:
+        # Duck Race cần option_1, option_2, option_3, option_4 nằm ở lớp ngoài
+        if isinstance(question.options, list):
+            for i, opt in enumerate(question.options, 1):
+                if i > 4: break # Duck Race thường chỉ dùng tối đa 4 đáp án
+                
+                # Lấy giá trị đáp án (nếu opt là dict lấy field 'option_value', nếu là string lấy luôn)
+                val = opt.get("option_value") if isinstance(opt, dict) else opt
+                question[f"option_{i}"] = val
+        
+        # Đảm bảo các trường này không bị null để tránh lỗi JS ở Frontend
+        question.sort_items = question.get("sort_items") or []
+
+    return questions
 
 
 @frappe.whitelist()
@@ -3580,38 +3635,50 @@ def get_user_game_profile():
 
 @frappe.whitelist()
 def list_class_games(batch=None, member=None):
-	member = member or frappe.session.user
-	if batch:
-		_assert_batch_access(batch)
-		games = frappe.get_all(
-			"LMS Class Game",
-			{"batch": batch},
-			fields=["name", "game", "batch", "settings", "max_attempts", "available_from", "available_until"],
-		)
-		for game in games:
-			game_details = frappe.get_value(
-				"LMS Game",
-				game.game,
-				["name", "title", "game_type", "delivery_mode", "scoring_model", "max_score"],
-				as_dict=1,
-			)
-			game.game_details = game_details
-			game.class_game = game.name
-			game.playable = 1
-		return games
+    member = member or frappe.session.user
+    
+    if batch:
+        _assert_batch_access(batch)
+        # 1. Lấy danh sách Class Game thuộc Batch
+        class_games = frappe.get_all(
+            "LMS Class Game",
+            filters={"batch": batch},
+            fields=["name", "game", "batch", "settings", "max_attempts", "available_from", "available_until"],
+        )
+        
+        for cg in class_games:
+            # 2. Lấy thông tin chi tiết từ LMS Game gốc
+            # Dùng get_value để tránh gọi get_doc quá nặng nếu danh sách dài
+            game_info = frappe.db.get_value(
+                "LMS Game", 
+                cg.game, 
+                ["title", "game_type", "delivery_mode", "scoring_model", "max_score"], 
+                as_dict=1
+            )
+            
+            if game_info:
+                # 3. "Phẳng hóa" dữ liệu: Đưa thông tin game ra lớp ngoài cùng
+                cg.update(game_info)
+                
+            cg.class_game = cg.name
+            cg.playable = 1
+            
+        return class_games
 
-	games = frappe.get_all(
-		"LMS Game",
-		{"is_active": 1},
-		fields=["name", "title", "game_type", "delivery_mode", "scoring_model", "max_score"],
-		order_by="creation asc",
-	)
-	for game in games:
-		game.game_details = game
-		game.class_game = None
-		game.playable = 1
-	return games
-
+    # Trường hợp không có batch (Hiển thị toàn bộ game đang Active)
+    games = frappe.get_all(
+        "LMS Game",
+        filters={"is_active": 1},
+        fields=["name", "title", "game_type", "delivery_mode", "scoring_model", "max_score"],
+        order_by="creation asc"
+    )
+    
+    for game in games:
+        # Quan trọng: KHÔNG gán game.game_details = game để tránh lỗi Recursion
+        game.class_game = None
+        game.playable = 1
+        
+    return games
 
 @frappe.whitelist()
 def get_game_progress(class_game, member=None):

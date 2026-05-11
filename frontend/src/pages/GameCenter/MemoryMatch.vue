@@ -84,6 +84,8 @@ const moves = ref(0)
 const elapsedTime = ref(0)
 const gameWon = ref(false)
 const loading = ref(false)
+const completionSent = ref(false)
+const sessionId = ref(null)
 let timerInterval = null
 
 const fallbackPairs = [
@@ -112,6 +114,25 @@ function normalizeText(value) {
 	return String(value || "").trim()
 }
 
+function normalizeQuestion(q) {
+	const options = Array.isArray(q?.options)
+		? q.options.map((option) => {
+			if (typeof option === "string") {
+				return { label: option, is_correct: false }
+			}
+			return {
+				label: option?.label || option?.option_value || option?.value || "",
+				is_correct: Boolean(option?.is_correct),
+			}
+		})
+		: []
+	const correct = options.find((o) => o.is_correct)
+	return {
+		question: normalizeText(q?.question || q?.question_text),
+		answer: normalizeText(correct?.label || q?.correct_answer || q?.correct_option),
+	}
+}
+
 function initGame() {
 	const pairCount = Math.min(Math.floor((gridSize.value * gridSize.value) / 2), questionPairs.value.length)
 	const selected = shuffleArray(questionPairs.value).slice(0, pairCount)
@@ -127,8 +148,29 @@ function initGame() {
 	moves.value = 0
 	elapsedTime.value = 0
 	gameWon.value = false
+	completionSent.value = false
 	clearInterval(timerInterval)
 	timerInterval = null
+}
+
+async function startSession() {
+	if (!props.classGame) return
+	const res = await call("lms.lms.api.start_game_session", { class_game: props.classGame })
+	sessionId.value = res.session_id
+}
+
+async function submitScore() {
+	if (!sessionId.value) {
+		emit("completed")
+		return
+	}
+	const rawScore = Math.max(0, 500 - moves.value * 15 - elapsedTime.value)
+	await call("lms.lms.api.submit_game_session", {
+		session_id: sessionId.value,
+		raw_score: rawScore,
+		metadata: { moves: moves.value, elapsed_time: elapsedTime.value },
+	})
+	emit("completed")
 }
 
 async function loadPairs() {
@@ -136,13 +178,7 @@ async function loadPairs() {
 	try {
 		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "mcq", limit: 8 })
 		const loaded = (res || [])
-			.map((q) => {
-				const correct = Array.isArray(q.options) ? q.options.find((o) => o.is_correct) : null
-				return {
-					question: normalizeText(q.question_text),
-					answer: normalizeText(correct?.label),
-				}
-			})
+			.map(normalizeQuestion)
 			.filter((pair) => pair.question && pair.answer)
 		questionPairs.value = loaded.length ? loaded : fallbackPairs
 	} finally {
@@ -182,6 +218,10 @@ function flipCard(index) {
 			if (cards.value.every((c) => c.matched)) {
 				gameWon.value = true
 				clearInterval(timerInterval)
+				if (!completionSent.value) {
+					completionSent.value = true
+					setTimeout(submitScore, 700)
+				}
 			}
 		} else {
 			setTimeout(() => {
@@ -222,6 +262,7 @@ function changeGridSize(size) {
 onMounted(async () => {
 	await loadPairs()
 	initGame()
+	await startSession()
 })
 
 onUnmounted(() => {
