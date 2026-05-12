@@ -273,7 +273,9 @@ def check_choice_answers(question, answers):
 		fields.append(f"option_{cstr(num)}")
 		fields.append(f"is_correct_{cstr(num)}")
 
-	question_details = frappe.db.get_value("LMS Question", question, fields, as_dict=1)
+	from lms.lms.api import _get_cached_question_details
+
+	question_details = _get_cached_question_details(question, fields)
 
 	for num in range(1, 5):
 		if question_details[f"option_{num}"] in answers:
@@ -291,7 +293,9 @@ def check_input_answers(question, answer):
 	for num in range(1, 5):
 		fields.append(f"possibility_{cstr(num)}")
 
-	question_details = frappe.db.get_value("LMS Question", question, fields, as_dict=1)
+	from lms.lms.api import _get_cached_question_details
+
+	question_details = _get_cached_question_details(question, fields)
 	for num in range(1, 5):
 		current_possibility = question_details[f"possibility_{num}"]
 		if current_possibility and fuzz.token_sort_ratio(current_possibility, answer) > 85:

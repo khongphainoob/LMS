@@ -76,7 +76,7 @@ services:
       - ALLOW_TESTS=1
     ports:
       - "8000:8000"
-      - "9000:9000"
+      - "9001:9001"
     volumes:
       - frappe_sites_dev:/home/frappe/frappe-bench/sites
       - ../../lms:/workspace/lms:cached

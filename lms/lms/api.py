@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from binascii import Error as BinasciiError
 from datetime import timedelta
+from time import sleep
 from xml.dom.minidom import parseString
 
 import frappe
@@ -22,6 +23,7 @@ from frappe.translate import get_all_translations
 from frappe.utils import (
 	add_days,
 	cint,
+	cstr,
 	date_diff,
 	flt,
 	format_date,
@@ -2363,8 +2365,11 @@ def get_leaderboard(batch=None, limit=10, period=None):
 def get_gamification_questions(**kwargs):
     category = kwargs.get('category') or kwargs.get('game_type')
     limit = frappe.utils.cint(kwargs.get('limit')) or 10
-    
-    # Chỉ lọc theo category nếu người dùng có truyền vào
+    cache_key = f"lms:gamification_questions:{category or 'all'}:{limit}"
+    cached = frappe.cache().get_value(cache_key)
+    if cached:
+        return cached
+
     filters = {}
     if category:
         filters["category"] = category
@@ -2373,12 +2378,11 @@ def get_gamification_questions(**kwargs):
         questions = frappe.get_all(
             "LMS Gamification Question Bank",
             filters=filters,
-            fields=["*"], # Lấy hết cho an toàn, sau đó xử lý sau
+            fields=["*"],
             limit=limit,
             order_by="modified desc",
         )
-    except Exception as e:
-        frappe.log_error(f"Lỗi truy vấn: {str(e)}")
+    except Exception:
         return []
 
     for question in questions:
@@ -2406,6 +2410,7 @@ def get_gamification_questions(**kwargs):
                 if isinstance(opt, dict) and opt.get("is_correct"):
                     question["correct_option"] = label
 
+    frappe.cache().set_value(cache_key, questions, expires_in_sec=300)
     return questions
 
 @frappe.whitelist()
@@ -2425,7 +2430,6 @@ def record_game_session(game, score, max_score=100, result="Completed", metadata
 		}
 	)
 	game_session.insert(ignore_permissions=True)
-	frappe.db.commit()
 	return {"name": game_session.name, "percentage": game_session.percentage}
 
 
@@ -3688,64 +3692,321 @@ def get_game_progress(class_game, member=None):
 
 
 @frappe.whitelist()
-def start_game_session(class_game):
-    # Chỉ giữ lại kiểm tra cơ bản nhất
-    if not frappe.db.exists("LMS Class Game", class_game):
-        frappe.throw("Không tìm thấy Class Game")
-
-    # Tạo session mới mà không bắt lỗi logic khắt khe
-    session = frappe.new_doc("LMS Game Session")
-    session.class_game = class_game
-    session.member = frappe.session.user
-    session.started_at = frappe.utils.now_datetime()
-    session.status = "Started"
+def start_game_session(class_game=None):
+    # Lấy ID từ tham số hoặc từ form dữ liệu gửi lên
+    cg_id = class_game or frappe.form_dict.get('class_game')
     
-    # ignore_mandatory=True giúp vượt qua lỗi 417 nếu Doctype bị thiếu field
-    session.insert(ignore_permissions=True, ignore_mandatory=True)
-    frappe.db.commit()
+    if not cg_id:
+        # Nếu không có class_game, lấy bản ghi đầu tiên để test nhanh
+        cg_id = frappe.db.get_value("LMS Class Game", {"disabled": 0}, "name")
 
-    return {"session_id": session.name}
+    doc = frappe.get_doc({
+        "doctype": "LMS Game Session",
+        "class_game": cg_id,
+        "user": frappe.session.user,
+        "status": "In Progress"
+    })
+    doc.insert(ignore_permissions=True) 
+    return doc.name
 
 @frappe.whitelist()
 def submit_game_session(session_id, raw_score, metadata=None):
-    if not frappe.db.exists("LMS Game Session", session_id):
-        frappe.throw(_("Không tìm thấy phiên chơi."))
+	if not frappe.db.exists("LMS Game Session", session_id):
+		frappe.throw(_("Không tìm thấy phiên chơi."))
 
-    session = frappe.get_doc("LMS Game Session", session_id)
-    
-    if session.member != frappe.session.user:
-        frappe.throw(_("Không có quyền truy cập."), frappe.PermissionError)
-    if session.status == "Completed":
-        return {"message": "Already submitted"} # Tránh throw lỗi làm crash giao diện
+	session = frappe.get_doc("LMS Game Session", session_id)
 
-    # Lấy max_score từ Game gốc
-    game_name = frappe.db.get_value("LMS Class Game", session.class_game, "game")
-    max_score = cint(frappe.db.get_value("LMS Game", game_name, "max_score")) or 1000
-    
-    score_val = max(0, min(cint(raw_score), max_score))
-    completed_at = now_datetime()
-    
-    # CẬP NHẬT TÊN TRƯỜNG Ở ĐÂY CHO KHỚP DOCTYPE
-    session.score = score_val  # Giả sử bạn dùng trường 'score' chung
-    session.status = "Completed"
-    session.completed_at = completed_at
-    
-    if session.started_at:
-        session.duration_seconds = int((completed_at - session.started_at).total_seconds())
-    
-    if metadata:
-        session.metadata = json.dumps(metadata)
-        
-    session.save(ignore_permissions=True)
-    
-    # Gọi hàm update progress (đảm bảo hàm này tồn tại)
-    try:
-        from lms.lms.api import update_game_progress
-        update_game_progress(session)
-    except:
-        pass
+	if session.member != frappe.session.user:
+		frappe.throw(_("Không có quyền truy cập."), frappe.PermissionError)
+	if session.status == "Completed":
+		return {"message": "Already submitted"}  # Tránh throw lỗi làm crash giao diện
 
-    return {"score": score_val, "normalized": round(score_val / max_score * 100, 1)}
+	# Lấy max_score từ Game gốc
+	game_name = frappe.db.get_value("LMS Class Game", session.class_game, "game")
+	max_score = cint(frappe.db.get_value("LMS Game", game_name, "max_score")) or 1000
+
+	score_val = max(0, min(cint(raw_score), max_score))
+	completed_at = now_datetime()
+	normalized_score = round(score_val / max_score * 100, 1) if max_score else 0
+
+	session.raw_score = score_val
+	session.normalized_score = normalized_score
+	session.status = "Completed"
+	session.completed_at = completed_at
+
+	if session.started_at:
+		session.duration_seconds = int((completed_at - session.started_at).total_seconds())
+
+	if metadata:
+		session.metadata = json.dumps(metadata)
+
+	session.save(ignore_permissions=True)
+
+	# Gọi hàm update progress (đảm bảo hàm này tồn tại)
+	try:
+		from lms.lms.api import update_game_progress
+
+		update_game_progress(session)
+	except:
+		pass
+
+	# Send the score update after the DB transaction has committed so the
+	# socket event does not block the request/DB path.
+	publish_global_score_update(session.member, score_val)
+
+	return {"score": score_val, "normalized": normalized_score}
+
+
+def publish_global_score_update(user_id, score):
+	redis_conn = frappe.cache().redis_conn
+	queue_key = "lms:global_score_update_queue"
+	lock_key = "lms:global_score_update_lock"
+	redis_conn.lpush(queue_key, json.dumps({"user_id": user_id, "score": score}))
+	if redis_conn.set(lock_key, 1, ex=2, nx=True):
+		frappe.enqueue(_flush_global_score_updates, queue="short")
+
+
+def _flush_global_score_updates():
+	sleep(0.5)
+	redis_conn = frappe.cache().redis_conn
+	queue_key = "lms:global_score_update_queue"
+	lock_key = "lms:global_score_update_lock"
+	processed = 0
+	for _ in range(500):
+		item = redis_conn.rpop(queue_key)
+		if not item:
+			break
+		if isinstance(item, bytes):
+			item = item.decode()
+		payload = json.loads(item)
+		frappe.publish_realtime(
+			"update_global_score",
+			{"user_id": payload["user_id"], "score": payload["score"]},
+			after_commit=True,
+		)
+		processed += 1
+
+	if redis_conn.llen(queue_key):
+		frappe.enqueue(_flush_global_score_updates, queue="short")
+
+	redis_conn.delete(lock_key)
+
+
+def _get_cached_question_details(question, fields):
+	cache_key = f"lms:quiz_question:{question}:{':'.join(fields)}"
+	cached = frappe.cache().get_value(cache_key)
+	if cached:
+		return cached
+	details = frappe.db.get_value("LMS Question", question, fields, as_dict=1)
+	frappe.cache().set_value(cache_key, details, expires_in_sec=300)
+	return details
+
+
+def clear_quiz_question_cache(question=None):
+	pattern = f"lms:quiz_question:{question}:*" if question else "lms:quiz_question:*"
+	for key in frappe.cache().redis_conn.scan_iter(match=pattern):
+		frappe.cache().redis_conn.delete(key)
+
+
+def _question_round_key(round_id):
+	return f"lms:question_round:{round_id}"
+
+
+def _question_round_answers_key(round_id):
+	return f"lms:question_round:{round_id}:answers"
+
+
+def _question_round_leaderboard_key(round_id):
+	return f"lms:question_round:{round_id}:leaderboard"
+
+
+def _question_round_meta_key(round_id):
+	return f"lms:question_round:{round_id}:meta"
+
+
+def _build_question_round_payload(round_id, **extra):
+	payload = {"round_id": round_id}
+	payload.update(extra)
+	return payload
+
+
+def _question_round_state(round_id):
+	redis_conn = frappe.cache().redis_conn
+	answers = {}
+	for key, value in redis_conn.hgetall(_question_round_answers_key(round_id)).items():
+		if isinstance(key, bytes):
+			key = key.decode()
+		if isinstance(value, bytes):
+			value = value.decode()
+		answers[cstr(key)] = cint(value)
+
+	leaderboard = []
+	for member, value in redis_conn.hgetall(_question_round_leaderboard_key(round_id)).items():
+		if isinstance(member, bytes):
+			member = member.decode()
+		if isinstance(value, bytes):
+			value = value.decode()
+		leaderboard.append({"member": member, "score": cint(value)})
+	leaderboard.sort(key=lambda row: row["score"], reverse=True)
+	for idx, row in enumerate(leaderboard, 1):
+		row["rank"] = idx
+
+	meta = redis_conn.hgetall(_question_round_meta_key(round_id))
+	decoded_meta = {}
+	for key, value in meta.items():
+		if isinstance(key, bytes):
+			key = key.decode()
+		if isinstance(value, bytes):
+			value = value.decode()
+		decoded_meta[key] = value
+
+	return {"round_id": round_id, "meta": decoded_meta, "answers": answers, "leaderboard": leaderboard}
+
+
+@frappe.whitelist()
+def start_question_round(round_id, live_class=None, class_game=None, question=None):
+	redis_conn = frappe.cache().redis_conn
+	redis_conn.hset(
+		_question_round_meta_key(round_id),
+		mapping={
+			"status": "active",
+			"live_class": live_class or "",
+			"class_game": class_game or "",
+			"question": question or "",
+		},
+	)
+	redis_conn.expire(_question_round_meta_key(round_id), 3600)
+	redis_conn.expire(_question_round_answers_key(round_id), 3600)
+	redis_conn.expire(_question_round_leaderboard_key(round_id), 3600)
+	payload = _build_question_round_payload(round_id, live_class=live_class, class_game=class_game, question=question, status="started")
+	frappe.publish_realtime("question_round_started", payload, after_commit=True)
+	return payload
+
+
+@frappe.whitelist()
+def join_game_lobby(live_class, member=None):
+	live_class_doc = frappe.get_doc("LMS Live Class", live_class)
+	member = member or frappe.session.user
+	if not member or member == "Guest":
+		frappe.throw(_("Please log in to join the lobby."))
+
+	participant = frappe.db.get_value(
+		"LMS Live Class Participant",
+		{"live_class": live_class, "member": member},
+		["name", "member_name", "member_image", "member_username"],
+		as_dict=1,
+	)
+	if not participant:
+		doc = frappe.new_doc("LMS Live Class Participant")
+		doc.live_class = live_class
+		doc.member = member
+		doc.joined_at = now_datetime()
+		doc.left_at = now_datetime()
+		doc.duration = 0
+		doc.insert(ignore_permissions=True)
+		participant = frappe.db.get_value(
+			"LMS Live Class Participant",
+			doc.name,
+			["name", "member_name", "member_image", "member_username"],
+			as_dict=1,
+		)
+
+	message = _build_question_round_payload(
+		live_class,
+		live_class=live_class,
+		member=member,
+		member_name=participant.member_name if participant else member,
+		member_image=participant.member_image if participant else None,
+		member_username=participant.member_username if participant else None,
+		status="joined",
+	)
+	if live_class_doc.host:
+		frappe.publish_realtime("lobby_member_joined", message, user=live_class_doc.host, after_commit=True)
+	else:
+		frappe.publish_realtime("lobby_member_joined", message, after_commit=True)
+	return message
+
+
+@frappe.whitelist()
+def submit_question_answer(round_id, member=None, answer=None, is_correct=0):
+	member = member or frappe.session.user
+	if not member or member == "Guest":
+		frappe.throw(_("Please log in to answer."))
+
+	redis_conn = frappe.cache().redis_conn
+	answers_key = _question_round_answers_key(round_id)
+	leaderboard_key = _question_round_leaderboard_key(round_id)
+	question_key = _question_round_key(round_id)
+	meta_key = _question_round_meta_key(round_id)
+
+	count = redis_conn.hincrby(answers_key, str(answer or "unknown"), 1)
+	redis_conn.hset(leaderboard_key, member, int(is_correct or 0))
+	redis_conn.hset(question_key, f"answer:{member}", json.dumps({"answer": answer, "is_correct": cint(is_correct)}))
+	redis_conn.hset(meta_key, "last_answer_member", member)
+	redis_conn.hincrby(meta_key, "answers_total", 1)
+	frappe.publish_realtime(
+		"question_answer_progress",
+		_build_question_round_payload(round_id, member=member, answer_count=count, status="progress"),
+		after_commit=True,
+	)
+
+	return _build_question_round_payload(round_id, status="answer_received", answer_count=count)
+
+
+@frappe.whitelist()
+def end_question_round(round_id, session_id=None, class_game=None):
+	frappe.enqueue(
+		_finalize_question_round,
+		queue="short",
+		round_id=round_id,
+		session_id=session_id,
+		class_game=class_game,
+	)
+	return _build_question_round_payload(round_id, queued=True, status="closing")
+
+
+def _finalize_question_round(round_id, session_id=None, class_game=None):
+	redis_conn = frappe.cache().redis_conn
+	answers_key = _question_round_answers_key(round_id)
+	leaderboard_key = _question_round_leaderboard_key(round_id)
+	question_key = _question_round_key(round_id)
+	state = _question_round_state(round_id)
+	result = {"round_id": round_id, "answers": state["answers"], "leaderboard": state["leaderboard"], "meta": state["meta"]}
+	if session_id and frappe.db.exists("LMS Game Session", session_id):
+		session = frappe.get_doc("LMS Game Session", session_id)
+		metadata = session.metadata if isinstance(session.metadata, dict) else {}
+		metadata = metadata or {}
+		metadata.setdefault("question_rounds", {})[round_id] = result
+		session.metadata = metadata
+		session.save(ignore_permissions=True)
+
+	if class_game:
+		class_game_doc = frappe.get_doc("LMS Class Game", class_game)
+		frappe.cache().delete_value(_leaderboard_cache_key())
+		frappe.cache().delete_value(_leaderboard_cache_key(class_game_doc.batch))
+		leaderboard = _build_leaderboard(batch=class_game_doc.batch)
+		payload = _build_question_round_payload(
+			round_id,
+			class_game=class_game,
+			batch=class_game_doc.batch,
+			status="finished",
+			leaderboard=leaderboard[:10],
+			answers=state["answers"],
+		)
+		frappe.publish_realtime(
+			"question_leaderboard_updated",
+			payload,
+			after_commit=True,
+		)
+		frappe.publish_realtime(
+			"leaderboard_updated",
+			{"batch": class_game_doc.batch, "top_5": leaderboard[:5], "round_id": round_id},
+			after_commit=True,
+		)
+
+	redis_conn.delete(answers_key)
+	redis_conn.delete(leaderboard_key)
+	redis_conn.delete(question_key)
 
 def update_game_progress(session):
 	class_game = frappe.get_doc("LMS Class Game", session.class_game)
@@ -3778,7 +4039,6 @@ def update_game_progress(session):
 
 	progress.progress_percentage = round(progress.best_score / (cint(game.max_score) or 1) * 100, 1)
 	progress.save(ignore_permissions=True)
-	frappe.db.commit()
 	frappe.cache().delete_value(_leaderboard_cache_key())
 	frappe.cache().delete_value(_leaderboard_cache_key(class_game.batch))
 	frappe.cache().delete_value(f"game_profile:{session.member}")

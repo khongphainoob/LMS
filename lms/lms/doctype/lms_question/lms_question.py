@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from lms.lms.api import clear_quiz_question_cache
 from lms.lms.utils import has_course_instructor_role, has_moderator_role
 
 
@@ -12,6 +13,7 @@ class LMSQuestion(Document):
 	def validate(self):
 		validate_correct_answers(self)
 		update_question_title(self)
+		clear_quiz_question_cache(self.name)
 
 
 def validate_correct_answers(question):
