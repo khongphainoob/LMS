@@ -172,7 +172,7 @@ const games = computed(() => {
 
 			return {
 				id: game.class_game || game.name,
-				classGame: game.class_game || game.name,
+				classGame: game.class_game || null,
 				title: title,
 				description: gType,
 				component: componentMap[gType] || null,
