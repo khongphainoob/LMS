@@ -1,17 +1,15 @@
 import { io } from 'socket.io-client'
-import { socketio_port } from '../../../../sites/common_site_config.json'
 
 export function initSocket() {
-	let originalHost = window.location.hostname
-	let host = import.meta.env.DEV ? 'localhost' : originalHost
-	let siteName = window.site_name || originalHost
-	let port = window.location.port ? `:${socketio_port}` : ''
-	let protocol = port ? 'http' : 'https'
-	let url = `${protocol}://${host}${port}/${siteName}`
+    let siteName = window.frappe?.boot?.sitename || window.site_name || 'lms.test'
+    // Ép sử dụng cổng 9001 để khớp với Docker
+    let host = `${window.location.protocol}//localhost:9001` 
 
-	let socket = io(url, {
-		withCredentials: true,
-		reconnectionAttempts: 5,
-	})
-	return socket
+    let socket = io(`${host}/${siteName}`, {
+        withCredentials: true,
+        reconnectionAttempts: 10,
+        transports: ['websocket', 'polling'], // Ưu tiên websocket cho game mượt
+        upgrade: true
+    })
+    return socket
 }
