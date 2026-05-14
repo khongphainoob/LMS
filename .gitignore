@@ -19,3 +19,8 @@ status*.txt
 node_modules/
 *.key
 *.pem
+.agents
+.claude
+.github
+brain
+agent_test_lab
