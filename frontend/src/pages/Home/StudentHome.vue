@@ -1,55 +1,29 @@
 <template>
 	<div>
-		<!-- Stat Cards Row 1: Overview -->
-		<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-			<StatCard
-				:label="__('Lessons')"
-				:count="homeStats.data?.total_lessons || 0"
-				:progress="homeStats.data?.lesson_progress || 0"
-				color="orange"
-			/>
-			<StatCard
-				:label="__('Assignments')"
-				:count="homeStats.data?.total_assignments || 0"
-				:progress="0"
-				color="pink"
-			/>
-			<StatCard
-				:label="__('Quizzes')"
-				:count="homeStats.data?.total_quizzes || 0"
-				:progress="0"
-				color="green"
-			/>
+		<!-- Stat Cards: Overview -->
+		<div v-if="performanceStats.loading || hoursSpent.loading || dashboardStreak.loading" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+			<div v-for="i in 3" :key="i" class="h-24 animate-pulse bg-surface-gray-2 rounded-xl"></div>
 		</div>
-
-		<!-- Stat Cards Row 2: Performance & Hours -->
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-			<StatCard
-				:label="__('Avg Quiz Score')"
-				:count="performanceStats.data?.avg_quiz_score || 0"
-				:progress="performanceStats.data?.avg_quiz_score || 0"
-				suffix="%"
-				color="blue"
-			/>
-			<StatCard
-				:label="__('Avg Assignment Score')"
-				:count="performanceStats.data?.avg_assignment_score || 0"
-				:progress="performanceStats.data?.avg_assignment_score || 0"
-				suffix="%"
-				color="amber"
-			/>
+		<div v-else class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
 			<StatCard
 				:label="__('Overall Completion')"
 				:count="performanceStats.data?.overall_completion || 0"
 				:progress="performanceStats.data?.overall_completion || 0"
 				suffix="%"
-				color="pink"
+				color="blue"
 			/>
 			<StatCard
-				:label="__('Hours Spent')"
+				:label="__('Learning Hours')"
 				:count="hoursSpent.data?.total_hours || 0"
 				:progress="Math.min(hoursSpent.data?.total_hours || 0, 100)"
 				suffix="h"
+				color="orange"
+			/>
+			<StatCard
+				:label="__('Current Streak')"
+				:count="dashboardStreak.data?.current_streak || 0"
+				:progress="Math.min((dashboardStreak.data?.current_streak || 0) * 3, 100)"
+				suffix="d"
 				color="green"
 			/>
 		</div>
@@ -57,9 +31,9 @@
 		<!-- My Courses -->
 		<div v-if="myCourses.data?.length">
 			<div class="flex items-center justify-between mb-3">
-				<span class="font-semibold text-lg text-ink-gray-9">
+				<span v-if="myCourses.data?.length" class="font-semibold text-lg text-ink-gray-9">
 					{{
-						myCourses.data[0].membership
+						myCourses.data[0]?.membership
 							? __('My Courses')
 							: __('Our Popular Courses')
 					}}
@@ -92,7 +66,7 @@
 			<div class="flex items-center justify-between mb-3">
 				<span class="font-semibold text-lg text-ink-gray-9">
 					{{
-						myBatches.data?.[0].students.includes(user.data?.name)
+						myBatches.data?.[0]?.students?.includes(user.data?.name)
 							? __('My Batches')
 							: __('Our Upcoming Batches')
 					}}
@@ -190,10 +164,6 @@
 			</div>
 		</div>
 
-		<!-- Leaderboard -->
-		<div class="mt-10">
-			<Leaderboard mode="student" />
-		</div>
 	</div>
 </template>
 <script setup lang="ts">
@@ -211,7 +181,6 @@ import {
 import CourseCard from '@/components/CourseCard.vue'
 import BatchCard from '@/components/BatchCard.vue'
 import StatCard from '@/components/StatCard.vue'
-import Leaderboard from '@/pages/Home/Leaderboard.vue'
 
 const dayjs = inject<any>('$dayjs')
 const user = inject<any>('$user')
@@ -220,8 +189,8 @@ const props = defineProps<{
 	myLiveClasses: any
 }>()
 
-const homeStats = createResource({
-	url: 'lms.lms.api.get_home_stats',
+const dashboardStreak = createResource({
+	url: 'lms.lms.api.get_streak_info',
 	auto: true,
 })
 
@@ -246,8 +215,9 @@ const myBatches = createResource({
 })
 
 const getClassEnd = (cls: { date: string; time: string; duration: number }) => {
-	const classStart = new Date(`${cls.date}T${cls.time}`)
-	return new Date(classStart.getTime() + cls.duration * 60000)
+	if (!cls.date || !cls.time) return null
+	const classStart = dayjs(`${cls.date} ${cls.time}`)
+	return classStart.add(cls.duration || 0, 'minute')
 }
 
 const canAccessClass = (cls: {

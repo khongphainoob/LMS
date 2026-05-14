@@ -19,10 +19,10 @@
 				v-if="!activeGame"
 				v-model="activeTab"
 				:buttons="[
-					{ label: __('Overview') },
-					{ label: __('Games') },
-					{ label: __('Leaderboard') },
-					{ label: __('Badges') },
+					{ label: __('Overview'), value: 'overview' },
+					{ label: __('Games'), value: 'games' },
+					{ label: __('Leaderboard'), value: 'leaderboard' },
+					{ label: __('Badges'), value: 'badges' },
 				]"
 				class="w-fit mb-5"
 			/>
@@ -32,7 +32,7 @@
 			</template>
 
 			<!-- ========== OVERVIEW ========== -->
-			<div v-else-if="activeTab === 'Overview'" class="space-y-5">
+			<div v-else-if="activeTab === 'overview'" class="space-y-5">
 				<!-- Hero Card -->
 				<div class="border border-outline-gray-2 bg-gradient-to-br from-surface-white to-blue-50/50 dark:from-gray-900 dark:to-blue-950/20 rounded-2xl shadow-sm p-5 sm:p-6">
 					<div class="flex items-center gap-5">
@@ -150,7 +150,7 @@
 			</div>
 
 			<!-- ========== GAMES ========== -->
-			<div v-if="!activeGame && activeTab === 'Games'" class="space-y-5">
+			<div v-if="!activeGame && activeTab === 'games'" class="space-y-5">
 				<div class="flex items-center justify-between">
 					<h3 class="font-semibold text-ink-gray-9">{{ __("Mini Games") }}</h3>
 					<span class="text-xs text-ink-gray-5 bg-surface-gray-2 px-2 py-0.5 rounded-full">
@@ -175,7 +175,7 @@
 			</div>
 
 			<!-- ========== LEADERBOARD ========== -->
-			<div v-if="!activeGame && activeTab === 'Leaderboard'" class="space-y-4">
+			<div v-if="!activeGame && activeTab === 'leaderboard'" class="space-y-4">
 				<div class="flex items-center justify-between flex-wrap gap-2">
 					<h3 class="font-semibold text-ink-gray-9">{{ __("Leaderboard") }}</h3>
 					<select v-model="leaderboardPeriod"
@@ -248,7 +248,7 @@
 			</div>
 
 			<!-- ========== BADGES ========== -->
-			<div v-if="!activeGame && activeTab === 'Badges'" class="space-y-4">
+			<div v-if="!activeGame && activeTab === 'badges'" class="space-y-4">
 				<div class="flex items-center justify-between flex-wrap gap-2">
 					<div>
 						<h3 class="font-semibold text-ink-gray-9">{{ __("Badge Gallery") }}</h3>
@@ -314,13 +314,32 @@ import SpinTheWheel from "@/pages/GameCenter/SpinTheWheel.vue"
 import WordScramble from "@/pages/GameCenter/WordScramble.vue"
 import DragDropSort from "@/pages/GameCenter/DragDropSort.vue"
 
+import { useRoute, useRouter } from "vue-router"
+
 const { brand } = sessionStore()
 const dayjs = inject("$dayjs")
-const activeTab = ref("Overview")
+const route = useRoute()
+const router = useRouter()
+
 const leaderboardPeriod = ref("all_time")
-const activeGame = ref(null)
 const badgeFilter = ref("all")
 const circumference = 2 * Math.PI * 42
+
+const activeTab = computed({
+	get() {
+		return route.params.tab || "overview"
+	},
+	set(val) {
+		router.push({ name: "GameCenterTab", params: { tab: val } })
+	}
+})
+
+const activeGame = computed(() => {
+	if (route.name === "GameCenterGame" && route.params.gameId) {
+		return games.find((g) => g.id === route.params.gameId) || null
+	}
+	return null
+})
 
 const demoProfile = {
 	member_name: "Nguyen Van A", level: 7, xp: 68, xp_to_next: 100,
@@ -356,9 +375,9 @@ const demoBadges = [
 ]
 
 const quickActions = [
-	{ label: __("Play Games"), tab: "Games", desc: __("5 mini-games available"), icon: Gamepad2, btnClass: "bg-ink-blue-4", cardClass: "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 hover:to-indigo-100", textHover: "group-hover:text-ink-blue-5" },
-	{ label: __("Leaderboard"), tab: "Leaderboard", desc: __("See your ranking"), icon: Trophy, btnClass: "bg-amber-400", cardClass: "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:from-amber-100 hover:to-orange-100", textHover: "group-hover:text-amber-600" },
-	{ label: __("All Badges"), tab: "Badges", desc: __("Collect them all!"), icon: Award, btnClass: "bg-purple-500", cardClass: "bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 hover:from-purple-100 hover:to-violet-100", textHover: "group-hover:text-purple-600" },
+	{ label: __("Play Games"), tab: "games", desc: __("5 mini-games available"), icon: Gamepad2, btnClass: "bg-ink-blue-4", cardClass: "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 hover:to-indigo-100", textHover: "group-hover:text-ink-blue-5" },
+	{ label: __("Leaderboard"), tab: "leaderboard", desc: __("See your ranking"), icon: Trophy, btnClass: "bg-amber-400", cardClass: "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:from-amber-100 hover:to-orange-100", textHover: "group-hover:text-amber-600" },
+	{ label: __("All Badges"), tab: "badges", desc: __("Collect them all!"), icon: Award, btnClass: "bg-purple-500", cardClass: "bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 hover:from-purple-100 hover:to-violet-100", textHover: "group-hover:text-purple-600" },
 ]
 
 const demoLeaderboard = [
@@ -433,8 +452,8 @@ const filteredBadges = computed(() => {
 
 const earnedBadgeCount = computed(() => demoAllBadges.filter((b) => b.earned).length)
 
-function openGame(game) { activeGame.value = game }
-function closeGame() { activeGame.value = null }
+function openGame(game) { router.push({ name: 'GameCenterGame', params: { gameId: game.id } }) }
+function closeGame() { router.push({ name: 'GameCenterTab', params: { tab: 'overview' } }) }
 
 const breadcrumbs = computed(() => [{ label: __("Game Center"), route: { name: "GameCenter" } }])
 usePageMeta(() => ({ title: __("Game Center"), icon: brand.favicon }))

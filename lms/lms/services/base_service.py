@@ -85,8 +85,7 @@ class BaseService:
             fields=fields,
             limit=limit,
             start=start,
-            order_by=order_by,
-            as_dict=as_dict
+            order_by=order_by
         )
 
     def get_single(self, field: Optional[str] = None) -> Any:

@@ -1,0 +1,70 @@
+import json
+import frappe
+from frappe.utils import now_datetime
+
+
+def get_or_create_session_key(student: str, lesson_name: str = None) -> str:
+    """Returns a unique session key for Redis."""
+    # Pattern: chatbot:{student_id}:{lesson_id or 'general'}
+    lesson_id = lesson_name or "general"
+    return f"chatbot:{student}:{lesson_id}"
+
+
+def get_chat_history(session_key: str, limit: int = 20) -> list:
+    """Retrieves history from Redis."""
+    try:
+        # 1. Try Redis first (fast)
+        history_json = frappe.cache().get_value(session_key)
+        if history_json:
+            return json.loads(history_json)
+            
+        # 2. Fallback to MariaDB (permanent)
+        session_name = frappe.db.get_value("Chatbot Session", {"session_key": session_key}, "name")
+        if session_name:
+            messages = frappe.get_all("Chatbot Message",
+                filters={"session": session_name},
+                fields=["role", "content"],
+                order_by="creation desc",
+                limit=limit
+            )
+            if messages:
+                messages.reverse()  # Reverse so oldest is first, newest is last
+                # Cache it back to Redis for future fast access
+                frappe.cache().set_value(session_key, json.dumps(messages), expires_in_sec=3600 * 24)
+                return messages
+    except Exception:
+        pass
+    return []
+
+
+def save_message_to_history(session_key: str, role: str, content: str, session_name: str = None):
+    """Appends a message to the history and saves to Redis + DB."""
+    history = get_chat_history(session_key)
+    history.append({"role": role, "content": content})
+
+    # Keep only last 20 messages to prevent context overflow
+    if len(history) > 20:
+        history = history[-20:]
+
+    # Update Redis
+    frappe.cache().set_value(session_key, json.dumps(history), expires_in_sec=3600 * 24)
+
+    # Update DB if session_name is available
+    if session_name:
+        try:
+            doc = frappe.get_doc(
+                {
+                    "doctype": "Chatbot Message",
+                    "session": session_name,
+                    "role": role,
+                    "content": content,
+                }
+            )
+            doc.insert(ignore_permissions=True)
+        except Exception:
+            pass
+
+
+def clear_session(session_key: str):
+    """Clears the session history."""
+    frappe.cache().delete_value(session_key)

@@ -57,12 +57,17 @@
 				</div>
 
 				<!-- Content Views -->
-				<AdminHome
-					v-if="isAdmin && currentTab === 'instructor'"
-					:liveClasses="adminLiveClasses"
-					:evals="adminEvals"
-				/>
-				<StudentHome v-else :myLiveClasses="myLiveClasses" />
+				<div v-if="user.loading" class="flex items-center justify-center py-20">
+					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+				</div>
+				<template v-else>
+					<AdminHome
+						v-if="isAdmin && currentTab === 'instructor'"
+						:liveClasses="adminLiveClasses"
+						:evals="adminEvals"
+					/>
+					<StudentHome v-else :myLiveClasses="myLiveClasses" />
+				</template>
 			</div>
 
 			<!-- Right Sidebar: Calendar + Upcoming Events (hidden on mobile) -->

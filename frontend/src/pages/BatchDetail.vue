@@ -156,4 +156,3 @@ usePageMeta(() => {
 	color: theme('colors.gray.900') !important;
 }
 </style>
-

@@ -544,9 +544,12 @@ const getSidebarItems = () => {
 					activeFor: [
 						'AIIntegration',
 						'StudentAIHelper',
+						'SocraticTutor',
 						'GradingBook',
 						'AIGrading',
-						'AIGradingObjective',
+						'AIGradingRubric',
+						'LessonPlanning',
+						'Documents',
 						'AIGradingEssay',
 						'AIGradingEssayConfig',
 						'AIGradingEssayWorkspace',

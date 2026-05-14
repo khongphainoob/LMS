@@ -298,3 +298,57 @@ def check_input_answers(question, answer):
 			return 1
 
 	return 0
+
+
+@frappe.whitelist()
+def import_questions_from_file(quiz_name, file_url):
+	frappe.has_permission("LMS Quiz", "write", throw=True)
+	
+	try:
+		file_doc = frappe.get_doc("File", {"file_url": file_url})
+	except frappe.DoesNotExistError:
+		frappe.throw(_("File not found"))
+	
+	if file_url.endswith('.xlsx'):
+		from frappe.utils.xlsxutils import read_xlsx_file_from_attached_file
+		data = read_xlsx_file_from_attached_file(file_id=file_doc.name)
+	elif file_url.endswith('.csv'):
+		from frappe.utils.csvutils import read_csv_content
+		data = read_csv_content(file_doc.get_content())
+	else:
+		frappe.throw(_("Invalid file format. Please upload CSV or XLSX format."))
+
+	quiz = frappe.get_doc("LMS Quiz", quiz_name)
+	
+	if len(data) <= 1:
+		frappe.throw(_("The uploaded file does not contain any question data."))
+
+	headers = data[0]
+	imported_count = 0
+	
+	# Standard fields expected in a Quiz Question
+	# Title (question), Type, Marks
+	for row in data[1:]:
+		if not row or not row[0]: continue
+		
+		# Create a new question as we can't easily reference LMS Question or just set values here
+		# Wait, LMS Quiz Question references a master `LMS Question` or just holds data?
+		# Let's see lms_quiz_question.json
+		
+		child = quiz.append("questions", {})
+		for i, header in enumerate(headers):
+			if header and i < len(row):
+				field = str(header).lower().replace(" ", "_")
+				# Let the user set basic fields like 'question', 'type', 'marks'
+				# or even 'question_name' 
+				if child.meta.has_field(field):
+					child.set(field, row[i])
+		imported_count += 1
+		
+	quiz.save()
+	frappe.db.commit()
+	
+	# Remove the temporary uploaded file
+	frappe.delete_doc("File", file_doc.name, ignore_permissions=True)
+	
+	return imported_count

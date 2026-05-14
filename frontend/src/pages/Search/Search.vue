@@ -1,254 +1,166 @@
 <template>
-	<header
-		class="sticky flex items-center justify-between top-0 z-10 border-b bg-surface-white px-3 py-2.5 sm:px-5"
-	>
-		<Breadcrumbs :items="[{ label: __('Search') }]" />
-	</header>
-	<div class="w-4/6 mx-auto py-5">
-		<div class="px-2.5">
-			<TextInput
-				ref="searchInput"
-				class="flex-1"
-				:placeholder="__('Search for a keyword or phrase and press enter')"
-				autocomplete="off"
-				:model-value="query"
-				@update:model-value="updateQuery"
-				@keydown.enter="() => submit()"
-			>
-				<template #prefix>
-					<Search class="w-4 text-ink-gray-5" />
-				</template>
-				<template #suffix>
-					<div class="flex items-center">
-						<button
-							v-if="query"
-							@click="clearSearch"
-							class="p-1 size-6 grid place-content-center focus:outline-none focus:ring focus:ring-outline-gray-3 rounded"
-						>
-							<X class="w-4 text-ink-gray-7" />
-						</button>
-					</div>
-				</template>
-			</TextInput>
-			<div
-				v-if="query && searchResults.length"
-				class="text-sm text-ink-gray-5 mt-2"
-			>
-				{{ searchResults.length }}
-				{{ searchResults.length === 1 ? __('match') : __('matches') }}
-			</div>
-			<div v-else-if="queryChanged" class="text-sm text-ink-gray-5 mt-2">
-				{{ __('Press enter to search') }}
-			</div>
-			<div
-				v-else-if="query && !searchResults.length"
-				class="text-sm text-ink-gray-5 mt-2"
-			>
-				{{ __('No results found') }}
-			</div>
-		</div>
+  <div class="min-h-screen bg-white dark:bg-[#0B0F1A] transition-colors duration-500 font-sans selection:bg-amber-100 selection:text-amber-900">
+    <!-- Minimal Header -->
+    <header class="sticky top-0 z-50 border-b border-slate-100 dark:border-slate-800/60 bg-white/80 dark:bg-[#0B0F1A]/80 backdrop-blur-md px-6 py-3">
+      <div class="mx-auto flex max-w-[1200px] items-center justify-between">
+        <div class="flex items-center gap-3">
+          <icons.Search class="h-5 w-5 text-slate-900 dark:text-amber-500 stroke-[2.5px]" />
+          <div>
+            <h1 class="text-base font-black tracking-tight text-slate-900 dark:text-white uppercase font-outfit leading-none">{{ __('Tìm kiếm') }}</h1>
+            <p class="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-amber-500/60 mt-1 leading-none">{{ __('Hệ thống tra cứu thông minh') }}</p>
+          </div>
+        </div>
 
-		<div class="mt-5">
-			<div v-if="searchResults.length" class="">
-				<div
-					v-for="(result, index) in searchResults"
-					@click="navigate(result)"
-					class="rounded-md cursor-pointer hover:bg-surface-gray-2 px-2"
-				>
-					<div
-						class="flex space-x-2 py-3"
-						:class="{
-							'border-b': index !== searchResults.length - 1,
-						}"
-					>
-						<Tooltip :text="result.author_info.full_name">
-							<Avatar
-								:label="result.author_info.full_name"
-								:image="result.author_info.user_image"
-								size="md"
-							/>
-						</Tooltip>
-						<div class="space-y-1 w-full">
-							<div class="flex items-center">
-								<div
-									class="font-medium text-ink-gray-9"
-									v-html="result.title"
-								></div>
-								<div class="text-sm text-ink-gray-5 ml-2">
-									{{ getDocTypeTitle(result.doctype) }}
-								</div>
-								<div
-									v-if="
-										result.published_on ||
-										result.start_date ||
-										result.creation ||
-										result.modified
-									"
-									class="ml-auto text-sm text-ink-gray-5"
-								>
-									{{
-										dayjs(
-											result.published_on ||
-												result.start_date ||
-												result.creation ||
-												result.modified
-										).format('DD MMM YYYY')
-									}}
-								</div>
-							</div>
-							<div
-								class="leading-5 text-ink-gray-7"
-								v-html="result.content"
-							></div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+        <!-- Purpose Badge (Right) -->
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-amber-500/5 border border-slate-100 dark:border-amber-500/10 rounded-full">
+          <div class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+          <span class="text-[10px] font-bold text-slate-500 dark:text-amber-500/80 uppercase tracking-wider">{{ __('Tìm kiếm từ khóa nhanh') }}</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-2xl px-6 py-10">
+      <!-- Search Box Section -->
+      <div class="relative mb-12">
+        <div class="relative flex items-center">
+          <icons.Search class="absolute left-5 h-5 w-5 text-slate-400 z-10" />
+          <input
+            v-model="query"
+            type="text"
+            class="w-full pl-12 pr-12 py-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-sm font-bold text-slate-900 dark:text-white focus:ring-0 focus:border-amber-500 dark:focus:border-amber-500 transition-all placeholder:text-slate-400 placeholder:font-medium"
+            :placeholder="__('Bạn muốn tìm gì hôm nay?')"
+            @keydown.enter="submit"
+          />
+          <div class="absolute right-3 flex items-center">
+            <button v-if="query" @click="clearSearch" class="p-2 text-slate-400 hover:text-rose-500 transition-all">
+              <icons.X class="h-5 w-5 stroke-[2.5px]" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div class="space-y-3 pb-20">
+        <div v-if="search.loading" class="flex justify-center py-6">
+          <icons.Loader2 class="h-6 w-6 text-amber-500 animate-spin" />
+        </div>
+
+        <div
+          v-for="(result, index) in searchResults"
+          :key="index"
+          @click="navigate(result)"
+          class="group relative rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-4 transition-all hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-sm cursor-pointer"
+        >
+          <div class="flex gap-4 items-start">
+            <Avatar
+              :label="result.author_info?.full_name || '?'"
+              :image="result.author_info?.user_image"
+              size="lg"
+              class="rounded-xl border border-slate-50 dark:border-slate-800"
+            />
+            
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400/80">
+                  {{ getDocTypeTitle(result.doctype) }}
+                </span>
+                <icons.ArrowUpRight class="h-3 w-3 text-slate-300 group-hover:text-amber-500 transition-all" />
+              </div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors leading-snug" v-html="result.title"></h3>
+              <div class="text-[11px] text-slate-400 dark:text-slate-500 line-clamp-1 mt-1 font-medium italic" v-html="result.content"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Minimal Empty State -->
+        <div v-if="!query && !search.loading" class="py-16 text-center">
+           <icons.Compass class="h-10 w-10 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
+           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+             {{ __('Nhập từ khóa để bắt đầu') }}
+           </p>
+        </div>
+
+        <div v-if="query && !searchResults.length && !search.loading" class="py-16 text-center">
+           <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ __('Không có kết quả') }}</p>
+        </div>
+      </div>
+    </main>
+  </div>
 </template>
+
 <script setup lang="ts">
-import {
-	Avatar,
-	Breadcrumbs,
-	createResource,
-	debounce,
-	TextInput,
-	Tooltip,
-	usePageMeta,
-} from 'frappe-ui'
-import { inject, onMounted, ref, watch } from 'vue'
-import { Search, X } from 'lucide-vue-next'
-import { sessionStore } from '@/stores/session'
+import { Avatar, createResource, debounce, usePageMeta } from 'frappe-ui'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import * as icons from 'lucide-vue-next'
+import { sessionStore } from '@/stores/session'
 
 const query = ref('')
-const searchInput = ref<HTMLInputElement | null>(null)
 const searchResults = ref<Array<any>>([])
 const { brand } = sessionStore()
 const router = useRouter()
 const route = useRoute()
-const queryChanged = ref(false)
-const dayjs = inject<any>('$dayjs')
 
-onMounted(() => {
-	if (router.currentRoute.value.query.q) {
-		query.value = router.currentRoute.value.query.q as string
-		submit()
-	}
+onMounted(() => { 
+  if (route.query.q) { 
+    query.value = route.query.q as string
+    submit() 
+  } 
 })
 
-const updateQuery = (value: string) => {
-	query.value = value
-	router.replace({ query: value ? { q: value } : {} })
-}
-
-const submit = debounce(() => {
-	if (query.value.length > 2) {
-		search.reload()
-	}
+const submit = debounce(() => { 
+  if (query.value.length > 2) {
+    search.reload() 
+  } else if (query.value.length === 0) {
+    searchResults.value = []
+  }
 }, 500)
 
-const search = createResource({
-	url: 'lms.command_palette.search_sqlite',
-	makeParams: () => ({
-		query: query.value,
-	}),
-	onSuccess() {
-		generateSearchResults()
-	},
+watch(query, (newVal) => {
+  if (newVal.length === 0) {
+    searchResults.value = []
+  }
 })
 
-const generateSearchResults = () => {
-	searchResults.value = []
-	if (search.data) {
-		queryChanged.value = false
-		search.data.forEach((group: any) => {
-			group.items.forEach((item: any) => {
-				searchResults.value.push(item)
-			})
-		})
-		sortResults()
-	}
-}
-
-const sortResults = () => {
-	searchResults.value.sort((a, b) => {
-		const dateA = new Date(
-			a.published_on || a.start_date || a.creation || a.modified
-		).getTime()
-		const dateB = new Date(
-			b.published_on || b.start_date || b.creation || b.modified
-		).getTime()
-		return dateB - dateA
-	})
-}
+const search = createResource({
+  url: 'lms.command_palette.search_sqlite',
+  makeParams: () => ({ query: query.value }),
+  onSuccess() {
+    searchResults.value = []
+    if (search.data) {
+      search.data.forEach((group: any) => group.items.forEach((item: any) => searchResults.value.push(item)))
+    }
+  },
+})
 
 const navigate = (result: any) => {
-	if (result.doctype == 'LMS Course') {
-		router.push({
-			name: 'CourseDetail',
-			params: {
-				courseName: result.name,
-			},
-		})
-	} else if (result.doctype == 'LMS Batch') {
-		router.push({
-			name: 'BatchDetail',
-			params: {
-				batchName: result.name,
-			},
-		})
-	} else if (result.doctype == 'Job Opportunity') {
-		router.push({
-			name: 'JobDetail',
-			params: {
-				job: result.name,
-			},
-		})
-	}
+  if (result.doctype == 'LMS Course') router.push({ name: 'CourseDetail', params: { courseName: result.name } })
+  else if (result.doctype == 'LMS Batch') router.push({ name: 'BatchDetail', params: { batchName: result.name } })
 }
 
-watch(query, () => {
-	if (query.value && query.value != search.params?.query) {
-		queryChanged.value = true
-	} else if (!query.value) {
-		queryChanged.value = false
-		searchResults.value = []
-	}
-})
-
-watch(
-	() => route.query.q,
-	(newQ) => {
-		if (newQ && newQ !== query.value) {
-			query.value = newQ as string
-			submit()
-		}
-	}
-)
+const clearSearch = () => { 
+  query.value = ''
+  router.replace({ query: {} })
+  searchResults.value = [] 
+}
 
 const getDocTypeTitle = (doctype: string) => {
-	if (doctype === 'LMS Course') {
-		return __('Course')
-	} else if (doctype === 'LMS Batch') {
-		return __('Batch')
-	} else if (doctype === 'Job Opportunity') {
-		return __('Job')
-	} else {
-		return doctype
-	}
+  const titles = {
+    'LMS Course': __('Khóa học'),
+    'LMS Batch': __('Lớp học'),
+    'LMS Lesson': __('Bài học')
+  }
+  return titles[doctype] || doctype
 }
 
-const clearSearch = () => {
-	query.value = ''
-	updateQuery('')
-}
-
-usePageMeta(() => {
-	return {
-		title: __('Search'),
-		icon: brand.favicon,
-	}
-})
+usePageMeta(() => ({ 
+  title: __('Tìm kiếm'), 
+  icon: brand.favicon 
+}))
 </script>
+
+<style scoped>
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+</style>

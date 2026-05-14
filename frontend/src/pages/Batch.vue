@@ -60,31 +60,31 @@
 					</template>
 					<template #tab-panel="{ tab }">
 						<div class="pt-5 px-5 pb-10">
-							<div v-if="tab.label == 'Courses'">
+							<div v-if="tab.name == 'courses'">
 								<BatchCourses :batch="batch.data.name" />
 							</div>
-							<div v-else-if="tab.label == 'Dashboard' && isStudent">
+							<div v-else-if="tab.name == 'dashboard' && isStudent">
 								<BatchDashboard :batch="batch" :isStudent="isStudent" />
 							</div>
-							<div v-else-if="tab.label == 'Dashboard'">
+							<div v-else-if="tab.name == 'dashboard'">
 								<AdminBatchDashboard :batch="batch" />
 							</div>
-							<div v-else-if="tab.label == 'Students'">
+							<div v-else-if="tab.name == 'students'">
 								<BatchStudents :batch="batch" />
 							</div>
-							<div v-else-if="tab.label == 'Classes'">
+							<div v-else-if="tab.name == 'classes'">
 								<LiveClass
 									:batch="batch.data.name"
 									:zoomAccount="batch.data.zoom_account"
 								/>
 							</div>
-							<div v-else-if="tab.label == 'Assessments'">
+							<div v-else-if="tab.name == 'assessments'">
 								<Assessments :batch="batch.data.name" />
 							</div>
-							<div v-else-if="tab.label == 'Announcements'">
+							<div v-else-if="tab.name == 'announcements'">
 								<Announcements :batch="batch.data.name" />
 							</div>
-							<div v-else-if="tab.label == 'Discussions'">
+							<div v-else-if="tab.name == 'discussions'">
 								<Discussions
 									doctype="LMS Batch"
 									:docname="batch.data.name"
@@ -263,40 +263,47 @@ const tabs = computed(() => {
 	let batchTabs = []
 	batchTabs.push({
 		label: __('Dashboard'),
+		name: 'dashboard',
 		icon: LayoutDashboard,
 	})
 
 	if (isAdmin.value) {
 		batchTabs.push({
 			label: __('Students'),
+			name: 'students',
 			icon: ClipboardPen,
 		})
 	}
 
 	batchTabs.push({
 		label: __('Courses'),
+		name: 'courses',
 		icon: BookOpen,
 	})
 
 	batchTabs.push({
 		label: __('Classes'),
+		name: 'classes',
 		icon: Laptop,
 	})
 
 	if (isAdmin.value) {
 		batchTabs.push({
 			label: __('Assessments'),
+			name: 'assessments',
 			icon: BookOpenCheck,
 		})
 	}
 
 	batchTabs.push({
 		label: __('Announcements'),
+		name: 'announcements',
 		icon: Mail,
 	})
 
 	batchTabs.push({
 		label: __('Discussions'),
+		name: 'discussions',
 		icon: MessageCircle,
 	})
 	return batchTabs
@@ -313,7 +320,7 @@ onMounted(() => {
 	const hash = route.hash
 	if (hash) {
 		tabs.value.forEach((tab, index) => {
-			if (tab.label?.toLowerCase() === hash.replace('#', '')) {
+			if (tab.name === hash.replace('#', '')) {
 				tabIndex.value = index
 			}
 		})
@@ -369,8 +376,8 @@ const openAnnouncementModal = () => {
 
 watch(tabIndex, () => {
 	const tab = tabs.value[tabIndex.value]
-	if (tab.label != route.hash.replace('#', '')) {
-		router.push({ ...route, hash: `#${tab.label.toLowerCase()}` })
+	if (tab.name != route.hash.replace('#', '')) {
+		router.push({ ...route, hash: `#${tab.name}` })
 	}
 })
 

@@ -46,9 +46,7 @@
 					class="inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors"
 					:class="{
 						'bg-ink-gray-9 text-surface-white font-semibold':
-							cell.isToday && !cell.isCurrentMonth,
-						'bg-ink-gray-9 text-surface-white font-semibold':
-							cell.isToday && cell.isCurrentMonth,
+							cell.isToday,
 						'bg-surface-gray-2 text-ink-gray-7': !cell.isCurrentMonth && !cell.isToday,
 						'text-ink-gray-7': cell.isCurrentMonth && !cell.isToday,
 					}"

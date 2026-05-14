@@ -21,7 +21,7 @@
 │  │   ├── kymaapi_api_key                             │
 │  │   ├── kymaapi_model                               │
 │  │   ├── openai_api_key                              │
-│  │   ├── gemini_api_key                              │
+│  │   ├── google_api_key                              │
 │  │   └── anthropic_api_key                           │
 │  │                                                    │
 │  ├── AI Grading Session                              │

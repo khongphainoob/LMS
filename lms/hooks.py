@@ -121,6 +121,14 @@ doc_events = {
 		"validate": "lms.lms.user.validate_username_duplicates",
 		"after_insert": "lms.lms.user.after_insert",
 	},
+	"LMS Document": {
+		"after_insert": "lms.lms.agents.chatbot.utils_rag.index_single_document",
+		"on_update": "lms.lms.agents.chatbot.utils_rag.index_single_document",
+	},
+	"Course Lesson": {
+		"after_insert": "lms.lms.agents.chatbot.utils_rag.index_single_document",
+		"on_update": "lms.lms.agents.chatbot.utils_rag.index_single_document",
+	},
 }
 
 # Scheduled Tasks
