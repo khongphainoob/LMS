@@ -93,6 +93,7 @@ import { Timer, Trophy } from 'lucide-vue-next'
 
 const props = defineProps({
 	classGame: { type: String, default: null },
+	gameSettings: { type: Object, default: () => ({}) },
 })
 
 const emit = defineEmits(["completed"])
@@ -107,6 +108,11 @@ const statusText = ref('Ready to race')
 const smashedCounters = ref([])
 const sessionId = ref(null)
 const questions = ref([])
+const totalRounds = computed(() => {
+	const settingValue = props.gameSettings?.rounds ?? props.gameSettings?.max_rounds
+	const parsed = Number(settingValue)
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : 5
+})
 const loading = ref(false)
 let timer = null
 
@@ -191,11 +197,11 @@ async function startSession() {
 async function loadQuestions() {
 	loading.value = true
 	try {
-		const res = await call('lms.lms.api.get_gamification_questions', { question_type: 'mcq', limit: 5 })
+		const res = await call('lms.lms.api.get_gamification_questions', { question_type: 'mcq', limit: totalRounds.value })
 		const loaded = (res || [])
 			.map(normalizeQuestion)
 			.filter((q) => q.prompt && q.answer)
-		questions.value = [...loaded, ...fallbackQuestions].slice(0, 5)
+		questions.value = [...loaded, ...fallbackQuestions].slice(0, totalRounds.value)
 	} finally {
 		loading.value = false
 	}

@@ -12,8 +12,17 @@
 					<div class="text-4xl">{{ b.emoji }}</div>
 					<span class="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium text-white bg-green-500" v-if="b.earned">{{ __("Earned") }}</span>
 					<span class="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-surface-gray-2 text-ink-gray-5" v-else>{{ __("Locked") }}</span>
+					<div v-if="b.issued_on" class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-ink-gray-6 bg-white/80 px-2 py-0.5 rounded-full">
+						{{ formatDate(b.issued_on) }}
+					</div>
+					<div v-else-if="b.progress" class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-ink-gray-6 bg-white/80 px-2 py-0.5 rounded-full">
+						{{ b.progress }}%
+					</div>
 				</div>
-				<div class="p-3"><div class="text-sm font-semibold text-ink-gray-9 truncate">{{ b.title }}</div><div class="text-[11px] text-ink-gray-5 mt-0.5 line-clamp-2">{{ b.description }}</div></div>
+				<div class="p-3">
+					<div class="text-sm font-semibold text-ink-gray-9 truncate">{{ b.title }}</div>
+					<div class="text-[11px] text-ink-gray-5 mt-0.5 line-clamp-2">{{ b.description }}</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -26,4 +35,10 @@ const filter = ref("all")
 const filters = [{ label: __("All"), value: "all" }, { label: __("Earned"), value: "earned" }, { label: __("Locked"), value: "locked" }]
 const filteredBadges = computed(() => filter.value === "earned" ? props.badges.filter((b) => b.earned) : filter.value === "locked" ? props.badges.filter((b) => !b.earned) : props.badges)
 const earnedCount = computed(() => props.badges.filter((b) => b.earned).length)
+
+function formatDate(dateValue) {
+	if (!dateValue) return ""
+	const parsed = new Date(dateValue)
+	return parsed.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
+}
 </script>

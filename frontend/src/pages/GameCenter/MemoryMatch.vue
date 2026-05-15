@@ -4,6 +4,10 @@
 			<h3 class="font-semibold text-ink-gray-9">{{ __("Memory Match") }}</h3>
 			<div class="flex items-center gap-4">
 				<div class="flex items-center gap-1.5 text-sm text-ink-gray-6">
+					<Trophy class="size-4 text-ink-amber-5" />
+					<span>{{ score }} {{ __("points") }}</span>
+				</div>
+				<div class="flex items-center gap-1.5 text-sm text-ink-gray-6">
 					<Timer class="size-4" />
 					<span>{{ formatTime(elapsedTime) }}</span>
 				</div>
@@ -24,7 +28,7 @@
 			<div class="text-4xl mb-3">&#127942;</div>
 			<h4 class="text-lg font-bold text-ink-gray-9 mb-1">{{ __("Congratulations!") }}</h4>
 			<p class="text-sm text-ink-gray-5 mb-3">
-				{{ __("Completed in {0} moves and {1}").format(moves, formatTime(elapsedTime)) }}
+				{{ __("Completed in {0} moves, {1}, and {2} points").format(moves, formatTime(elapsedTime), score) }}
 			</p>
 			<button
 				@click="resetGame"
@@ -59,7 +63,7 @@
 
 		<div class="flex items-center justify-center gap-2">
 			<button
-				v-for="size in [3, 4, 5, 6]"
+				v-for="size in [4, 6, 8]"
 				:key="size"
 				@click="changeGridSize(size)"
 				class="px-3 py-1 rounded text-xs font-medium transition-colors"
@@ -74,8 +78,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue"
 import { call } from "frappe-ui"
-import { Timer, MousePointerClick, HelpCircle } from "lucide-vue-next"
+import { Timer, MousePointerClick, HelpCircle, Trophy } from "lucide-vue-next"
 
+const props = defineProps({ classGame: { type: String, default: null }, gameSettings: { type: Object, default: () => ({}) } })
 const gridSize = ref(4)
 const cards = ref([])
 const flippedIndices = ref([])
@@ -83,6 +88,8 @@ const isChecking = ref(false)
 const moves = ref(0)
 const elapsedTime = ref(0)
 const gameWon = ref(false)
+const score = ref(0)
+const matchedPairs = ref(0)
 const loading = ref(false)
 const completionSent = ref(false)
 const sessionId = ref(null)
@@ -148,9 +155,16 @@ function initGame() {
 	moves.value = 0
 	elapsedTime.value = 0
 	gameWon.value = false
+	score.value = 0
+	matchedPairs.value = 0
 	completionSent.value = false
 	clearInterval(timerInterval)
 	timerInterval = null
+}
+
+function resolveGridSize() {
+	const value = Number(props.gameSettings?.grid_size || props.gameSettings?.board_size)
+	return Number.isFinite(value) && value >= 4 ? value : 4
 }
 
 async function startSession() {
@@ -164,19 +178,21 @@ async function submitScore() {
 		emit("completed")
 		return
 	}
-	const rawScore = Math.max(0, 500 - moves.value * 15 - elapsedTime.value)
+	const timeBonus = Math.max(0, 300 - elapsedTime.value * 3)
+	const rawScore = Math.max(0, score.value + timeBonus)
 	await call("lms.lms.api.submit_game_session", {
 		session_id: sessionId.value,
 		raw_score: rawScore,
-		metadata: { moves: moves.value, elapsed_time: elapsedTime.value },
+		metadata: { moves: moves.value, elapsed_time: elapsedTime.value, matched_pairs: matchedPairs.value },
 	})
 	emit("completed")
 }
 
-async function loadPairs() {
+async function loadPairs(limitOverride) {
 	loading.value = true
 	try {
-		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "mcq", limit: 8 })
+		const limit = limitOverride || Math.max(8, Math.floor((gridSize.value * gridSize.value) / 2))
+		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "mcq", limit })
 		const loaded = (res || [])
 			.map(normalizeQuestion)
 			.filter((pair) => pair.question && pair.answer)
@@ -213,6 +229,8 @@ function flipCard(index) {
 		if (cards.value[i1].pairId === cards.value[i2].pairId && cards.value[i1].kind !== cards.value[i2].kind) {
 			cards.value[i1].matched = true
 			cards.value[i2].matched = true
+			score.value += 100
+			matchedPairs.value += 1
 			flippedIndices.value = []
 			isChecking.value = false
 			if (cards.value.every((c) => c.matched)) {
@@ -256,10 +274,16 @@ function resetGame() {
 
 function changeGridSize(size) {
 	gridSize.value = size
+	const requiredPairs = Math.floor((size * size) / 2)
+	if (questionPairs.value.length < requiredPairs) {
+		loadPairs(requiredPairs).then(initGame)
+		return
+	}
 	initGame()
 }
 
 onMounted(async () => {
+	gridSize.value = resolveGridSize()
 	await loadPairs()
 	initGame()
 	await startSession()

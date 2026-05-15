@@ -5,7 +5,8 @@
 		<div v-else-if="!rounds.length" class="border border-outline-gray-2 bg-surface-white rounded-xl p-5 text-sm text-ink-gray-5">{{ __("No rounds available.") }}</div>
 		<div v-else-if="!finished" class="border border-outline-gray-2 bg-surface-white rounded-xl p-5">
 			<div class="text-center mb-1"><span class="text-xs font-medium text-ink-blue-4">{{ getRoundLabel() }}</span></div>
-			<h4 class="text-sm text-center text-ink-gray-7 mb-5">{{ rounds[currentRound].instruction }}</h4>
+			<h4 class="text-sm text-center text-ink-gray-7 mb-2">{{ rounds[currentRound].instruction }}</h4>
+			<p v-if="rounds[currentRound].prompt" class="text-xs text-center text-ink-gray-5 mb-4">{{ rounds[currentRound].prompt }}</p>
 			<div class="flex gap-2 mb-5 p-3 rounded-xl border-2 border-dashed transition-colors min-h-[56px] items-center" :class="isDragOver ? 'border-ink-blue-4 bg-blue-50 dark:bg-blue-900/10' : 'border-outline-gray-3 bg-surface-gray-1'" @dragover.prevent="isDragOver = true" @dragleave="isDragOver = false" @drop.prevent="onDrop($event)">
 				<div v-for="(item, idx) in sortedItems" :key="item.id" class="flex items-center gap-1 bg-ink-blue-4 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm cursor-grab active:cursor-grabbing" draggable="true" @dragstart="onItemDragStart($event, idx, true)" @dragover.prevent><span class="text-xs opacity-60 mr-1">{{ idx + 1 }}</span>{{ item.value }}</div>
 				<div v-if="!sortedItems.length" class="w-full text-center text-sm text-ink-gray-4 py-1">{{ __("Drop items here in order") }}</div>
@@ -22,7 +23,7 @@ import { computed, onMounted, ref } from "vue"
 import { call } from "frappe-ui"
 import { Star, Zap } from "lucide-vue-next"
 
-const props = defineProps({ classGame: { type: String, default: null } })
+const props = defineProps({ classGame: { type: String, default: null }, gameSettings: { type: Object, default: () => ({}) } })
 const emit = defineEmits(["completed"])
 const score = ref(0)
 const currentRound = ref(0)
@@ -32,27 +33,67 @@ const finished = ref(false)
 const roundResults = ref([])
 const sessionId = ref(null)
 const rounds = ref([])
+const totalRounds = computed(() => {
+	const settingValue = props.gameSettings?.rounds ?? props.gameSettings?.max_rounds
+	const parsed = Number(settingValue)
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : 5
+})
 const loading = ref(false)
 
 const availableItems = computed(() => { const sortedIds = new Set(sortedItems.value.map((i) => i.id)); return (rounds.value[currentRound.value]?.items || []).filter((i) => !sortedIds.has(i.id)) })
 function getRoundLabel() { return rounds.value[currentRound.value]?.label || "" }
 function normalizeRound(q, idx) {
+	const prompt = q?.question || q?.question_text || __("Arrange the items")
+	const sortItems = Array.isArray(q?.sort_items)
+		? q.sort_items.map((item, i) => ({ id: `${idx}-${i}`, value: item?.item || item?.value || item, order: item?.order ?? i }))
+		: []
+	const answer = String(q?.correct_answer || q?.correct_option || "").trim()
+	const letters = answer ? answer.split("").map((char, i) => ({ id: `${idx}-l-${i}`, value: char, order: i })) : []
 	return {
 		label: q?.category || `Round ${idx + 1}`,
-		instruction: q?.question || q?.question_text || __("Arrange the items"),
-		items: Array.isArray(q?.sort_items)
-			? q.sort_items.map((item, i) => ({ id: `${idx}-${i}`, value: item?.item || item?.value || item, order: item?.order ?? i }))
-			: [],
+		instruction: answer ? __("Drag letters to form the answer") : __("Arrange the items"),
+		prompt,
+		answer,
+		mode: answer ? "letters" : "order",
+		items: sortItems.length ? sortItems : letters,
 	}
 }
 function onItemDragStart(e, itemOrIdx, fromSorted) { let item; if (fromSorted) { item = sortedItems.value[itemOrIdx]; sortedItems.value.splice(itemOrIdx, 1) } else { item = itemOrIdx } e.dataTransfer.setData("application/json", JSON.stringify(item)) }
 function onDrop(event) { isDragOver.value = false; const raw = event?.dataTransfer?.getData("application/json"); if (!raw) return; try { const item = JSON.parse(raw); addToSorted(item) } catch { } }
 function addToSorted(item) { if (!sortedItems.value.find((i) => i.id === item.id)) sortedItems.value.push({ ...item }) }
 function clearSorted() { sortedItems.value = [] }
-function submitAnswer() { const correct = rounds.value[currentRound.value].items; const isCorrect = sortedItems.value.every((item, idx) => item.order === correct[idx].order); if (isCorrect) { score.value += 100; roundResults.value.push(true) } else { const correctCount = sortedItems.value.filter((item, idx) => item.order === correct[idx].order).length; score.value += correctCount * 20; roundResults.value.push(false) } setTimeout(() => { if (currentRound.value < rounds.value.length - 1) { currentRound.value++; sortedItems.value = [] } else { finished.value = true; submitScore() } }, 1200) }
+function submitAnswer() {
+	const round = rounds.value[currentRound.value]
+	if (!round) return
+	let isCorrect = false
+	if (round.mode === "letters") {
+		const assembled = sortedItems.value.map((item) => item.value).join("")
+		isCorrect = assembled.toLowerCase() === String(round.answer || "").toLowerCase()
+	} else {
+		const correct = round.items
+		isCorrect = sortedItems.value.every((item, idx) => item.order === correct[idx].order)
+	}
+	if (isCorrect) {
+		score.value += 100
+		roundResults.value.push(true)
+	} else {
+		const correctCount = sortedItems.value.filter((item, idx) => item.order === round.items[idx]?.order).length
+		score.value += correctCount * 20
+		roundResults.value.push(false)
+	}
+	setTimeout(() => {
+		if (currentRound.value < rounds.value.length - 1) {
+			currentRound.value++
+			sortedItems.value = []
+		} else {
+			finished.value = true
+			submitScore()
+		}
+	}, 1200)
+}
 async function startSession() { if (!props.classGame) return; const res = await call("lms.lms.api.start_game_session", { class_game: props.classGame }); sessionId.value = res.session_id }
 async function submitScore() { if (!sessionId.value) { emit("completed"); return } await call("lms.lms.api.submit_game_session", { session_id: sessionId.value, raw_score: score.value, metadata: { round_results: roundResults.value } }); emit("completed") }
-async function loadRounds() { loading.value = true; try { const res = await call("lms.lms.api.get_gamification_questions", { question_type: "sort_order", limit: 5 }); rounds.value = (res || []).map(normalizeRound).filter((r) => r.items.length); if (!rounds.value.length) rounds.value = [{ label: __("Numbers"), instruction: __("Arrange the numbers from smallest to largest"), items: [{ id: "1", value: "1", order: 0 }, { id: "2", value: "2", order: 1 }] }] } finally { loading.value = false } }
+async function loadRounds() { loading.value = true; try { const res = await call("lms.lms.api.get_gamification_questions", { question_type: "sort_order", limit: totalRounds.value }); rounds.value = (res || []).map(normalizeRound).filter((r) => r.items.length || r.answer); if (!rounds.value.length) rounds.value = [{ label: __("Numbers"), instruction: __("Arrange the numbers from smallest to largest"), items: [{ id: "1", value: "1", order: 0 }, { id: "2", value: "2", order: 1 }] }] } finally { loading.value = false } }
 function resetGame() { score.value = 0; currentRound.value = 0; sortedItems.value = []; finished.value = false; roundResults.value = []; startSession() }
 onMounted(async () => { await loadRounds(); startSession() })
 </script>

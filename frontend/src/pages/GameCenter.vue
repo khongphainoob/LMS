@@ -10,12 +10,13 @@
 		<div class="p-4 sm:p-5">
 			<TabButtons v-if="!activeGame" v-model="activeTab" :buttons="tabs" class="w-fit mb-5" />
 
-			<component
-				:is="activeGame?.component"
-				v-if="activeGame"
-				:class-game="activeGame.classGame"
-				@completed="onGameCompleted"
-			/>
+		<component
+			:is="activeGame?.component"
+			v-if="activeGame"
+			:class-game="activeGame.classGame"
+			:game-settings="activeGame.settings"
+			@completed="onGameCompleted"
+		/>
 
 			<OverviewTab v-else-if="activeTab === 'Overview'" :profile="profileData" :recent-badges="recentBadges" @switch-tab="activeTab = $event" />
 			<GamesTab v-else-if="activeTab === 'Games'" :games="games" @open-game="openGame" />
@@ -54,12 +55,48 @@ const classGamesResource = createResource({ url: "lms.lms.api.list_class_games",
 
 const profileData = computed(() => profileResource.data)
 
-const recentBadges = computed(() => (badgesResource.data || []).map((b) => ({
-	...b,
+const badgeEmojiMap = {
+	Bookworm: "📚",
+	"7-Day Streak": "🔥",
+	"Quiz Master": "🎯",
+	Scholar: "🎓",
+	"Speed Demon": "⚡",
+	"Top Student": "🏆",
+	Unstoppable: "🔥",
+	"Dedicated Learner": "👥",
+	"Quiz Champion": "📋",
+	"Team Player": "🤝",
+	"Night Owl": "🌙",
+	"Perfect Week": "⭐",
+}
+
+function normalizeBadge(badge) {
+	const title = badge?.title || badge?.badge || badge?.name || ""
+	return {
+		...badge,
+		title,
+		emoji: badgeEmojiMap[title] || "🏅",
+	}
+}
+
+const recentBadges = computed(() => (profileData.value?.recent_badges || []).map((b) => ({
+	...normalizeBadge(b),
+	image: b.badge_image || b.image,
+	description: b.badge_description || b.description,
 })))
 
 function resolveGameType(game) {
 	return String(game?.game_type || game?.game || game?.name || "").trim()
+}
+
+function normalizeSettings(settings) {
+	if (!settings) return {}
+	if (typeof settings === "object") return settings
+	try {
+		return JSON.parse(settings)
+	} catch (e) {
+		return {}
+	}
 }
 
 const fallbackGames = [
@@ -74,6 +111,7 @@ const fallbackGames = [
 		bgClass: "bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/20 dark:to-violet-900/20",
 		iconClass: "text-ink-purple-5",
 		tagClass: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
+		settings: {},
 	},
 	{
 		id: "timed-quiz",
@@ -86,6 +124,7 @@ const fallbackGames = [
 		bgClass: "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20",
 		iconClass: "text-ink-blue-4",
 		tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+		settings: {},
 	},
 	{
 		id: "spin-wheel",
@@ -98,6 +137,7 @@ const fallbackGames = [
 		bgClass: "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20",
 		iconClass: "text-ink-amber-5",
 		tagClass: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+		settings: {},
 	},
 	{
 		id: "word-scramble",
@@ -110,6 +150,7 @@ const fallbackGames = [
 		bgClass: "bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20",
 		iconClass: "text-ink-green-5",
 		tagClass: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+		settings: {},
 	},
 	{
 		id: "drag-drop",
@@ -122,6 +163,7 @@ const fallbackGames = [
 		bgClass: "bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900/20 dark:to-gray-900/20",
 		iconClass: "text-ink-gray-7",
 		tagClass: "bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400",
+		settings: {},
 	},
 	{
 		id: "duck-race",
@@ -134,6 +176,7 @@ const fallbackGames = [
 		bgClass: "bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/20",
 		iconClass: "text-yellow-600",
 		tagClass: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+		settings: {},
 	},
 	{
 		id: "fruit-ninja",
@@ -146,6 +189,7 @@ const fallbackGames = [
 		bgClass: "bg-gradient-to-br from-red-50 to-pink-100 dark:from-red-900/20 dark:to-pink-900/20",
 		iconClass: "text-red-500",
 		tagClass: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+		settings: {},
 	},
 ]
 
@@ -169,6 +213,7 @@ const games = computed(() => {
 			const title = game.title || game.game || game.name
 			const gType = resolveGameType(game)
 			const delivery = game.delivery_mode
+			const settings = normalizeSettings(game.settings)
 
 			return {
 				id: game.class_game || game.name,
@@ -179,13 +224,14 @@ const games = computed(() => {
 				tag: delivery || __("Game"),
 				icon: Gamepad2,
 				bgClass: "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20",
-            iconClass: "text-ink-blue-4",
-            tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
-        }
-    })
+				iconClass: "text-ink-blue-4",
+				tagClass: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+				settings,
+			}
+		})
 })
 
-const badgeCards = computed(() => recentBadges.value)
+const badgeCards = computed(() => (badgesResource.data || []).map(normalizeBadge))
 const tabs = computed(() => ([{ label: __("Overview") }, { label: __("Games") }, { label: __("Leaderboard") }, { label: __("Badges") }]))
 const leaderboardEntries = computed(() => leaderboardResource.data || [])
 

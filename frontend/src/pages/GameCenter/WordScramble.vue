@@ -31,7 +31,7 @@ import { computed, onMounted, ref } from "vue"
 import { call } from "frappe-ui"
 import { Star, Heart } from "lucide-vue-next"
 
-const props = defineProps({ classGame: { type: String, default: null } })
+const props = defineProps({ classGame: { type: String, default: null }, gameSettings: { type: Object, default: () => ({}) } })
 const emit = defineEmits(["completed"])
 const score = ref(0)
 const lives = ref(3)
@@ -44,6 +44,11 @@ const gameOver = ref(false)
 const wordResults = ref([])
 const sessionId = ref(null)
 const words = ref([])
+const totalRounds = computed(() => {
+	const settingValue = props.gameSettings?.rounds ?? props.gameSettings?.max_rounds
+	const parsed = Number(settingValue)
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : 8
+})
 const loading = ref(false)
 
 const correctCount = computed(() => wordResults.value.filter(Boolean).length)
@@ -144,7 +149,7 @@ async function submitScore() {
 async function loadWords() {
 	loading.value = true
 	try {
-		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "word_scramble", limit: 10 })
+		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "word_scramble", limit: totalRounds.value })
 		words.value = (res || [])
 			.map(normalizeQuestion)
 			.filter((w) => w.answer)

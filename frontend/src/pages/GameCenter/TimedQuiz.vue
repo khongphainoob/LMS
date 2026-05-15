@@ -14,7 +14,16 @@
 			<div v-if="!quizFinished" class="border border-outline-gray-2 bg-surface-white rounded-xl p-5">
 				<div class="mb-1 text-xs text-ink-gray-5 font-medium">{{ getCategoryLabel(questions[currentQuestionIndex].category) }}</div>
 				<h4 class="text-lg font-semibold text-ink-gray-9 mb-5">{{ questions[currentQuestionIndex].question }}</h4>
-				<div class="space-y-2.5">
+				<div v-if="questions[currentQuestionIndex].mode === 'short'" class="space-y-3">
+					<input v-model="shortAnswer" class="w-full rounded-lg border border-outline-gray-2 px-4 py-3 text-sm" :placeholder="__("Type your answer")" :disabled="hasAnswered" />
+					<div class="flex items-center gap-2">
+						<button @click="submitShortAnswer" :disabled="hasAnswered || !shortAnswer.trim()" class="px-4 py-2 rounded-lg bg-ink-blue-4 text-white text-sm font-medium hover:bg-ink-blue-5 transition-colors disabled:opacity-40">
+							{{ __("Submit") }}
+						</button>
+						<span v-if="hasAnswered" class="text-xs text-ink-gray-5">{{ lastAnswerCorrect ? __("Correct") : __("Incorrect") }}</span>
+					</div>
+				</div>
+				<div v-else class="space-y-2.5">
 					<button v-for="(option, idx) in questions[currentQuestionIndex].options" :key="idx" @click="selectAnswer(idx)" :disabled="hasAnswered" class="w-full text-left px-4 py-3 rounded-lg border-2 text-sm transition-all duration-200 flex items-center gap-3" :class="getOptionClass(idx)">
 						<span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" :class="getOptionLetterClass(idx)">{{ String.fromCharCode(65 + idx) }}</span>
 						<span>{{ option }}</span>
@@ -37,7 +46,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue"
 import { call } from "frappe-ui"
 import { Clock } from "lucide-vue-next"
 
-const props = defineProps({ classGame: { type: String, default: null } })
+const props = defineProps({ classGame: { type: String, default: null }, gameSettings: { type: Object, default: () => ({}) } })
 const emit = defineEmits(["completed"])
 const timePerQuestion = 15
 const timeLeft = ref(timePerQuestion)
@@ -45,6 +54,8 @@ const currentQuestionIndex = ref(0)
 const selectedAnswer = ref(null)
 const hasAnswered = ref(false)
 const score = ref(0)
+const shortAnswer = ref("")
+const lastAnswerCorrect = ref(false)
 const quizFinished = ref(false)
 const questionTimes = ref([])
 const questionStartTime = ref(null)
@@ -59,6 +70,7 @@ const fallbackQuestions = [
 	{ question: __("Which animal says meow?"), options: ["Cat", "Dog", "Cow", "Duck"], correct: 0, category: "general" },
 	{ question: __("What is 2 + 2?"), options: ["3", "4", "5", "6"], correct: 1, category: "math" },
 	{ question: __("Which language is used for web pages?"), options: ["Python", "HTML", "Swift", "C#"], correct: 1, category: "tech" },
+	{ question: __("Type the first month of the year"), options: [], correct: 0, answer: "January", category: "general", mode: "short" },
 ]
 
 const avgTime = computed(() => (!questionTimes.value.length ? 0 : (questionTimes.value.reduce((a, b) => a + b, 0) / questionTimes.value.length).toFixed(1)))
@@ -77,35 +89,53 @@ function normalizeQuestion(q) {
 		})
 		: []
 	const correctIndex = options.findIndex((o) => o.is_correct)
-	return {
+	const base = {
 		question: q?.question || q?.question_text || "",
 		options: options.map((o) => o.label).filter(Boolean),
 		correct: correctIndex >= 0 ? correctIndex : 0,
 		category: String(q?.category || "general").toLowerCase(),
 	}
+	const shortAnswer = q?.correct_answer || q?.correct_option || ""
+	if (!base.options.length && shortAnswer) {
+		return { ...base, answer: shortAnswer, mode: "short" }
+	}
+	return base
 }
 
 async function loadQuestions() {
 	loading.value = true
 	try {
-		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "mcq", limit: 8 })
-		const loaded = (res || []).map(normalizeQuestion).filter((q) => q.question && q.options.length)
-		questions.value = [...loaded, ...fallbackQuestions].slice(0, 8)
+		const limit = Number(props.gameSettings?.rounds ?? props.gameSettings?.max_rounds) || 8
+		const res = await call("lms.lms.api.get_gamification_questions", { question_type: "mcq", limit })
+		const loaded = (res || []).map(normalizeQuestion).filter((q) => q.question && (q.options.length || q.mode === "short"))
+		questions.value = [...loaded, ...fallbackQuestions].slice(0, limit)
 	} finally {
 		loading.value = false
 	}
 }
 
 function getCategoryLabel(cat) { return ({ tech: "💻 Technology", science: "🔬 Science", math: "🔢 Mathematics", art: "🎨 Art", general: "🌍 General", history: "📜 History" })[cat] || cat }
-function startTimer() { questionStartTime.value = Date.now(); timeLeft.value = timePerQuestion; clearInterval(timerInterval); timerInterval = setInterval(() => { timeLeft.value--; if (timeLeft.value <= 0) { clearInterval(timerInterval); if (!hasAnswered.value) { hasAnswered.value = true; questionTimes.value.push(timePerQuestion); setTimeout(nextQuestion, 1200) } } }, 1000) }
-function selectAnswer(idx) { if (hasAnswered.value || !currentQuestion.value.options.length) return; hasAnswered.value = true; selectedAnswer.value = idx; clearInterval(timerInterval); const elapsed = (Date.now() - questionStartTime.value) / 1000; questionTimes.value.push(Math.round(elapsed)); if (idx === currentQuestion.value.correct) score.value++; setTimeout(nextQuestion, 1200) }
-function nextQuestion() { if (currentQuestionIndex.value < questions.value.length - 1) { currentQuestionIndex.value++; selectedAnswer.value = null; hasAnswered.value = false; startTimer() } else { quizFinished.value = true; clearInterval(timerInterval); submitScore() } }
+function startTimer() { questionStartTime.value = Date.now(); timeLeft.value = timePerQuestion; clearInterval(timerInterval); timerInterval = setInterval(() => { timeLeft.value--; if (timeLeft.value <= 0) { clearInterval(timerInterval); if (!hasAnswered.value) { hasAnswered.value = true; lastAnswerCorrect.value = false; questionTimes.value.push(timePerQuestion); setTimeout(nextQuestion, 1200) } } }, 1000) }
+function selectAnswer(idx) { if (hasAnswered.value || !currentQuestion.value.options.length) return; hasAnswered.value = true; selectedAnswer.value = idx; clearInterval(timerInterval); const elapsed = (Date.now() - questionStartTime.value) / 1000; questionTimes.value.push(Math.round(elapsed)); lastAnswerCorrect.value = idx === currentQuestion.value.correct; if (lastAnswerCorrect.value) score.value++; setTimeout(nextQuestion, 1200) }
+function submitShortAnswer() {
+	if (hasAnswered.value) return
+	hasAnswered.value = true
+	clearInterval(timerInterval)
+	const elapsed = (Date.now() - questionStartTime.value) / 1000
+	questionTimes.value.push(Math.round(elapsed))
+	const expected = String(currentQuestion.value.answer || "").trim().toLowerCase()
+	const actual = String(shortAnswer.value || "").trim().toLowerCase()
+	lastAnswerCorrect.value = actual && expected ? actual === expected : false
+	if (lastAnswerCorrect.value) score.value++
+	setTimeout(nextQuestion, 1200)
+}
+function nextQuestion() { if (currentQuestionIndex.value < questions.value.length - 1) { currentQuestionIndex.value++; selectedAnswer.value = null; shortAnswer.value = ""; hasAnswered.value = false; lastAnswerCorrect.value = false; startTimer() } else { quizFinished.value = true; clearInterval(timerInterval); submitScore() } }
 async function startSession() { if (!props.classGame) return; const res = await call("lms.lms.api.start_game_session", { class_game: props.classGame }); sessionId.value = res.session_id }
 async function submitScore() { if (!sessionId.value) { emit("completed"); return } await call("lms.lms.api.submit_game_session", { session_id: sessionId.value, raw_score: score.value * 100, metadata: { question_times: questionTimes.value } }); emit("completed") }
 function getOptionClass(idx) { if (!hasAnswered.value) return selectedAnswer.value === idx ? "border-ink-blue-4 bg-blue-50 dark:bg-blue-900/20" : "border-outline-gray-2 hover:border-outline-gray-3 hover:bg-surface-gray-1"; if (idx === currentQuestion.value.correct) return "border-green-400 bg-green-50 dark:bg-green-900/20"; if (selectedAnswer.value === idx) return "border-red-400 bg-red-50 dark:bg-red-900/20"; return "border-outline-gray-2 opacity-50" }
 function getOptionLetterClass(idx) { if (!hasAnswered.value) return "bg-surface-gray-2 text-ink-gray-6"; if (idx === currentQuestion.value.correct) return "bg-green-500 text-white"; if (selectedAnswer.value === idx) return "bg-red-500 text-white"; return "bg-surface-gray-2 text-ink-gray-4" }
 function getResultMessage() { const pct = (score.value / questions.value.length) * 100; if (pct >= 80) return __("Outstanding! You're a quiz master! 🏆"); if (pct >= 60) return __("Great job! Keep up the good work! 🌟"); if (pct >= 40) return __("Not bad! Room for improvement. 💪"); return __("Keep practicing! You'll get better! 📚") }
-function resetQuiz() { currentQuestionIndex.value = 0; selectedAnswer.value = null; hasAnswered.value = false; score.value = 0; quizFinished.value = false; questionTimes.value = []; startTimer(); startSession() }
+function resetQuiz() { currentQuestionIndex.value = 0; selectedAnswer.value = null; shortAnswer.value = ""; hasAnswered.value = false; lastAnswerCorrect.value = false; score.value = 0; quizFinished.value = false; questionTimes.value = []; startTimer(); startSession() }
 onUnmounted(() => { clearInterval(timerInterval) })
 await loadQuestions(); startTimer(); startSession()
 </script>
