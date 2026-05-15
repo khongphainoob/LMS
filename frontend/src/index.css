@@ -1,11 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Onest:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import 'frappe-ui/style.css';
+@import './styles/codemirror.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import 'frappe-ui/style.css';
-@import './styles/codemirror.css';
 
 @layer base {
   :root {
@@ -31,7 +30,7 @@
     --radius: 0.5rem;
   }
 
-  .dark, [data-theme="dark"] {
+  .dark, [data-theme='dark'] {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
@@ -63,7 +62,7 @@
   }
   
   button:not(:disabled),
-  [role="button"]:not(:disabled) {
+  [role='button']:not(:disabled) {
     @apply transition-transform duration-200 ease-in-out active:scale-[0.97];
   }
 }

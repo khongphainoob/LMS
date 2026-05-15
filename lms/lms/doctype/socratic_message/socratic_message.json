@@ -1,0 +1,117 @@
+{
+  "name": "Socratic Message",
+  "module": "LMS",
+  "doctype": "DocType",
+  "field_order": [
+    "session",
+    "role",
+    "message_type",
+    "scaffolding_level",
+    "column_break_4",
+    "timestamp",
+    "tokens_used",
+    "latency_ms",
+    "model_used",
+    "section_break_9",
+    "attached_image",
+    "attached_rubric",
+    "content"
+  ],
+  "fields": [
+    {
+      "fieldname": "session",
+      "fieldtype": "Link",
+      "options": "Socratic Session",
+      "reqd": 1,
+      "label": "Session",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "role",
+      "fieldtype": "Select",
+      "options": "user\nassistant\nsystem",
+      "reqd": 1,
+      "label": "Role",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "message_type",
+      "fieldtype": "Select",
+      "options": "qa\nquiz\nhint\nblocked\nsocratic_hint",
+      "label": "Type",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "scaffolding_level",
+      "fieldtype": "Int",
+      "label": "Scaffolding Level",
+      "default": 0
+    },
+    {
+      "fieldname": "column_break_4",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "timestamp",
+      "fieldtype": "Datetime",
+      "label": "Timestamp",
+      "default": "Now"
+    },
+    {
+      "fieldname": "tokens_used",
+      "fieldtype": "Int",
+      "default": 0,
+      "label": "Tokens Used"
+    },
+    {
+      "fieldname": "latency_ms",
+      "fieldtype": "Int",
+      "default": 0,
+      "label": "Latency (ms)"
+    },
+    {
+      "fieldname": "model_used",
+      "fieldtype": "Data",
+      "label": "Model Used"
+    },
+    {
+      "fieldname": "section_break_9",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "attached_image",
+      "fieldtype": "Attach Image",
+      "label": "Attached Image"
+    },
+    {
+      "fieldname": "attached_rubric",
+      "fieldtype": "Attach",
+      "label": "Attached Rubric"
+    },
+    {
+      "fieldname": "content",
+      "fieldtype": "Long Text",
+      "reqd": 1,
+      "label": "Content"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LMS Student",
+      "read": 1
+    },
+    {
+      "role": "Course Creator",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "delete": 1
+    }
+  ],
+  "custom": 0,
+  "autoname": "hash"
+}

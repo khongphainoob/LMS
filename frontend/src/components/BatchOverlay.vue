@@ -217,7 +217,7 @@ const canAccessBatch = computed(() => {
 	if (!user.data) {
 		return false
 	}
-	return isModerator.value || isStudent.value || isEvaluator.value
+	return isModerator.value || isStudent.value || isEvaluator.value || isInstructor.value
 })
 
 const canEditBatch = computed(() => {

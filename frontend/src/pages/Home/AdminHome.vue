@@ -173,10 +173,6 @@
 				</div>
 			</div>
 		</div>
-		<!-- Batch Leaderboard -->
-		<div class="mt-10">
-			<Leaderboard mode="admin" :batches="adminBatches.data" />
-		</div>
 	</div>
 </template>
 <script setup lang="ts">
@@ -195,7 +191,6 @@ import { formatTime } from '@/utils'
 import CourseCard from '@/components/CourseCard.vue'
 import BatchCard from '@/components/BatchCard.vue'
 import StatCard from '@/components/StatCard.vue'
-import Leaderboard from '@/pages/Home/Leaderboard.vue'
 
 const user = inject<any>('$user')
 const dayjs = inject<any>('$dayjs')

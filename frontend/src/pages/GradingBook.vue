@@ -2,7 +2,17 @@
 	<header
 		class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5"
 	>
-		<Breadcrumbs :items="breadcrumbs" />
+		<div class="flex items-center gap-3">
+			<button
+				class="flex items-center gap-1 text-sm text-ink-blue-4 transition-colors hover:text-ink-blue-5"
+				@click="goBackToAIIntegration"
+			>
+				<span aria-hidden="true">←</span>
+				{{ __('Back') }}
+			</button>
+			<div class="h-5 w-px bg-outline-gray-2" />
+			<Breadcrumbs :items="breadcrumbs" />
+		</div>
 	</header>
 
 	<div class="py-5 mx-5 md:w-5/6 md:mx-auto">
@@ -182,6 +192,10 @@ function scoreColor(s) {
 	if (s >= 8) return 'text-emerald-600'
 	if (s >= 6) return 'text-amber-500'
 	return 'text-rose-600'
+}
+
+function goBackToAIIntegration() {
+	router.push({ name: 'AIIntegration' })
 }
 
 onMounted(() => {

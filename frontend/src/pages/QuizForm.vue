@@ -130,12 +130,20 @@
 				<div class="text-lg font-semibold text-ink-gray-9">
 					{{ __('Questions') }}
 				</div>
-				<Button v-if="!readOnlyMode" @click="openQuestionModal()">
-					<template #prefix>
-						<Plus class="w-4 h-4" />
-					</template>
-					{{ __('New Question') }}
-				</Button>
+				<div class="flex gap-2">
+					<Button v-if="!readOnlyMode && quizDetails.doc?.name" @click="showImportModal = true">
+						<template #prefix>
+							<Upload class="w-4 h-4" />
+						</template>
+						{{ __('Import Questions') }}
+					</Button>
+					<Button v-if="!readOnlyMode" @click="openQuestionModal()">
+						<template #prefix>
+							<Plus class="w-4 h-4" />
+						</template>
+						{{ __('New Question') }}
+					</Button>
+				</div>
 			</div>
 			<ListView
 				v-if="questions.length"
@@ -200,7 +208,12 @@
 				: __('Add a new question')
 		"
 	/>
-</template>
+	<ImportQuestionsModal
+		v-if="showImportModal"
+		v-model="showImportModal"
+		:quizName="quizDetails.doc?.name"
+		@success="quizDetails.reload()"
+	/></template>
 <script setup>
 import {
 	Breadcrumbs,
@@ -228,13 +241,15 @@ import {
 	onBeforeUnmount,
 } from 'vue'
 import { sessionStore } from '../stores/session'
-import { ClipboardList, ListChecks, Plus, Trash2 } from 'lucide-vue-next'
+import { ClipboardList, ListChecks, Plus, Trash2, Upload } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { escapeHTML } from '@/utils'
 import Question from '@/components/Modals/Question.vue'
+import ImportQuestionsModal from '@/components/Modals/ImportQuestionsModal.vue'
 
 const { brand } = sessionStore()
 const showQuestionModal = ref(false)
+const showImportModal = ref(false)
 const currentQuestion = reactive({
 	question: '',
 	marks: 0,

@@ -74,6 +74,7 @@
 		</div>
 	</div>
 </template>
+
 <script setup>
 import { getSidebarLinks } from '@/utils'
 import { useRouter } from 'vue-router'

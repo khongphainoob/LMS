@@ -67,7 +67,7 @@ const updateTabIndex = () => {
 	const hash = route.hash
 	if (hash) {
 		tabs.value.forEach((tab, index) => {
-			if (tab.label?.toLowerCase() === hash.replace('#', '')) {
+			if (tab.name === hash.replace('#', '')) {
 				tabIndex.value = index
 			}
 		})
@@ -76,8 +76,8 @@ const updateTabIndex = () => {
 
 watch(tabIndex, () => {
 	const tab = tabs.value[tabIndex.value]
-	if (tab.label != route.hash.replace('#', '')) {
-		router.push({ ...route, hash: `#${tab.label.toLowerCase()}` })
+	if (tab.name != route.hash.replace('#', '')) {
+		router.push({ ...route, hash: `#${tab.name}` })
 	}
 })
 
@@ -95,16 +95,19 @@ const course = createResource({
 const tabs = ref([
 	{
 		label: __('Overview'),
+		name: 'overview',
 		component: markRaw(CourseOverview),
 		icon: List,
 	},
 	{
 		label: __('Dashboard'),
+		name: 'dashboard',
 		component: markRaw(CourseDashboard),
 		icon: TrendingUp,
 	},
 	{
 		label: __('Settings'),
+		name: 'settings',
 		component: markRaw(CourseForm),
 		icon: Settings2,
 	},

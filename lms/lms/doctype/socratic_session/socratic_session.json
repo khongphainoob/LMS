@@ -1,0 +1,151 @@
+{
+  "name": "Socratic Session",
+  "module": "LMS",
+  "doctype": "DocType",
+  "is_submittable": 0,
+  "field_order": [
+    "student",
+    "course",
+    "batch",
+    "lesson",
+    "session_key",
+    "started_at",
+    "last_active",
+    "column_break_7",
+    "status",
+    "document_category",
+    "total_tokens",
+    "total_cost_usd",
+    "message_count",
+    "section_break_attachments",
+    "attached_image",
+    "attached_rubric"
+  ],
+  "fields": [
+    {
+      "fieldname": "student",
+      "fieldtype": "Link",
+      "options": "User",
+      "reqd": 1,
+      "label": "Student",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "course",
+      "fieldtype": "Link",
+      "options": "LMS Course",
+      "label": "Course",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "batch",
+      "fieldtype": "Link",
+      "options": "LMS Batch",
+      "label": "Batch",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "lesson",
+      "fieldtype": "Link",
+      "options": "LMS Lesson",
+      "label": "Lesson"
+    },
+    {
+      "fieldname": "session_key",
+      "fieldtype": "Data",
+      "label": "Redis Session Key",
+      "read_only": 1
+    },
+    {
+      "fieldname": "started_at",
+      "fieldtype": "Datetime",
+      "label": "Started At",
+      "default": "Now"
+    },
+    {
+      "fieldname": "last_active",
+      "fieldtype": "Datetime",
+      "label": "Last Active"
+    },
+    {
+      "fieldname": "column_break_7",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Active\nClosed\nBlocked",
+      "default": "Active",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "document_category",
+      "fieldtype": "Link",
+      "options": "LMS Document Category",
+      "label": "Document Category"
+    },
+    {
+      "fieldname": "total_tokens",
+      "fieldtype": "Int",
+      "default": 0,
+      "label": "Total Tokens Used"
+    },
+    {
+      "fieldname": "total_cost_usd",
+      "fieldtype": "Float",
+      "default": 0,
+      "label": "Total Cost USD"
+    },
+    {
+      "fieldname": "message_count",
+      "fieldtype": "Int",
+      "default": 0,
+      "label": "Message Count"
+    },
+    {
+      "fieldname": "section_break_attachments",
+      "fieldtype": "Section Break",
+      "label": "Attachments"
+    },
+    {
+      "fieldname": "attached_image",
+      "fieldtype": "Attach Image",
+      "label": "Attached Image"
+    },
+    {
+      "fieldname": "attached_rubric",
+      "fieldtype": "Attach",
+      "label": "Attached Rubric"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LMS Student",
+      "read": 1,
+      "write": 0
+    },
+    {
+      "role": "Course Creator",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "Moderator",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "Batch Evaluator",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "delete": 1
+    }
+  ],
+  "custom": 0,
+  "autoname": "hash"
+}

@@ -354,11 +354,11 @@ const props = defineProps({
 })
 
 const quiz = createResource({
-	url: 'frappe.client.get',
+	url: 'lms.lms.api.get_quiz_details',
 	makeParams(values) {
 		return {
 			doctype: 'LMS Quiz',
-			name: props.quizName,
+			quiz: props.quizName,
 		}
 	},
 	cache: ['quiz', props.quizName],

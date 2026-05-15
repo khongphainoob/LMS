@@ -92,7 +92,7 @@ const router = useRouter()
 
 const teacherItems = computed(() => {
 	if (!props.isTeacher) return []
-	const items = [
+	return [
 		{
 			label: 'Grading Book',
 			icon: 'BookText',
@@ -102,26 +102,29 @@ const teacherItems = computed(() => {
 		{
 			label: 'AI Grading',
 			icon: 'Bot',
-			to: 'AIGradingObjective',
+			to: 'AIGradingRubric',
 			activeFor: [
 				'AIGrading',
-				'AIGradingObjective',
+				'AIGradingRubric',
 				'AIGradingEssay',
 				'AIGradingEssayConfig',
 				'AIGradingEssayWorkspace',
 				'AIGradingSessionStatistics',
 			],
 		},
+		{
+			label: 'Lesson Planning',
+			icon: 'CalendarCheck',
+			to: 'LessonPlanning',
+			activeFor: ['LessonPlanning'],
+		},
+		{
+			label: 'Documents',
+			icon: 'FolderOpen',
+			to: 'Documents',
+			activeFor: ['Documents'],
+		},
 	]
-	if (props.isModerator) {
-		items.push({
-			label: 'AI Analytics',
-			icon: 'ChartColumnBig',
-			to: 'AIGradingAdmin',
-			activeFor: ['AIGradingAdmin'],
-		})
-	}
-	return items
 })
 
 const studentItems = computed(() => [

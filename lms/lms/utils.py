@@ -341,6 +341,14 @@ def has_moderator_role(member=None):
 	)
 
 
+def has_system_manager_role(member=None):
+	return frappe.db.get_value(
+		"Has Role",
+		{"parent": member or frappe.session.user, "role": "System Manager"},
+		"name",
+	)
+
+
 def has_evaluator_role(member=None):
 	return frappe.db.get_value(
 		"Has Role",
@@ -1373,8 +1381,8 @@ def get_batch_students(filters, offset=0, limit_start=0, limit_page_length=None,
 		"LMS Batch Enrollment",
 		filters={"batch": batch},
 		fields=["member", "name"],
-		offset=start,
-		limit=page_length,
+		limit_start=start,
+		limit_page_length=page_length,
 		order_by="creation desc",
 	)
 

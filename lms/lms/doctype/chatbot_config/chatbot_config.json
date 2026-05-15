@@ -1,0 +1,83 @@
+{
+  "name": "Chatbot Config",
+  "module": "LMS",
+  "doctype": "DocType",
+  "field_order": [
+    "course",
+    "enabled",
+    "allow_quiz_generation",
+    "allow_hints",
+    "column_break_4",
+    "max_tokens_per_day",
+    "section_break_6",
+    "system_prompt_override",
+    "blocked_topics"
+  ],
+  "fields": [
+    {
+      "fieldname": "course",
+      "fieldtype": "Link",
+      "options": "LMS Course",
+      "reqd": 1,
+      "label": "Course",
+      "unique": 1
+    },
+    {
+      "fieldname": "enabled",
+      "fieldtype": "Check",
+      "default": 1,
+      "label": "Enabled"
+    },
+    {
+      "fieldname": "allow_quiz_generation",
+      "fieldtype": "Check",
+      "default": 1,
+      "label": "Allow Quiz Generation"
+    },
+    {
+      "fieldname": "allow_hints",
+      "fieldtype": "Check",
+      "default": 1,
+      "label": "Allow Hints"
+    },
+    {
+      "fieldname": "column_break_4",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "max_tokens_per_day",
+      "fieldtype": "Int",
+      "default": 50000,
+      "label": "Max Tokens Per Day"
+    },
+    {
+      "fieldname": "section_break_6",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "system_prompt_override",
+      "fieldtype": "Long Text",
+      "label": "Custom System Prompt Override",
+      "description": "Leave blank to use the default educational prompt."
+    },
+    {
+      "fieldname": "blocked_topics",
+      "fieldtype": "Small Text",
+      "label": "Blocked Topics",
+      "description": "One topic per line. AI will refuse to discuss these."
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "delete": 1
+    },
+    {
+      "role": "Course Creator",
+      "read": 1,
+      "write": 1
+    }
+  ]
+}

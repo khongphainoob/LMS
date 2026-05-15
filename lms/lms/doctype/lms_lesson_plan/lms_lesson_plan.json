@@ -1,0 +1,203 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-20 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "plan_type",
+  "column_break_1",
+  "course",
+  "status",
+  "section_break_schedule",
+  "chapter",
+  "lesson",
+  "column_break_schedule",
+  "scheduled_date",
+  "duration_minutes",
+  "section_break_objectives",
+  "learning_objectives",
+  "section_break_content",
+  "content",
+  "section_break_ai",
+  "ai_generated",
+  "ai_prompt_used",
+  "section_break_docs",
+  "attached_documents"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tiêu đề kế hoạch",
+   "reqd": 1
+  },
+  {
+   "default": "Single Lesson",
+   "fieldname": "plan_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Loại kế hoạch",
+   "options": "Single Lesson\nUnit Plan\nWeekly Plan"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "course",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Khóa học",
+   "options": "LMS Course",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Trạng thái",
+   "options": "Draft\nPublished\nCompleted"
+  },
+  {
+   "fieldname": "section_break_schedule",
+   "fieldtype": "Section Break",
+   "label": "Lịch trình"
+  },
+  {
+   "fieldname": "chapter",
+   "fieldtype": "Link",
+   "label": "Chương",
+   "options": "Course Chapter"
+  },
+  {
+   "fieldname": "lesson",
+   "fieldtype": "Link",
+   "label": "Bài học",
+   "options": "Course Lesson"
+  },
+  {
+   "fieldname": "column_break_schedule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "scheduled_date",
+   "fieldtype": "Date",
+   "label": "Ngày dự kiến"
+  },
+  {
+   "default": "45",
+   "fieldname": "duration_minutes",
+   "fieldtype": "Int",
+   "label": "Thời lượng (phút)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "section_break_objectives",
+   "fieldtype": "Section Break",
+   "label": "Mục tiêu học tập"
+  },
+  {
+   "fieldname": "learning_objectives",
+   "fieldtype": "Small Text",
+   "label": "Mục tiêu"
+  },
+  {
+   "fieldname": "section_break_content",
+   "fieldtype": "Section Break",
+   "label": "Nội dung giảng dạy"
+  },
+  {
+   "fieldname": "content",
+   "fieldtype": "Text Editor",
+   "label": "Nội dung chi tiết"
+  },
+  {
+   "fieldname": "section_break_ai",
+   "fieldtype": "Section Break",
+   "label": "AI"
+  },
+  {
+   "default": "0",
+   "fieldname": "ai_generated",
+   "fieldtype": "Check",
+   "label": "Tạo bởi AI",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ai_prompt_used",
+   "fieldtype": "Small Text",
+   "label": "Prompt AI đã sử dụng",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_docs",
+   "fieldtype": "Section Break",
+   "label": "Tài liệu đính kèm"
+  },
+  {
+   "fieldname": "attached_documents",
+   "fieldtype": "Table",
+   "label": "Tài liệu",
+   "options": "LMS Lesson Plan Document"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "LMS Lesson Plan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Moderator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Course Creator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "LMS Student"
+  }
+ ],
+ "sort_field": "scheduled_date",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

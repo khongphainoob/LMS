@@ -51,59 +51,7 @@ const routes = [
 		props: true,
 	},
 	{
-		path: '/batches/:batchName',
-		name: 'Batch',
-		component: () => import('@/pages/Batch.vue'),
-		props: true,
-	},
-	{
-		path: '/billing/:type/:name',
-		name: 'Billing',
-		component: () => import('@/pages/Billing.vue'),
-		props: true,
-	},
-	{
-		path: '/statistics',
-		name: 'Statistics',
-		component: () => import('@/pages/Statistics.vue'),
-	},
-	{
-		path: '/user/:username',
-		name: 'Profile',
-		component: () => import('@/pages/Profile.vue'),
-		props: true,
-		redirect: { name: 'ProfileAbout' },
-		children: [
-			{
-				name: 'ProfileAbout',
-				path: '',
-				component: () => import('@/pages/ProfileAbout.vue'),
-			},
-			{
-				name: 'ProfileCertificates',
-				path: 'certificates',
-				component: () => import('@/pages/ProfileCertificates.vue'),
-			},
-			{
-				name: 'ProfileRoles',
-				path: 'roles',
-				component: () => import('@/pages/ProfileRoles.vue'),
-			},
-			{
-				name: 'ProfileEvaluator',
-				path: 'slots',
-				component: () => import('@/pages/ProfileEvaluator.vue'),
-			},
-			{
-				name: 'ProfileEvaluationSchedule',
-				path: 'schedule',
-				component: () =>
-					import('@/pages/ProfileEvaluationSchedule.vue'),
-			},
-		],
-	},
-	{
-		path: '/job-openings',
+		path: '/jobs',
 		name: 'Jobs',
 		component: () => import('@/pages/Jobs.vue'),
 	},
@@ -123,6 +71,12 @@ const routes = [
 		path: '/courses/:courseName/learn/:chapterNumber-:lessonNumber/edit',
 		name: 'LessonForm',
 		component: () => import('@/pages/LessonForm.vue'),
+		props: true,
+	},
+	{
+		path: '/batches/:batchName',
+		name: 'Batch',
+		component: () => import('@/pages/Batch.vue'),
 		props: true,
 	},
 	{
@@ -204,40 +158,93 @@ const routes = [
 		component: () => import('@/pages/GradingBook.vue'),
 	},
 	{
+		path: '/ai-integration/quiz-creator',
+		name: 'AIQuizDashboard',
+		component: () => import('@/pages/AI/Quiz/QuizDashboard.vue'),
+	},
+	{
+		path: '/ai-integration/quiz-creator/new',
+		name: 'AIQuizForm',
+		component: () => import('@/pages/AI/Quiz/QuizForm.vue'),
+	},
+	{
+		path: '/ai-integration/quiz-creator/:quizID',
+		name: 'AIQuizDetail',
+		component: () => import('@/pages/AI/Quiz/QuizDetail.vue'),
+		props: true,
+	},
+	{
 		path: '/ai-integration',
 		name: 'AIIntegration',
-		component: () => import('@/pages/AIIntegration.vue'),
+		component: () => import('@/pages/AI/AIIntegration.vue'),
 	},
 	{
 		path: '/ai-helper',
 		name: 'StudentAIHelper',
-		component: () => import('@/pages/StudentAIHelper.vue'),
+		component: () => import('@/pages/AI/Chatbot/StudentAIHelper.vue'),
+	},
+	{
+		path: '/socratic-tutor',
+		name: 'SocraticTutor',
+		component: () => import('@/pages/AI/Chatbot/Socratic_tutor.vue'),
+	},
+	{
+		path: '/socratic-tutor/workspace/:sessionKey',
+		name: 'SocraticTutorWorkspace',
+		component: () => import('@/pages/AI/Chatbot/SocraticTutorWorkspace.vue'),
+		props: true,
 	},
 	{
 		path: '/ai-student-score-dashboard',
 		name: 'StudentScoreDashboard',
-		component: () => import('@/pages/StudentScoreDashboard.vue'),
+		component: () => import('@/pages/AI/StudentScoreDashboard.vue'),
+	},
+	{
+		path: '/documents',
+		name: 'Documents',
+		component: () => import('@/pages/Documents.vue'),
+	},
+	{
+		path: '/lesson-planning',
+		name: 'LessonPlanning',
+		component: () => import('@/pages/LessonPlanning.vue'),
 	},
 	{
 		path: '/ai-grading',
 		name: 'AIGrading',
-		component: () => import('@/pages/AIGrading.vue'),
-		redirect: { name: 'AIGradingObjective' },
+		component: () => import('@/pages/AI/AIGrading.vue'),
+		redirect: { name: 'AIGradingEssay' },
 		children: [
 			{
-				path: 'multiple-choice',
+				path: 'help',
+				name: 'AIGradingHelp',
+				component: () => import('@/pages/AI/AIGrading/AIGradingHelpCenter.vue'),
+			},
+			{
+				path: 'rubric-builder',
+				name: 'AIGradingRubric',
+				component: () => import('@/pages/AI/AIGrading/RubricBuilder.vue'),
+			},
+			{
+				path: 'objective',
 				name: 'AIGradingObjective',
-				component: () => import('@/pages/AIGrading/ObjectiveGrading.vue'),
+				component: () => import('@/pages/AI/AIGrading/ObjectiveGrading.vue'),
+			},
+			{
+				path: 'objective/workspace/:sessionSlug',
+				name: 'MCQGradingWorkspace',
+				component: () => import('@/pages/AI/AIGrading/MCQGradingWorkspace.vue'),
+				props: true,
 			},
 			{
 				path: 'essay',
 				name: 'AIGradingEssay',
-				component: () => import('@/pages/AIGrading/AIGradingEssayHome.vue'),
+				component: () => import('@/pages/AI/AIGrading/AIGradingEssayHome.vue'),
 			},
 			{
 				path: 'essay/config/:type',
 				name: 'AIGradingEssayConfig',
-				component: () => import('@/pages/AIGrading/AIGradingEssayConfig.vue'),
+				component: () => import('@/pages/AI/AIGrading/AIGradingEssayConfig.vue'),
 				props: true,
 			},
 			{
@@ -255,18 +262,24 @@ const routes = [
 			{
 				path: 'essay/:type/workspace/:sessionSlug',
 				name: 'AIGradingEssayWorkspace',
-				component: () => import('@/pages/AIGrading/AIGradingEssayWorkspace.vue'),
+				component: () => import('@/pages/AI/AIGrading/AIGradingEssayWorkspace.vue'),
 				props: true,
 			},
 			{
 				path: 'admin',
 				name: 'AIGradingAdmin',
-				component: () => import('@/pages/AIGrading/AIGradingAdmin.vue'),
+				component: () => import('@/pages/AI/AIGrading/AIGradingAdmin.vue'),
 			},
 			{
 				path: 'essay/:type/statistics/:sessionSlug',
 				name: 'AIGradingSessionStatistics',
-				component: () => import('@/pages/AIGrading/AIGradingSessionStatistics.vue'),
+				component: () => import('@/pages/AI/AIGrading/AIGradingSessionStatistics.vue'),
+				props: true,
+			},
+			{
+				path: 'rubric/:rubricName',
+				name: 'AIGradingRubricDetail',
+				component: () => import('@/pages/AI/AIGrading/RubricDetail.vue'),
 				props: true,
 			},
 		],
@@ -336,6 +349,16 @@ const routes = [
 	{
 		path: '/game-center',
 		name: 'GameCenter',
+		redirect: { name: 'GameCenterTab', params: { tab: 'overview' } }
+	},
+	{
+		path: '/game-center/play/:gameId',
+		name: 'GameCenterGame',
+		component: () => import('@/pages/GameCenter.vue'),
+	},
+	{
+		path: '/game-center/:tab(overview|games|leaderboard|badges)',
+		name: 'GameCenterTab',
 		component: () => import('@/pages/GameCenter.vue'),
 	},
 ]

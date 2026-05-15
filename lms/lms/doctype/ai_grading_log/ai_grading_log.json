@@ -1,0 +1,163 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "creation": "2026-04-22 23:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "submission",
+  "session",
+  "student",
+  "column_break_1",
+  "action",
+  "status",
+  "ai_model",
+  "section_break_timing",
+  "grading_started_at",
+  "grading_completed_at",
+  "duration_seconds",
+  "column_break_2",
+  "input_tokens",
+  "output_tokens",
+  "estimated_cost_usd",
+  "section_break_reasoning",
+  "reasoning_path",
+  "section_break_error",
+  "error_message"
+ ],
+ "fields": [
+  {
+   "fieldname": "submission",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Submission",
+   "options": "AI Grading Submission",
+   "reqd": 1
+  },
+  {
+   "fieldname": "session",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Session",
+   "options": "AI Grading Session"
+  },
+  {
+   "fieldname": "student",
+   "fieldtype": "Link",
+   "label": "Student",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "action",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Action",
+   "options": "grading_started\ngrading_completed\ngrading_failed\nteacher_override\nretry"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Success\nFailed\nPartial"
+  },
+  {
+   "fieldname": "ai_model",
+   "fieldtype": "Data",
+   "label": "AI Model Used"
+  },
+  {
+   "fieldname": "section_break_timing",
+   "fieldtype": "Section Break",
+   "label": "Timing & Cost"
+  },
+  {
+   "fieldname": "grading_started_at",
+   "fieldtype": "Datetime",
+   "label": "Started At"
+  },
+  {
+   "fieldname": "grading_completed_at",
+   "fieldtype": "Datetime",
+   "label": "Completed At"
+  },
+  {
+   "fieldname": "duration_seconds",
+   "fieldtype": "Float",
+   "label": "Duration (seconds)"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "input_tokens",
+   "fieldtype": "Int",
+   "label": "Input Tokens"
+  },
+  {
+   "fieldname": "output_tokens",
+   "fieldtype": "Int",
+   "label": "Output Tokens"
+  },
+  {
+   "fieldname": "estimated_cost_usd",
+   "fieldtype": "Float",
+   "label": "Estimated Cost (USD)"
+  },
+  {
+   "fieldname": "section_break_reasoning",
+   "fieldtype": "Section Break",
+   "label": "AI Reasoning Path"
+  },
+  {
+   "fieldname": "reasoning_path",
+   "fieldtype": "Long Text",
+   "label": "Reasoning Path (for teacher review)"
+  },
+  {
+   "fieldname": "section_break_error",
+   "fieldtype": "Section Break",
+   "label": "Error"
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Small Text",
+   "label": "Error Message"
+  }
+ ],
+ "modified": "2026-04-22 23:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "AI Grading Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "export": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Moderator"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Course Creator"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
