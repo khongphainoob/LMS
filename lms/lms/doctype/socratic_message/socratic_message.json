@@ -97,8 +97,13 @@
   ],
   "permissions": [
     {
-      "role": "Student",
+      "role": "LMS Student",
       "read": 1
+    },
+    {
+      "role": "Course Creator",
+      "read": 1,
+      "write": 1
     },
     {
       "role": "System Manager",

@@ -69,11 +69,11 @@ const selectedBatch = ref(null)
 const batches = ref([])
 
 const batchesResource = createResource({
-  url: 'lms.lms.api.get_student_batches',
+  url: 'lms.lms.services.socratic.api.get_student_context',
   auto: true,
   onSuccess: (data) => {
-    batches.value = data
-    if (data.length > 0) selectedBatch.value = data[0].name
+    batches.value = data?.batches || []
+    if (batches.value.length > 0) selectedBatch.value = batches.value[0].name
   },
 })
 

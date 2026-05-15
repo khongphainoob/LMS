@@ -16,7 +16,10 @@
     "document_category",
     "total_tokens",
     "total_cost_usd",
-    "message_count"
+    "message_count",
+    "section_break_attachments",
+    "attached_image",
+    "attached_rubric"
   ],
   "fields": [
     {
@@ -98,16 +101,41 @@
       "fieldtype": "Int",
       "default": 0,
       "label": "Message Count"
+    },
+    {
+      "fieldname": "section_break_attachments",
+      "fieldtype": "Section Break",
+      "label": "Attachments"
+    },
+    {
+      "fieldname": "attached_image",
+      "fieldtype": "Attach Image",
+      "label": "Attached Image"
+    },
+    {
+      "fieldname": "attached_rubric",
+      "fieldtype": "Attach",
+      "label": "Attached Rubric"
     }
   ],
   "permissions": [
     {
-      "role": "Student",
+      "role": "LMS Student",
       "read": 1,
       "write": 0
     },
     {
-      "role": "Instructor",
+      "role": "Course Creator",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "Moderator",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "Batch Evaluator",
       "read": 1,
       "write": 1
     },

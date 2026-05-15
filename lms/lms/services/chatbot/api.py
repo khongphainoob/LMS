@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+import re
 from ...agents.chatbot.graph import chatbot_graph
 from .session import (
 	get_or_create_session_key,
@@ -7,7 +8,18 @@ from .session import (
 	save_message_to_history,
 	clear_session
 )
+# Tầng 0: FAQ quick‑response layer
+_FAQ = [
+    (re.compile(r"^\s*(hi|hello|chào|xin chào)\s*$", re.I), "Chào bạn! Mình là trợ lý AI của LMS, sẵn sàng giúp bạn giải bài tập."),
+    (re.compile(r"^\s*trung tâm ở đâu\?\s*$", re.I), "Trung tâm chúng tôi nằm tại 123 Đường ABC, Quận XYZ."),
+    (re.compile(r"^\s*khóa học (.+) hết hạn\?\s*$", re.I), "Bạn có thể kiểm tra ngày hết hạn trong mục \"Hồ sơ học viên\" trên giao diện.")
+]
 
+def _try_faq(msg: str):
+    for pattern, answer in _FAQ:
+        if pattern.search(msg):
+            return answer
+    return None
 
 RATE_LIMIT_REQUESTS_PER_MINUTE = 5
 
@@ -74,10 +86,26 @@ def send_message(message: str = None, lesson_name: str = None, session_key: str 
 		
 	if not message:
 		frappe.throw(_("Message cannot be empty"))
+	if len(message) > 1000:
+		frappe.throw(_("Tin nhắn quá dài (tối đa 1000 ký tự). Vui lòng tóm tắt lại câu hỏi của bạn."))
 
 	student = frappe.session.user
 	_ensure_chatbot_access(student)
 	_apply_rate_limit(student)
+
+	# Khởi tạo session_key ngay để trả lời FAQ nếu cần
+	if not session_key:
+		session_key = get_or_create_session_key(student, lesson_name)
+
+	# Kiểm tra FAQ
+	faq_ans = _try_faq(message)
+	if faq_ans:
+		return {
+			"response": faq_ans,
+			"message_type": "faq",
+			"session_key": session_key,
+			"tokens_used": 0,
+		}
 
 	# 1. Initialize session
 	if not session_key:
@@ -104,8 +132,8 @@ def send_message(message: str = None, lesson_name: str = None, session_key: str 
 
 		# 5. Save to history (Redis + DB)
 		if not final_state.get("is_blocked"):
-			save_message_to_history(session_key, "user", message, session_name=session_name)
-			save_message_to_history(session_key, "assistant", response, session_name=session_name)
+			hist = save_message_to_history(session_key, "user", message, session_name=session_name)
+			save_message_to_history(session_key, "assistant", response, session_name=session_name, history=hist)
 			
 		return {
 			"response": response,
@@ -126,10 +154,26 @@ def send_message_async(message: str = None, lesson_name: str = None, session_key
 		message = frappe.form_dict.get("message")
 	if not message:
 		frappe.throw(_("Message cannot be empty"))
+	if len(message) > 1000:
+		frappe.throw(_("Tin nhắn quá dài (tối đa 1000 ký tự). Vui lòng tóm tắt lại câu hỏi của bạn."))
 
 	student = frappe.session.user
 	_ensure_chatbot_access(student)
 	_apply_rate_limit(student)
+
+	# Khởi tạo session_key sớm cho FAQ
+	if not session_key:
+		session_key = get_or_create_session_key(student, lesson_name)
+
+	# Kiểm tra FAQ
+	faq_ans = _try_faq(message)
+	if faq_ans:
+		return {
+			"response": faq_ans,
+			"message_type": "faq",
+			"session_key": session_key,
+			"tokens_used": 0,
+		}
 
 	if not session_key:
 		session_key = get_or_create_session_key(student, lesson_name)
@@ -179,8 +223,8 @@ def _run_chatbot_job(user: str, lesson_name: str, request_id: str, initial_state
 
 		# 5. Save to history (Redis + DB)
 		if not final_state.get("is_blocked"):
-			save_message_to_history(initial_state["session_key"], "user", initial_state.get("user_message"), session_name=session_name)
-			save_message_to_history(initial_state["session_key"], "assistant", response, session_name=session_name)
+			hist = save_message_to_history(initial_state["session_key"], "user", initial_state.get("user_message"), session_name=session_name)
+			save_message_to_history(initial_state["session_key"], "assistant", response, session_name=session_name, history=hist)
 
 		_publish_chatbot_result(
 			user,
@@ -435,5 +479,20 @@ def debug_user_name(search_name):
 	if user_id:
 		user_doc = frappe.get_doc("User", user_id)
 		return {"id": user_doc.name, "full_name": user_doc.full_name}
-	else:
-		return None
+def debug_recent_session():
+	session = frappe.get_all("Chatbot Session", order_by="creation desc", limit=1)[0]
+	session_name = session.name
+	session_key = frappe.db.get_value("Chatbot Session", session_name, "session_key")
+	print(f"Session: {session_name}")
+	messages = frappe.get_all("Chatbot Message", filters={"session": session_name}, fields=["role", "content"], order_by="creation asc")
+	print("--- DB MESSAGES ---")
+	for i, m in enumerate(messages):
+		print(f"{i+1}. [{m.role}] {m.content[:50]}")
+	
+	from lms.lms.services.chatbot.session import get_chat_history
+	hist = get_chat_history(session_key)
+	print("--- REDIS/GET_CHAT_HISTORY ---")
+	for i, m in enumerate(hist):
+		print(f"{i+1}. [{m.get('role')}] {m.get('content')[:50]}")
+
+

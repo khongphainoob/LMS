@@ -1,4 +1,4 @@
-﻿.DS_Store
+.DS_Store
 *.pyc
 *.egg-info
 *.swp
@@ -22,5 +22,18 @@ node_modules/
 .agents
 .claude
 .github
-brain
-agent_test_lab
+brain/
+agent_test_lab/
+.venv/
+.sixth/
+scratch/
+
+# Scratch scripts
+check_session.py
+get_error*.py
+get_sessions.py
+test_agent.sh
+
+# Temporary text files
+status*.txt
+git_status.txt

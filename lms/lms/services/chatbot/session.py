@@ -24,22 +24,28 @@ def get_chat_history(session_key: str, limit: int = 20) -> list:
             messages = frappe.get_all("Chatbot Message",
                 filters={"session": session_name},
                 fields=["role", "content"],
-                order_by="creation desc",
+                order_by="creation desc, name desc",
                 limit=limit
             )
             if messages:
                 messages.reverse()  # Reverse so oldest is first, newest is last
+                
+                # Cần cast kết quả từ _dict của Frappe sang dict thường để dump JSON không bị lỗi
+                clean_messages = [{"role": msg.role, "content": msg.content} for msg in messages]
+                
                 # Cache it back to Redis for future fast access
-                frappe.cache().set_value(session_key, json.dumps(messages), expires_in_sec=3600 * 24)
-                return messages
+                frappe.cache().set_value(session_key, json.dumps(clean_messages), expires_in_sec=3600 * 2)
+                return clean_messages
     except Exception:
         pass
     return []
 
 
-def save_message_to_history(session_key: str, role: str, content: str, session_name: str = None):
+def save_message_to_history(session_key: str, role: str, content: str, session_name: str = None, history: list = None) -> list:
     """Appends a message to the history and saves to Redis + DB."""
-    history = get_chat_history(session_key)
+    if history is None:
+        history = get_chat_history(session_key)
+    
     history.append({"role": role, "content": content})
 
     # Keep only last 20 messages to prevent context overflow
@@ -47,7 +53,7 @@ def save_message_to_history(session_key: str, role: str, content: str, session_n
         history = history[-20:]
 
     # Update Redis
-    frappe.cache().set_value(session_key, json.dumps(history), expires_in_sec=3600 * 24)
+    frappe.cache().set_value(session_key, json.dumps(history), expires_in_sec=3600 * 2)
 
     # Update DB if session_name is available
     if session_name:
@@ -61,8 +67,10 @@ def save_message_to_history(session_key: str, role: str, content: str, session_n
                 }
             )
             doc.insert(ignore_permissions=True)
-        except Exception:
-            pass
+        except Exception as e:
+            frappe.log_error(f"Error saving message to DB: {str(e)}\n{frappe.get_traceback()}", "Chatbot Message DB Error")
+            
+    return history
 
 
 def clear_session(session_key: str):

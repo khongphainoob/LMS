@@ -129,3 +129,16 @@ class QuizQuestionSchema(BaseModel):
 class QuizSchema(BaseModel):
     title: str = Field(..., description="A concise title for the quiz")
     questions: List[QuizQuestionSchema] = Field(..., description="The generated questions")
+
+class RubricCondition(BaseModel):
+    condition: str = Field(description="Điều kiện để đạt điểm")
+    points: float = Field(description="Số điểm tương ứng")
+
+class RubricCriterion(BaseModel):
+    item_id: str = Field(description="ID của tiêu chí hoặc câu hỏi")
+    description: str = Field(description="Mô tả tiêu chí")
+    max_points: float = Field(description="Điểm tối đa cho tiêu chí này")
+    scoring_rules: List[RubricCondition] = Field(description="Các quy tắc và điều kiện chấm điểm")
+
+class RubricAnalysis(BaseModel):
+    criteria: List[RubricCriterion] = Field(description="Danh sách các tiêu chí đã bóc tách từ Rubric")

@@ -136,6 +136,24 @@ def get_agent_config(agent_name: str, **kwargs) -> dict:
             
     return result
 
+def get_mathpix_credentials():
+    """Returns mathpix_app_id and mathpix_app_key."""
+    app_id = os.environ.get("MATHPIX_APP_ID")
+    app_key = os.environ.get("MATHPIX_APP_KEY")
+    try:
+        settings = frappe.get_doc("LMS AI Settings", "LMS AI Settings")
+        if not app_id and hasattr(settings, "mathpix_app_id"):
+            app_id = settings.mathpix_app_id
+        if not app_key and hasattr(settings, "mathpix_app_key"):
+            try:
+                app_key = settings.get_password("mathpix_app_key")
+            except Exception:
+                app_key = getattr(settings, "mathpix_app_key", None)
+    except Exception:
+        pass
+    
+    return app_id, app_key
+
 def get_llm(agent_name: str, **kwargs):
     config = get_agent_config(agent_name, **kwargs)
     provider = config["provider"]

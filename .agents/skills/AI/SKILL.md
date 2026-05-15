@@ -118,6 +118,41 @@ guard → router → context → reasoner → tool_executor → qa → END
 
 ---
 
+## 👁️ Kiến trúc OCR Post-Processing Pipeline
+
+Thực tế thế giới đang dùng chính xác mô hình kết hợp này cho các sản phẩm thương mại quy mô lớn. Trong giới kỹ sư AI, kiến trúc này được gọi là **"OCR Post-Processing Pipeline"** (Hệ thống xử lý sau OCR bằng LLM). [1, 2]
+
+Các ứng dụng EdTech lớn (như Gradescope) hay hệ thống chấm điểm tự động đều thiết kế luồng chạy này vì những lý do cốt lõi sau: [3]
+
+### 1. Bằng chứng thế giới đang dùng kiến trúc này
+
+* **Gradescope (Turnitin)**: Tích hợp trực tiếp **Mathpix Convert API** làm lõi quét (engine) để đọc toàn bộ bài viết tay của sinh viên. Sau khi có chuỗi văn bản thô, hệ thống đẩy qua LLM (như GPT) để gom nhóm câu trả lời và chấm điểm tự động.
+* **Các dự án xử lý tài liệu lớn (Invoice/Receipt/Medical OCR)**: Trên [Hacker News](https://news.ycombinator.com/item?id=41203306) và [Towards Data Science](https://towardsdatascience.com/how-to-effortlessly-extract-receipt-information-with-ocr-and-gpt-4o-mini-0825b4ac1fea/), kiến trúc kết hợp sử dụng công cụ OCR chuyên dụng (Mathpix, Tesseract) làm nhiệm vụ trích xuất text cấp thấp, sau đó dùng `gpt-4o-mini` để làm sạch dữ liệu (Data Cleaning) và trích xuất thực thể (Entity Extraction) đang là tiêu chuẩn. [2, 3, 4, 5]
+
+### 2. Tại sao không dùng 1 Model duy nhất (như GPT-4o)?
+
+Bài toán Kinh tế và Độ ổn định hệ thống:
+
+* **Tối ưu hóa Chi phí (Cost Efficiency)**:
+   * Nếu gửi 1 ảnh trực tiếp vào GPT-4o (bản lớn), chi phí Vision Token rất đắt (nếu có 1 triệu bài, ngân sách cạn kiệt rất nhanh).
+   * Nếu dùng `gpt-4o-mini` với ảnh, khả năng định vị tọa độ và đọc công thức toán phức tạp trong ảnh thường bị lỗi.
+   * **Công thức chiến thắng**: Dùng Mathpix xử lý phần "nặng" nhất là hình ảnh (mất ~50đ). Text trả về chỉ tốn vài trăm token, gửi sang `gpt-4o-mini` mất thêm <10đ. Tổng chi phí giảm gấp 5-10 lần so với dùng model Vision lớn trực tiếp.
+* **Sửa lỗi mù chữ (Hallucination Control)**:
+   Mô hình LLM khi nhìn trực tiếp bức ảnh chữ xấu đôi khi tự "bịa" nội dung (hallucination). Khi ép đọc chuỗi văn bản thô từ Mathpix và chỉ **sửa lỗi chính tả dựa theo ngữ cảnh**, AI bị giới hạn không gian sáng tạo, giúp kết quả chấm điểm chính xác và trung thực với bài làm học sinh. [1, 5, 6, 7, 8]
+
+### 3. Cách triển khai thực tế (Prompt Design)
+
+Khi kết nối Mathpix sang GPT-4o-mini, sử dụng Prompt theo cấu trúc chuẩn quốc tế: [9]
+
+```text
+Hệ thống: Bạn là một chuyên gia chấm bài. Nhiệm vụ của bạn là nhận văn bản thô từ công cụ OCR Mathpix, sửa các lỗi chính tả do chữ viết tay của học sinh xấu hoặc bị quét lỗi dựa vào ngữ cảnh đoạn văn. Giữ nguyên các công thức trong thẻ \(\). Sau đó chấm điểm dựa theo Rubric sau...
+Văn bản OCR đầu vào: [Chèn chuỗi text trả về từ Mathpix API vào đây]
+```
+
+Kiến trúc kết hợp Mathpix API + GPT-4o-mini hiện là giải pháp tối ưu hàng đầu để giải quyết bài toán chữ viết tay xấu và tối ưu chi phí.
+
+---
+
 ## ✅ CHECKLIST: Thêm tính năng AI mới
 
 > **Khi phát triển bất kỳ tính năng AI nào mới (agent, tool, service), BẮT BUỘC tuân thủ các bước sau theo đúng thứ tự.**
