@@ -1825,73 +1825,13 @@ def get_profile_details(username):
 
 	details.roles = frappe.get_roles(details.name)
 	return details
-
+from lms.lms.gamification.utils import get_streak_info as _get_streak_info, fetch_activity_dates, calculate_streaks, calculate_current_streak
 
 @frappe.whitelist()
-def get_streak_info():
-	all_dates = fetch_activity_dates(frappe.session.user)
-	streak, longest_streak = calculate_streaks(all_dates)
-	current_streak = calculate_current_streak(all_dates, streak)
+def get_streak_info(member=None):
+	return _get_streak_info(member)
 
-	return {
-		"current_streak": current_streak,
-		"longest_streak": longest_streak,
-	}
-
-
-def fetch_activity_dates(user):
-	doctypes = [
-		"LMS Course Progress",
-		"LMS Quiz Submission",
-		"LMS Assignment Submission",
-		"LMS Programming Exercise Submission",
-	]
-
-	all_dates = []
-	for dt in doctypes:
-		all_dates.extend(frappe.get_all(dt, {"member": user}, pluck="creation"))
-
-	return sorted({d.date() if hasattr(d, "date") else d for d in all_dates})
-
-
-def calculate_streaks(all_dates):
-	streak = 0
-	longest_streak = 0
-	prev_day = None
-
-	for d in all_dates:
-		if d.weekday() in (5, 6):
-			continue
-
-		if prev_day:
-			expected = prev_day + timedelta(days=1)
-			while expected.weekday() in (5, 6):
-				expected += timedelta(days=1)
-
-			streak = streak + 1 if d == expected else 1
-		else:
-			streak = 1
-
-		longest_streak = max(longest_streak, streak)
-		prev_day = d
-
-	return streak, longest_streak
-
-
-def calculate_current_streak(all_dates, streak):
-	if not all_dates:
-		return 0
-
-	last_date = all_dates[-1]
-	today = getdate()
-
-	ref_day = today
-	while ref_day.weekday() in (5, 6):
-		ref_day -= timedelta(days=1)
-
-	if last_date == ref_day or last_date == ref_day - timedelta(days=1):
-		return streak
-	return 0
+# Keep old names for backwards compatibility if they were imported elsewhere
 
 
 @frappe.whitelist()
@@ -2267,121 +2207,14 @@ def get_admin_performance_stats():
 
 
 def calculate_composite_score(member):
-	"""Calculate composite score for a member.
-
-	Formula:
-		Score = (0.30 * avg_quiz_pct)
-		      + (0.25 * avg_assignment_pct)
-		      + (0.25 * completion_pct)
-		      + (0.10 * min(streak / 30, 1) * 100)
-		      + (0.10 * min(hours / 100, 1) * 100)
-	"""
-	W_QUIZ = 0.30
-	W_ASSIGNMENT = 0.25
-	W_COMPLETION = 0.25
-	W_STREAK = 0.10
-	W_HOURS = 0.10
-	STREAK_CAP = 30
-	HOURS_CAP = 100
-
-	# Quiz score
-	quiz_data = frappe.db.get_all("LMS Quiz Submission", filters={"member": member}, fields=["percentage"])
-	avg_quiz_pct = 0
-	if quiz_data:
-		avg_quiz_pct = sum(q.percentage for q in quiz_data) / len(quiz_data)
-
-	# Assignment score
-	assignment_data = frappe.db.get_all(
-		"LMS Assignment Submission",
-		filters={"member": member, "status": ["in", ["Pass", "Fail"]]},
-		fields=["numeric_score", "score_out_of"],
-	)
-	avg_assignment_pct = 0
-	if assignment_data:
-		scored = [
-			(flt(a.numeric_score) / flt(a.score_out_of) * 100)
-			for a in assignment_data
-			if flt(a.score_out_of) > 0
-		]
-		avg_assignment_pct = sum(scored) / len(scored) if scored else 0
-
-	# Completion percentage
-	enrollment_data = frappe.db.get_all("LMS Enrollment", filters={"member": member}, fields=["progress"])
-	completion_pct = 0
-	if enrollment_data:
-		completion_pct = sum(flt(e.progress) for e in enrollment_data) / len(enrollment_data)
-
-	# Streak
-	all_dates = fetch_activity_dates(member)
-	streak, _ = calculate_streaks(all_dates)
-	current_streak = calculate_current_streak(all_dates, streak)
-
-	# Hours spent
-	total_seconds = frappe.db.get_value(
-		"LMS Video Watch Duration", {"member": member}, "SUM(CAST(watch_time AS DECIMAL(16,2)))"
-	) or 0
-	total_hours = flt(total_seconds) / 3600
-
-	streak_score = min(current_streak / STREAK_CAP, 1) * 100
-	hours_score = min(total_hours / HOURS_CAP, 1) * 100
-
-	composite_score = round(
-		(W_QUIZ * avg_quiz_pct)
-		+ (W_ASSIGNMENT * avg_assignment_pct)
-		+ (W_COMPLETION * completion_pct)
-		+ (W_STREAK * streak_score)
-		+ (W_HOURS * hours_score),
-		1,
-	)
-
-	return {
-		"composite_score": composite_score,
-		"avg_quiz_score": round(avg_quiz_pct, 1),
-		"avg_assignment_score": round(avg_assignment_pct, 1),
-		"completion_pct": round(completion_pct, 1),
-		"streak_days": current_streak,
-		"hours_spent": round(total_hours, 1),
-	}
+	from lms.lms.gamification.leaderboard_api import calculate_composite_score as _calculate
+	return _calculate(member)
 
 
 @frappe.whitelist()
 def get_leaderboard(batch=None, limit=10):
-	"""Get leaderboard with composite scores."""
-	limit = cint(limit)
-
-	if batch:
-		members = frappe.get_all("LMS Batch Enrollment", {"batch": batch}, pluck="member")
-	else:
-		members = frappe.get_all("LMS Enrollment", group_by="member", pluck="member")
-
-	if not members:
-		return []
-
-	leaderboard = []
-	for member in members:
-		stats = calculate_composite_score(member)
-		stats["member"] = member
-		leaderboard.append(stats)
-
-	leaderboard.sort(key=lambda x: x["composite_score"], reverse=True)
-
-	# Assign ranks (handle ties)
-	for i, entry in enumerate(leaderboard):
-		if i > 0 and entry["composite_score"] == leaderboard[i - 1]["composite_score"]:
-			entry["rank"] = leaderboard[i - 1]["rank"]
-		else:
-			entry["rank"] = i + 1
-
-	# Enrich with user details (only for top N)
-	for entry in leaderboard[:limit]:
-		user_data = frappe.db.get_value(
-			"User", entry["member"], ["full_name", "user_image", "username"], as_dict=True
-		)
-		entry["member_name"] = user_data.full_name if user_data else ""
-		entry["member_image"] = user_data.user_image if user_data else ""
-		entry["username"] = user_data.username if user_data else ""
-
-	return leaderboard[:limit]
+	from lms.lms.gamification.leaderboard_api import get_leaderboard as _get
+	return _get(batch=batch, limit=limit)
 
 
 def get_my_latest_courses():
@@ -2781,107 +2614,19 @@ def get_student_grades(student=None):
 
 @frappe.whitelist()
 def get_game_center_stats():
-	member = frappe.session.user
-	member_name = frappe.get_value("User", member, "full_name") or member
-	score_data = calculate_composite_score(member)
-	streak_data = get_streak_info()
-
-	recent_badges = frappe.get_all(
-		"LMS Badge Assignment",
-		{"member": member},
-		["badge", "badge_image", "badge_description", "issued_on"],
-		order_by="issued_on desc",
-		limit=5,
-	)
-	total_badges = frappe.db.count("LMS Badge Assignment", {"member": member})
-	total_available = frappe.db.count("LMS Badge", {"enabled": 1})
-
-	return {
-		**score_data,
-		**streak_data,
-		"recent_badges": recent_badges,
-		"total_badges": total_badges,
-		"total_available": total_available,
-	}
+	from lms.lms.gamification.profile_api import get_game_center_stats as _get
+	return _get()
 
 
 @frappe.whitelist()
 def get_user_badges(member=None):
-	if not member:
-		member = frappe.session.user
-
-	badges = frappe.get_all(
-		"LMS Badge",
-		{"enabled": 1},
-		["name", "title", "image", "description"],
-	)
-
-	earned = frappe.get_all(
-		"LMS Badge Assignment",
-		{"member": member},
-		["badge", "issued_on"],
-	)
-
-	earned_map = {e.badge: e.issued_on for e in earned}
-
-	return [
-		{
-			"name": b.name,
-			"title": b.title,
-			"image": b.image,
-			"description": b.description,
-			"earned": b.name in earned_map,
-			"issued_on": str(earned_map[b.name]) if b.name in earned_map else None,
-		}
-		for b in badges
-	]
+	from lms.lms.gamification.badge_api import get_user_badges as _get
+	return _get(member=member)
 
 @frappe.whitelist()
 def get_user_game_profile():
-	member = frappe.session.user
-	member_name = frappe.get_value("User", member, "full_name") or member
-	score_data = calculate_composite_score(member)
-	streak_data = get_streak_info()
-
-	total_score = score_data.get("composite_score", 0)
-	level = int(total_score // 100) + 1
-	xp_in_level = round(total_score % 100, 1)
-	xp_to_next = 100
-
-	enrollments = frappe.db.get_all(
-		"LMS Enrollment",
-		{"member": member},
-		["course", "progress"],
-		order_by="progress desc",
-		limit_page_length=5,
-	)
-
-	total_courses = frappe.db.count("LMS Enrollment", {"member": member})
-	completed_courses = frappe.db.count("LMS Enrollment", {"member": member, "progress": [">=", 100]})
-
-	quiz_count = frappe.db.count("LMS Quiz Submission", {"member": member})
-	assignment_count = frappe.db.count("LMS Assignment Submission", {"member": member, "status": ["in", ["Pass", "Fail"]]})
-
-	return {
-		"member_name": member_name,
-		"level": level,
-		"xp": xp_in_level,
-		"xp_to_next": xp_to_next,
-		"total_score": total_score,
-		"current_streak": streak_data["current_streak"],
-		"longest_streak": streak_data["longest_streak"],
-		"hours_spent": score_data.get("hours_spent", 0),
-		"avg_quiz_score": score_data.get("avg_quiz_score", 0),
-		"avg_assignment_score": score_data.get("avg_assignment_score", 0),
-		"completion_pct": score_data.get("completion_pct", 0),
-		"total_courses": total_courses,
-		"completed_courses": completed_courses,
-		"quiz_count": quiz_count,
-		"assignment_count": assignment_count,
-		"top_courses": enrollments,
-		"total_badges": frappe.db.count("LMS Badge Assignment", {"member": member}),
-		"total_available": frappe.db.count("LMS Badge", {"enabled": 1}),
-	}
+	from lms.lms.gamification.profile_api import get_user_game_profile as _get
+	return _get()
 @frappe.whitelist()
 def get_ai_grading_session_attachments(session):
 	"""Get all files attached to an AI Grading Session."""

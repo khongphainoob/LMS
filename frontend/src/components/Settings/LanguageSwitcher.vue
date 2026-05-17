@@ -111,7 +111,7 @@ const languages = [
 	{
 		code: 'vi',
 		name: 'Vietnamese',
-		native: 'Tiếng Việt',
+		native: __('Vietnamese'),
 		flag: '🇻🇳'
 	}
 ]

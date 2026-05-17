@@ -73,6 +73,15 @@
 </template>
 
 <script setup>
+import { useGameSession } from '@/utils/gameSession'
+
+const props = defineProps({
+	classGame: { type: [String, Number], default: null }
+})
+const emit = defineEmits(['finished'])
+
+const { startGame: _startGame, submitScore, submitResult, startError, gameConfig } = useGameSession(props.classGame)
+
 import { ref, reactive, onUnmounted, computed } from "vue"
 import { Timer, MousePointerClick, HelpCircle } from "lucide-vue-next"
 
@@ -85,7 +94,7 @@ const elapsedTime = ref(0)
 const gameWon = ref(false)
 let timerInterval = null
 
-const emojis = [
+const emojis = ref([
 	{ emoji: "\u{1F4DA}", label: "Book" },
 	{ emoji: "\u{1F4BB}", label: "Code" },
 	{ emoji: "\u{1F9E0}", label: "Brain" },
@@ -104,7 +113,7 @@ const emojis = [
 	{ emoji: "\u{1F31F}", label: "Star" },
 	{ emoji: "\u{1F0CF}", label: "Puzzle" },
 	{ emoji: "\u{1F6E0}\u{FE0F}", label: "Tools" },
-]
+])
 
 function shuffleArray(arr) {
 	const a = [...arr]
@@ -116,8 +125,9 @@ function shuffleArray(arr) {
 }
 
 function initGame() {
+	if (!emojis.value || emojis.value.length === 0) return
 	const pairCount = Math.floor((gridSize.value * gridSize.value) / 2)
-	const selected = shuffleArray(emojis).slice(0, pairCount)
+	const selected = shuffleArray(emojis.value).slice(0, pairCount)
 	const paired = shuffleArray([...selected, ...selected])
 	cards.value = paired.map((item) => ({
 		...item,
@@ -131,6 +141,29 @@ function initGame() {
 	gameWon.value = false
 	clearInterval(timerInterval)
 	timerInterval = null
+}
+
+function applyCustomQuestions() {
+	if (gameConfig.value) {
+		try {
+			const parsed = typeof gameConfig.value === 'string' ? JSON.parse(gameConfig.value) : gameConfig.value
+			if (Array.isArray(parsed) && parsed.length > 0) {
+				emojis.value = parsed.map(item => ({
+					emoji: item.emoji || '❓',
+					label: item.label || 'Card'
+				}))
+			}
+		} catch (e) {
+			console.error("Failed to parse custom memory match emojis:", e)
+		}
+	}
+}
+
+async function _submitAndFinish() {
+	if (!props.classGame) return
+	const rawScore = Math.round(moves.value)
+	await submitScore(rawScore, {})
+	emit('finished', submitResult.value || { score: rawScore, max_score: 500 })
 }
 
 function startTimer() {
@@ -164,6 +197,7 @@ function flipCard(index) {
 			isChecking.value = false
 			if (cards.value.every((c) => c.matched)) {
 				gameWon.value = true
+				_submitAndFinish()
 				clearInterval(timerInterval)
 			}
 		} else {
@@ -193,7 +227,11 @@ function formatTime(seconds) {
 	return `${m}:${s.toString().padStart(2, "0")}`
 }
 
-function resetGame() {
+async function resetGame() {
+	if (props.classGame) {
+		await _startGame()
+		applyCustomQuestions()
+	}
 	initGame()
 }
 
@@ -206,5 +244,13 @@ onUnmounted(() => {
 	clearInterval(timerInterval)
 })
 
-initGame()
+// Auto-start session when classGame is provided
+if (props.classGame) {
+	_startGame().then(() => {
+		applyCustomQuestions()
+		initGame()
+	})
+} else {
+	initGame()
+}
 </script>

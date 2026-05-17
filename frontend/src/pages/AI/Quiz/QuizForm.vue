@@ -45,7 +45,7 @@
               <input 
                 v-model="config.title"
                 type="text" 
-                placeholder="Ví dụ: Kiểm tra cuối kỳ môn Lịch sử"
+                :placeholder="__('Example: Final exam in History subject')"
                 class="w-full px-8 py-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none text-sm font-medium text-slate-700 dark:text-white focus:ring-4 focus:ring-sky-400/10 transition-all outline-none"
               >
             </div>
@@ -88,7 +88,7 @@
               <textarea 
                 v-model="config.prompt"
                 rows="4"
-                placeholder="VD: Tập trung vào kiến thức chương 2, câu hỏi mang tính thực tế..."
+                :placeholder="__('Example: Focus on chapter 2 knowledge, practical questions...')"
                 class="w-full px-8 py-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none text-sm font-medium text-slate-700 dark:text-white focus:ring-4 focus:ring-sky-400/10 transition-all outline-none resize-none"
               ></textarea>
             </div>
@@ -275,13 +275,13 @@ const config = reactive({
 })
 
 const bloomLevels = [
-  { id: 'Remember/Understand', label: 'Biết + Hiểu', desc: 'Kiến thức cơ bản & Ghi nhớ', emoji: '📚' },
-  { id: 'Apply/Analyze', label: 'Áp dụng + Phân tích', desc: 'Giải quyết vấn đề & Logic', emoji: '⚙️' },
-  { id: 'Evaluate/Create', label: 'Đánh giá + Sáng tạo', desc: 'Phản biện & Thiết kế mới', emoji: '💎' }
+  { id: 'Remember/Understand', label: __('Know + Understand'), desc: __('Basic Knowledge & Memorization'), emoji: '📚' },
+  { id: 'Apply/Analyze', label: __('Apply + Analyze'), desc: __('Problem Solving & Logic'), emoji: '⚙️' },
+  { id: 'Evaluate/Create', label: __('Evaluation + Creativity'), desc: __('Review & New Design'), emoji: '💎' }
 ]
 
 const languages = [
-  { id: 'vi', label: 'Tiếng Việt', emoji: '🇻🇳' },
+  { id: 'vi', label: __('Vietnamese'), emoji: '🇻🇳' },
   { id: 'en', label: 'English', emoji: '🇺🇸' }
 ]
 

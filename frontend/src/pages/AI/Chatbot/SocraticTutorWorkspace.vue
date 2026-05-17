@@ -272,7 +272,7 @@ const handleSend = () => {
   pendingRequests.value[requestId] = true
   isAwaitingResponse.value = true
 
-  console.log('[Socratic Debug] Gửi tin nhắn. Request ID:', requestId)
+  console.log(__('[Socratic Debug] Send message. Request ID:'), requestId)
 
   chatbotResource.submit({
     message: text,
@@ -288,7 +288,7 @@ const resetConversation = () => {
       url: 'lms.lms.services.socratic.api.reset_socratic_session',
       params: { session_key: props.sessionKey },
       onSuccess: () => {
-        console.log('[Socratic Debug] Đã làm mới lịch sử hội thoại')
+        console.log(__('[Socratic Debug] Refreshed conversation history'))
         messages.value = []
         isAwaitingResponse.value = false
       }
@@ -304,14 +304,14 @@ const retryAnalysis = () => {
       params: { session_key: props.sessionKey },
       onSuccess: (data) => {
         if (data && data.request_id) {
-          console.log('[Socratic Debug] Chấm lại bài. Request ID mới:', data.request_id)
+          console.log(__('[Socratic Debug] Re-grade the paper. New Request ID:'), data.request_id)
           messages.value = []
           pendingRequests.value[data.request_id] = true
           isAwaitingResponse.value = true
         }
       },
       onError: (err) => {
-        console.error('[Socratic Debug] Lỗi khi gọi retry_analysis API', err)
+        console.error(__('[Socratic Debug] Error calling retry_analysis API'), err)
         isAwaitingResponse.value = false
       }
     }).submit()
@@ -368,14 +368,14 @@ onMounted(() => {
 
   if (!socket) return
   socket.on('socratic_response', (payload) => {
-    console.log('[Socratic Debug] Nhận payload từ WebSocket:', payload)
+    console.log(__('[Socratic Debug] Receive payload from WebSocket:'), payload)
     
     if (!payload?.request_id) {
-      console.warn('[Socratic Debug] Payload thiếu request_id', payload)
+      console.warn(__('[Socratic Debug] Payload is missing request_id'), payload)
       return
     }
     if (!pendingRequests.value[payload.request_id]) {
-      console.warn('[Socratic Debug] Bỏ qua vì request_id không có trong pendingRequests', payload.request_id)
+      console.warn(__('[Socratic Debug] Aborted because request_id is not in pendingRequests'), payload.request_id)
       return
     }
 
@@ -383,7 +383,7 @@ onMounted(() => {
     isAwaitingResponse.value = false
 
     if (payload.status === 'error') {
-      console.error('[Socratic Debug] Lỗi từ server:', payload.error)
+      console.error(__('[Socratic Debug] Error from server:'), payload.error)
       const errorText = payload.error || __('Đã có lỗi xảy ra. Vui lòng thử lại.')
       messages.value.push({ role: 'assistant', content: errorText, message_type: 'error' })
       scrollToBottom()

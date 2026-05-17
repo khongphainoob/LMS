@@ -200,9 +200,9 @@ onMounted(() => {
 const statsData = computed(() => statsResource.data || { total: 0, completed: 0, processing: 0, accuracy: '0%' })
 
 const statsCards = computed(() => [
-  { label: 'Tổng Quizzes', value: statsData.value.total, icon: icons.FileText, color: 'bg-blue-500', textColor: 'text-blue-500', trend: 'ACTIVE' },
-  { label: 'Đang xử lý', value: statsData.value.processing, icon: icons.RefreshCw, color: 'bg-amber-500', textColor: 'text-amber-500', trend: 'SYNCING' },
-  { label: 'Đã hoàn thành', value: statsData.value.completed, icon: icons.CheckCircle, color: 'bg-emerald-500', textColor: 'text-emerald-500', trend: 'STABLE' },
-  { label: 'Chính xác AI', value: statsData.value.accuracy, icon: icons.Zap, color: 'bg-indigo-500', textColor: 'text-indigo-500', trend: 'LLM' },
+  { label: __('Total Quizzes'), value: statsData.value.total, icon: icons.FileText, color: 'bg-blue-500', textColor: 'text-blue-500', trend: 'ACTIVE' },
+  { label: __('Processing'), value: statsData.value.processing, icon: icons.RefreshCw, color: 'bg-amber-500', textColor: 'text-amber-500', trend: 'SYNCING' },
+  { label: __('Completed'), value: statsData.value.completed, icon: icons.CheckCircle, color: 'bg-emerald-500', textColor: 'text-emerald-500', trend: 'STABLE' },
+  { label: __('Exact AI'), value: statsData.value.accuracy, icon: icons.Zap, color: 'bg-indigo-500', textColor: 'text-indigo-500', trend: 'LLM' },
 ])
 </script>

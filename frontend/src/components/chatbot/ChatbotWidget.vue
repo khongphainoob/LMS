@@ -141,7 +141,7 @@ const scrollToBottom = () => {
 const renderMarkdown = (c) => DOMPurify.sanitize(md.render(c || ''))
 
 onMounted(() => {
-  messages.value = [{ role: 'assistant', content: 'Tôi có thể giúp gì cho bạn?' }]
+  messages.value = [{ role: 'assistant', content: __('May I help you?') }]
 
   if (socket) {
     socket.on('chatbot_response', (payload) => {

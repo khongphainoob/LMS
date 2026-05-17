@@ -87,7 +87,7 @@
 					<div class="flex items-center">
 						<span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 font-bold mr-3">AI</span>
 						<div>
-							<p class="text-sm font-medium text-gray-900">Bài thi Giữa kỳ: Ngữ văn 10</p>
+							<p class="text-sm font-medium text-gray-900">{{ __('Midterm exam: Literature 10') }}</p>
 							<p class="text-xs text-gray-500">12 Submissions AI graded, pending teacher approval.</p>
 						</div>
 					</div>
@@ -97,7 +97,7 @@
 					<div class="flex items-center">
 						<span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold mr-3">T</span>
 						<div>
-							<p class="text-sm font-medium text-gray-900">Bài tập tuần 5 - Lịch sử</p>
+							<p class="text-sm font-medium text-gray-900">{{ __('Week 5 assignment - History') }}</p>
 							<p class="text-xs text-gray-500">5 Submissions pending manual grading.</p>
 						</div>
 					</div>

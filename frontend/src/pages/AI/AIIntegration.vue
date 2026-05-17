@@ -22,28 +22,28 @@
       <section class="relative rounded-[2.5rem] bg-gradient-to-br from-blue-200 via-indigo-200 to-sky-200 dark:from-blue-900/60 dark:via-indigo-900/60 dark:to-sky-900/60 p-8 sm:p-14 overflow-hidden border border-blue-300/40 dark:border-blue-700/40">
         <div class="relative z-10 max-w-3xl">
           <span class="inline-block rounded-full bg-emerald-500 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-900 mb-6 shadow-md">
-            🌟 {{ __('Kỷ nguyên giáo dục mới') }}
+            🌟 {{ __('A new era of education') }}
           </span>
           <h2 class="text-4xl sm:text-5xl font-black text-slate-900 dark:text-lime-400 leading-tight mb-6">
-            {{ __('Nâng tầm học tập với') }} <br/>
-            <span class="text-emerald-700 dark:text-lime-300">{{ __('Trí tuệ Nhân tạo.') }}</span>
+            {{ __('Take learning to the next level with') }} <br/>
+            <span class="text-emerald-700 dark:text-lime-300">{{ __('Artificial intelligence (AI)') }}</span>
           </h2>
           <p class="text-base text-slate-700 dark:text-sky-200 font-medium leading-relaxed mb-8 max-w-2xl">
-            {{ __('Hệ thống tích hợp các công cụ AI tiên tiến nhất để hỗ trợ giáo viên trong việc giảng dạy và giúp học sinh khai phá tiềm năng bản thân.') }}
+            {{ __('The system integrates the most advanced AI tools to support teachers in teaching and help students unlock their potential.') }}
           </p>
           <div class="flex flex-wrap gap-4">
             <div class="flex items-center gap-3 rounded-2xl bg-slate-900 dark:bg-slate-800 px-5 py-3 shadow-xl">
               <span class="text-2xl">🤖</span>
               <div>
-                <div class="text-xs font-bold text-lime-400 uppercase tracking-wider">{{ __('98% Chính xác') }}</div>
-                <div class="text-[10px] text-lime-300/70 font-medium">{{ __('Mô hình GPT-4o') }}</div>
+                <div class="text-xs font-bold text-lime-400 uppercase tracking-wider">{{ __('98% Correct') }}</div>
+                <div class="text-[10px] text-lime-300/70 font-medium">{{ __('GPT-4o model') }}</div>
               </div>
             </div>
             <div class="flex items-center gap-3 rounded-2xl bg-slate-900 dark:bg-slate-800 px-5 py-3 shadow-xl">
               <span class="text-2xl">⚡</span>
               <div>
-                <div class="text-xs font-bold text-lime-400 uppercase tracking-wider">{{ __('Phản hồi tức thì') }}</div>
-                <div class="text-[10px] text-lime-300/70 font-medium">{{ __('Hỗ trợ 24/7') }}</div>
+                <div class="text-xs font-bold text-lime-400 uppercase tracking-wider">{{ __('Instantaneous Response') }}</div>
+                <div class="text-[10px] text-lime-300/70 font-medium">{{ __('24/7 Counselling') }}</div>
               </div>
             </div>
           </div>
@@ -58,8 +58,8 @@
         <div class="flex items-center gap-4 mb-8">
           <span class="text-3xl">🧑‍🏫</span>
           <div>
-            <h3 class="text-2xl font-bold text-slate-900 dark:text-lime-400">{{ __('Công cụ cho Giáo viên') }}</h3>
-            <p class="text-sm text-slate-600 dark:text-sky-300 font-medium">{{ __('Tối ưu hóa quy trình giảng dạy.') }}</p>
+            <h3 class="text-2xl font-bold text-slate-900 dark:text-lime-400">{{ __('Teacher Tools') }}</h3>
+            <p class="text-sm text-slate-600 dark:text-sky-300 font-medium">{{ __('Optimization of the teaching process.') }}</p>
           </div>
         </div>
         
@@ -91,8 +91,8 @@
         <div class="flex items-center gap-4 mb-8">
           <span class="text-3xl">🎓</span>
           <div>
-            <h3 class="text-2xl font-bold text-slate-900 dark:text-lime-400">{{ __('Công cụ cho Học sinh') }}</h3>
-            <p class="text-sm text-slate-600 dark:text-sky-300 font-medium">{{ __('Học tập thông minh hơn với AI.') }}</p>
+            <h3 class="text-2xl font-bold text-slate-900 dark:text-lime-400">{{ __('Tools for Students') }}</h3>
+            <p class="text-sm text-slate-600 dark:text-sky-300 font-medium">{{ __('Learn smarter with AI.') }}</p>
           </div>
         </div>
 
@@ -147,31 +147,31 @@ const isStudent = computed(() => user.data?.is_student)
 const teacherItems = computed(() => [
   {
     label: 'AI Grading',
-    description: 'Hệ thống hỗ trợ chấm điểm tự động cho bài thi trắc nghiệm và tự luận.',
+    description: __('The system supports automatic scoring for multiple-choice and essay tests.'),
     emoji: '🤖',
     to: 'AIGrading',
   },
   {
     label: 'Grading Book',
-    description: 'Xem lại điểm số của lớp, theo dõi tiến độ và kết quả chấm điểm.',
+    description: __('Review class scores, track progress and grading results.'),
     emoji: '📖',
     to: 'GradingBook',
   },
   {
     label: 'Lesson Planning',
-    description: 'Tạo kế hoạch giảng dạy thông minh với sự hỗ trợ của AI.',
+    description: __('Create smart teaching plans with the help of AI.'),
     emoji: '📅',
     to: 'LessonPlanning',
   },
   {
     label: 'Quiz Creator',
-    description: 'Tự động tạo bài tập từ tài liệu nguồn (PDF, DOCX) với nhiều cấp độ nhận thức.',
+    description: __('Automatically create exercises from source documents (PDF, DOCX) with multiple cognitive levels.'),
     emoji: '📝',
     to: 'AIQuizDashboard',
   },
   {
     label: 'Documents',
-    description: 'Tải lên và quản lý các tài liệu khóa học và nguồn lực.',
+    description: __('Upload and manage course materials and resources.'),
     emoji: '📁',
     to: 'Documents',
   },
@@ -180,19 +180,19 @@ const teacherItems = computed(() => [
 const studentItems = [
   {
     label: 'Score Insights',
-    description: 'Bảng phân tích điểm số AI với xu hướng và đề xuất cải thiện.',
+    description: __('AI score breakdown with trends and suggestions for improvement.'),
     emoji: '📊',
     to: 'StudentScoreDashboard',
   },
   {
     label: 'Smart Chatbot',
-    description: 'Hỏi câu hỏi về bài học và nhận sự hỗ trợ nhanh 24/7.',
+    description: __('Ask questions about lessons and get quick support 24/7.'),
     emoji: '💬',
     to: 'StudentAIHelper',
   },
   {
     label: 'Socratic AI Tutor',
-    description: 'Học tập qua phương pháp gợi mở để rèn luyện tư duy.',
+    description: __('Learning through suggestive methods to train thinking.'),
     emoji: '🧠',
     to: 'SocraticTutor',
   },

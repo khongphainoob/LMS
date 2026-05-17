@@ -80,6 +80,7 @@ declare module 'vue' {
     ExplanationVideos: typeof import('./src/components/Modals/ExplanationVideos.vue')['default']
     FeedbackModal: typeof import('./src/components/Modals/FeedbackModal.vue')['default']
     FrappeCloudIcon: typeof import('./src/components/Icons/FrappeCloudIcon.vue')['default']
+    GameLiveNotification: typeof import('./src/components/GameLiveNotification.vue')['default']
     IconPicker: typeof import('./src/components/Controls/IconPicker.vue')['default']
     ImportQuestionsModal: typeof import('./src/components/Modals/ImportQuestionsModal.vue')['default']
     IndicatorIcon: typeof import('./src/components/Icons/IndicatorIcon.vue')['default']

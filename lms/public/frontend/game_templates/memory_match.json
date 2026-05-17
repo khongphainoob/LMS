@@ -1,0 +1,50 @@
+[
+  {
+    "emoji": "🧠",
+    "label": "Brain"
+  },
+  {
+    "emoji": "💻",
+    "label": "Code"
+  },
+  {
+    "emoji": "🚀",
+    "label": "Rocket"
+  },
+  {
+    "emoji": "💡",
+    "label": "Idea"
+  },
+  {
+    "emoji": "🔬",
+    "label": "Science"
+  },
+  {
+    "emoji": "🔥",
+    "label": "Fire"
+  },
+  {
+    "emoji": "🎓",
+    "label": "Graduation"
+  },
+  {
+    "emoji": "🌟",
+    "label": "Star"
+  },
+  {
+    "emoji": "🎨",
+    "label": "Art"
+  },
+  {
+    "emoji": "🌍",
+    "label": "Earth"
+  },
+  {
+    "emoji": "📚",
+    "label": "Books"
+  },
+  {
+    "emoji": "⚡",
+    "label": "Energy"
+  }
+]

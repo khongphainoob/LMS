@@ -58,11 +58,11 @@ const avgScore = computed(() => {
 						<line x1="50" y1="50" x2="10" y2="40" stroke="currentColor" stroke-width="1" />
 					</svg>
 					<!-- Labels -->
-					<span class="absolute -top-6 left-[40%] text-xs font-medium text-gray-600">Kiến thức</span>
-					<span class="absolute top-[35%] -right-8 text-xs font-medium text-gray-600">Kỹ năng</span>
-					<span class="absolute bottom-[-10px] right-2 text-xs font-medium text-gray-600">Thái độ</span>
-					<span class="absolute bottom-[-10px] left-2 text-xs font-medium text-gray-600">Sáng tạo</span>
-					<span class="absolute top-[35%] -left-8 text-xs font-medium text-gray-600">Tư duy</span>
+					<span class="absolute -top-6 left-[40%] text-xs font-medium text-gray-600">{{ __('Knowledge') }}</span>
+					<span class="absolute top-[35%] -right-8 text-xs font-medium text-gray-600">{{ __('Skill') }}</span>
+					<span class="absolute bottom-[-10px] right-2 text-xs font-medium text-gray-600">{{ __('Attitude') }}</span>
+					<span class="absolute bottom-[-10px] left-2 text-xs font-medium text-gray-600">{{ __('Creative') }}</span>
+					<span class="absolute top-[35%] -left-8 text-xs font-medium text-gray-600">{{ __('Thinking') }}</span>
 				</div>
 			</div>
 

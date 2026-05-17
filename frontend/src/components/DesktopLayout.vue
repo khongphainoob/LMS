@@ -6,8 +6,11 @@
 		<div class="flex-1 flex flex-col h-full overflow-auto bg-surface-white">
 			<slot />
 		</div>
+		<!-- Global Game Live Notification (appears on any page for students) -->
+		<GameLiveNotification />
 	</div>
 </template>
 <script setup>
 import AppSidebar from '@/components/Sidebar/AppSidebar.vue'
+import GameLiveNotification from '@/components/GameLiveNotification.vue'
 </script>

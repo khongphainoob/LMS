@@ -7,12 +7,12 @@
 				@click="$router.push({ name: 'AIGradingEssayConfig', params: { type: resolvedType || $route.params.type || 'exam' } })"
 			>
 				<icons.ChevronLeft class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-				{{ __('Quay lại') }}
+				{{ __('Revert') }}
 			</button>
 			<div class="h-5 w-px bg-gray-200" />
 			<div>
 				<div class="text-sm font-semibold text-gray-800">
-					{{ sessionLoading ? __('Đang tải...') : (sessionDoc?.session_name || __('Không tìm thấy phiên')) }}
+					{{ sessionLoading ? __('Loading...') : (sessionDoc?.session_name || __('Session Not Found')) }}
 				</div>
 			</div>
 			<div class="flex-1" />
@@ -26,12 +26,12 @@
 				>
 					<icons.Loader2 v-if="isBatchGrading" class="h-3.5 w-3.5 animate-spin" />
 					<span v-else>🚀</span>
-					{{ isBatchGrading ? __('Đang chấm...') : __('Chấm toàn bộ') }}
+					{{ isBatchGrading ? __('Dotted...') : __('Full stop') }}
 				</button>
 				<button
 					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50"
 					@click="exportGrades"
-					:title="__('Xuất điểm số')"
+					:title="__('Export score')"
 				>
 					<icons.Download class="h-4 w-4" />
 				</button>
@@ -40,7 +40,7 @@
 					@click="saveAllToDatabase"
 				>
 					<icons.Save class="h-3.5 w-3.5" />
-					{{ __('Lưu tất cả') }}
+					{{ __('Save All') }}
 				</button>
 			</div>
 		</div>
@@ -51,16 +51,16 @@
 				<div class="flex w-72 flex-shrink-0 flex-col border-r border-gray-100 bg-white">
 					<div class="p-4 border-b border-gray-100">
 						<div class="mb-3 flex items-center justify-between">
-							<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ __('Danh sách bài làm') }}</span>
+							<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ __('Work List') }}</span>
 							<button 
 								v-if="sessionDoc?.reference_doc"
 								class="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-all disabled:opacity-50"
 								@click="syncSubmissions"
 								:disabled="isSyncing"
-								:title="__('Đồng bộ bài nộp từ hệ thống')"
+								:title="__('Synchronize submissions from the system')"
 							>
 								<icons.RefreshCw class="h-3 w-3" :class="{ 'animate-spin': isSyncing }" />
-								{{ isSyncing ? __('Đang đồng bộ...') : __('Đồng bộ') }}
+								{{ isSyncing ? __('Syncing...') : __('Synchronization') }}
 							</button>
 						</div>
 						<div class="relative">
@@ -68,7 +68,7 @@
 							<input
 								v-model="searchQuery"
 								class="w-full rounded-xl border border-gray-200 bg-gray-50 pl-9 pr-4 py-2 text-xs text-gray-700 focus:border-blue-400 focus:outline-none transition-all"
-								:placeholder="__('Tìm kiếm học sinh...')"
+								:placeholder="__('Student Search')"
 							/>
 						</div>
 					</div>
@@ -91,7 +91,7 @@
 							<div class="flex items-center justify-between mt-auto pt-1">
 								<div class="flex items-center gap-2.5">
 									<div v-if="sub.status === 'grading'" class="flex items-center gap-1">
-										<button @click.stop="stopGrading(sub)" class="p-1 hover:bg-rose-100 rounded text-rose-600" title="Dừng chấm">
+										<button @click.stop="stopGrading(sub)" class="p-1 hover:bg-rose-100 rounded text-rose-600" :title="__('Stop marking')">
 											<icons.Square class="w-4 h-4 fill-current" />
 										</button>
 										<icons.Loader2 class="w-4 h-4 animate-spin text-amber-600" />
@@ -100,21 +100,21 @@
 										v-else
 										class="p-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all hover:scale-110 active:scale-95"
 										@click.stop="handleGradeSubmission(sub)"
-										:title="__('Chấm bài')"
+										:title="__('Evaluate Quiz for User')"
 									>
 										<icons.Play class="h-4 w-4 fill-current" />
 									</button>
 									<button 
 										class="p-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all hover:scale-110 active:scale-95"
 										@click.stop="handleEditSubmission(sub)"
-										:title="__('Sửa')"
+										:title="__('Edit')"
 									>
 										<icons.Edit class="h-4 w-4" />
 									</button>
 									<button 
 										class="p-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all hover:scale-110 active:scale-95"
 										@click.stop="handleDeleteSubmission(sub)"
-										:title="__('Xóa')"
+										:title="__('[Delete]')"
 									>
 										<icons.Trash2 class="h-4 w-4" />
 									</button>
@@ -133,7 +133,7 @@
 							@click="showAddStudentModal = true"
 						>
 							<icons.UserPlus class="h-3.5 w-3.5" />
-							{{ __('THÊM HỌC SINH') }}
+							{{ __('Add Student(s)') }}
 						</button>
 					</div>
 				</div>
@@ -151,7 +151,7 @@
 								class="flex items-center gap-1 rounded bg-blue-600 px-3 py-1 text-[10px] font-bold text-white hover:opacity-90 shadow-sm transition-opacity"
 								@click="approveAndNext"
 							>
-								✓ {{ __('Duyệt & Tiếp theo') }}
+								✓ {{ __('Browse & Next') }}
 							</button>
 							<button
 								class="flex items-center gap-1 rounded bg-white border border-gray-200 px-3 py-1 text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all"
@@ -184,14 +184,14 @@
 						<!-- AI Feedback View -->
 						<div v-else class="mx-auto max-w-3xl rounded-xl bg-white p-8 shadow-sm border border-gray-100">
 							<div class="mb-6 text-center border-b border-gray-50 pb-6">
-								<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{{ __('Hệ thống Tomosa AI') }}</div>
-								<div class="text-lg font-bold text-gray-900 uppercase tracking-tight">{{ __('KẾT QUẢ PHÂN TÍCH TỰ LUẬN') }}</div>
+								<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{{ __('Tomosa AI System') }}</div>
+								<div class="text-lg font-bold text-gray-900 uppercase tracking-tight">{{ __('RESULTS OF INDEPENDENT ANALYSIS') }}</div>
 							</div>
 							<div class="space-y-6">
 								<div class="p-6 rounded-xl bg-blue-50/50 border border-blue-100">
-									<div class="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-3">✦ PHÂN TÍCH NỘI DUNG AI</div>
+									<div class="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-3">{{ __('✦ AI CONTENT ANALYSIS') }}</div>
 									<div class="text-sm text-gray-700 font-medium leading-relaxed italic whitespace-pre-line">
-										{{ feedback || __('Đang chờ kết quả phân tích từ AI...') }}
+										{{ feedback || __('Waiting for analysis results from AI...') }}
 									</div>
 								</div>
 							</div>
@@ -203,7 +203,7 @@
 				<div class="flex w-80 flex-shrink-0 flex-col bg-white border-l border-gray-100">
 					<div class="p-6 border-b border-gray-100 bg-gray-50/30">
 						<div class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
-							{{ __('ĐIỂM SỐ ĐỀ XUẤT') }}
+							{{ __('PROPOSED SCORE') }}
 						</div>
 						<div class="flex items-baseline gap-1">
 							<span class="text-5xl font-black tracking-tighter text-blue-600">{{ totalScore.toFixed(1) }}</span>
@@ -216,7 +216,7 @@
 							/>
 						</div>
 						<div class="mt-4 flex items-center justify-between">
-							<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ __('ĐỘ TIN CẬY') }}</span>
+							<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ __('Reliability') }}</span>
 							<span 
 								class="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest border"
 								:class="(parsedFeedback?.confidence || 0) >= 0.8 || parsedFeedback?.confidence_level === 'HIGH' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'"
@@ -227,7 +227,7 @@
 					</div>
 
 					<div class="flex-1 space-y-4 overflow-y-auto p-5 custom-scrollbar">
-						<div class="text-[10px] font-bold uppercase tracking-widest text-gray-400">{{ __('TIÊU CHÍ CHẤM ĐIỂM') }}</div>
+						<div class="text-[10px] font-bold uppercase tracking-widest text-gray-400">{{ __('Key to Grading') }}</div>
 
 						<div
 							v-for="(crit, ci) in criteria"
@@ -253,7 +253,7 @@
 						</div>
 
 						<div class="pt-2">
-							<div class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">{{ __('NHẬN XÉT CỦA GIÁO VIÊN') }}</div>
+							<div class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">{{ __('TEACHER\'S COMMENTS') }}</div>
 							<textarea
 								v-model="manualFeedback"
 								class="w-full rounded-xl border border-gray-100 bg-gray-50/50 p-3 text-xs font-medium text-gray-800 placeholder:text-gray-300 focus:border-blue-400 outline-none transition-all resize-none shadow-inner"
@@ -270,7 +270,7 @@
 						>
 							<icons.Loader2 v-if="isApproving" class="h-3.5 w-3.5 inline mr-1.5 animate-spin" />
 							<icons.CheckCircle v-else class="h-3.5 w-3.5 inline mr-1.5" />
-							{{ isApproving ? __('ĐANG LƯU...') : __('DUYỆT & LƯU ĐIỂM') }}
+							{{ isApproving ? __('SAVING ...') : __('BROWSE & SAVE POINTS') }}
 						</button>
 					</div>
 				</div>
@@ -278,23 +278,23 @@
 		</section>
 
 		<!-- Modals -->
-		<Dialog v-model="showAddStudentModal" :title="__('Thêm học sinh mới')">
+		<Dialog v-model="showAddStudentModal" :title="__('Add New Student')">
 			<template #body-content>
 				<div class="space-y-4 p-4">
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Họ và tên') }}</label>
-						<Input type="text" v-model="newStudent.name" :placeholder="__('Ví dụ: Nguyễn Văn A')" />
+						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Full name') }}</label>
+						<Input type="text" v-model="newStudent.name" :placeholder="__('For example: Nguyen Van A')" />
 					</div>
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Số báo danh (SBD)') }}</label>
+						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Identification Number (SBD)') }}</label>
 						<Input type="text" v-model="newStudent.sbd" placeholder="123456" />
 					</div>
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Email học sinh') }}</label>
+						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Child’s Email') }}</label>
 						<Input type="email" v-model="newStudent.email" placeholder="student@example.com" />
 					</div>
 					<div class="flex flex-col gap-1 mt-4">
-						<label class="text-[10px] font-black uppercase tracking-widest text-slate-700 mb-2">{{ __('Hình ảnh bài làm') }}</label>
+						<label class="text-[10px] font-black uppercase tracking-widest text-slate-700 mb-2">{{ __('Image of the assignment') }}</label>
 						<div v-if="newStudent.images.length" class="grid grid-cols-3 gap-2 mb-4">
 							<div v-for="(img, idx) in newStudent.images" :key="idx" class="relative group aspect-square">
 								<img :src="img.preview" class="w-full h-full object-cover rounded-lg border border-gray-100" />
@@ -302,8 +302,8 @@
 							</div>
 						</div>
 						<div class="flex gap-2">
-							<button class="flex-1 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-3 text-[10px] font-bold text-gray-500 uppercase hover:bg-blue-50 hover:border-blue-300 transition-all" @click="$refs.newPhotoInput.click()">📁 {{ __('Tải tệp') }}</button>
-							<button class="flex-1 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-3 text-[10px] font-bold text-gray-500 uppercase hover:bg-blue-50 hover:border-blue-300 transition-all" @click="openCameraForNew">📷 {{ __('Chụp ảnh') }}</button>
+							<button class="flex-1 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-3 text-[10px] font-bold text-gray-500 uppercase hover:bg-blue-50 hover:border-blue-300 transition-all" @click="$refs.newPhotoInput.click()">📁 {{ __('Download file') }}</button>
+							<button class="flex-1 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-3 text-[10px] font-bold text-gray-500 uppercase hover:bg-blue-50 hover:border-blue-300 transition-all" @click="openCameraForNew">📷 {{ __('Take Photo') }}</button>
 							<input type="file" ref="newPhotoInput" class="hidden" accept="image/*" multiple @change="handleNewPhotoUpload" />
 						</div>
 						<div v-if="showNewCamera" class="relative mt-4 overflow-hidden rounded-2xl bg-black">
@@ -318,27 +318,27 @@
 			</template>
 			<template #actions>
 				<div class="flex justify-end gap-3 p-4">
-					<button class="rounded-xl border border-slate-100 bg-white px-6 py-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50" @click="showAddStudentModal = false">{{ __('Hủy') }}</button>
-					<button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg" @click="addStudent">{{ __('Thêm học sinh') }}</button>
+					<button class="rounded-xl border border-slate-100 bg-white px-6 py-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50" @click="showAddStudentModal = false">{{ __('Cancel') }}</button>
+					<button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg" @click="addStudent">{{ __('Add Student(s)') }}</button>
 				</div>
 			</template>
 		</Dialog>
 
-		<Dialog v-model="showEditStudentModal" :title="__('Sửa thông tin học sinh')">
+		<Dialog v-model="showEditStudentModal" :title="__('Student Information')">
 			<template #body-content>
 				<div class="space-y-4 p-4">
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Họ và tên') }}</label>
+						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Full name') }}</label>
 						<Input type="text" v-model="editingStudent.name" />
 					</div>
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Số báo danh (SBD)') }}</label>
+						<label class="text-sm font-black text-slate-700 uppercase tracking-widest text-[10px]">{{ __('Identification Number (SBD)') }}</label>
 						<Input type="text" v-model="editingStudent.sbd" />
 					</div>
 					
 					<!-- Edit Images -->
 					<div class="flex flex-col gap-1 mt-4">
-						<label class="text-[10px] font-black uppercase tracking-widest text-slate-700 mb-2">{{ __('Hình ảnh bài làm') }}</label>
+						<label class="text-[10px] font-black uppercase tracking-widest text-slate-700 mb-2">{{ __('Image of the assignment') }}</label>
 						
 						<!-- Existing Images -->
 						<div v-if="editingStudent.images.length" class="grid grid-cols-3 gap-2 mb-4">
@@ -347,7 +347,7 @@
 								<button 
 									@click.stop="deleteExistingImage(img)" 
 									class="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-lg hover:bg-rose-600"
-									:title="__('Xóa ảnh này')"
+									:title="__('Delete this image')"
 								>
 									✕
 								</button>
@@ -364,7 +364,7 @@
 								>
 									✕
 								</button>
-								<div class="absolute bottom-1 left-1 right-1 bg-blue-600 text-[8px] text-white py-0.5 rounded text-center uppercase font-black">Mới</div>
+								<div class="absolute bottom-1 left-1 right-1 bg-blue-600 text-[8px] text-white py-0.5 rounded text-center uppercase font-black">{{ __('New') }}</div>
 							</div>
 						</div>
 
@@ -375,14 +375,14 @@
 								@click="$refs.editPhotoInput.click()"
 							>
 								<span class="text-xl mb-1">📁</span>
-								<span class="text-[10px] font-bold text-gray-500 uppercase">{{ __('Tải tệp') }}</span>
+								<span class="text-[10px] font-bold text-gray-500 uppercase">{{ __('Download file') }}</span>
 							</button>
 							<button 
 								class="flex-1 flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-3 hover:border-blue-400 hover:bg-blue-50/30 transition-all"
 								@click="openCameraForEdit"
 							>
 								<span class="text-xl mb-1">📷</span>
-								<span class="text-[10px] font-bold text-gray-500 uppercase">{{ __('Chụp ảnh') }}</span>
+								<span class="text-[10px] font-bold text-gray-500 uppercase">{{ __('Take Photo') }}</span>
 							</button>
 							<input type="file" ref="editPhotoInput" class="hidden" accept="image/*" multiple @change="handleEditPhotoUpload" />
 						</div>
@@ -400,8 +400,8 @@
 			</template>
 			<template #actions>
 				<div class="flex justify-end gap-3 p-4">
-					<button class="rounded-xl border border-slate-100 bg-white px-6 py-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50" @click="showEditStudentModal = false">{{ __('Hủy') }}</button>
-					<button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg" @click="saveEditedStudent">{{ __('Lưu thay đổi') }}</button>
+					<button class="rounded-xl border border-slate-100 bg-white px-6 py-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50" @click="showEditStudentModal = false">{{ __('Cancel') }}</button>
+					<button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg" @click="saveEditedStudent">{{ __('Save changges') }}</button>
 				</div>
 			</template>
 		</Dialog>
@@ -522,7 +522,7 @@ async function startCamera(videoEl) {
 		cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
 		if (videoEl) videoEl.srcObject = cameraStream
 	} catch (e) {
-		frappe.show_alert({ message: __('Không thể mở camera'), indicator: 'red' })
+		frappe.show_alert({ message: __('Failed to open camera'), indicator: 'red' })
 	}
 }
 
@@ -590,14 +590,14 @@ function removeDraftImage(idx) {
 }
 
 async function deleteExistingImage(img) {
-	if (!confirm(__('Bạn có chắc muốn xóa ảnh này vĩnh viễn?'))) return
+	if (!confirm(__('Are you sure you want to delete this photo?'))) return
 	try {
 		await createResource({ url: 'frappe.client.delete', auto: false }).submit({
 			doctype: 'File',
 			name: img.name 
 		})
 		editingStudent.images = editingStudent.images.filter(i => i.file_url !== img.file_url)
-		frappe.show_alert({ message: __('Đã xóa ảnh'), indicator: 'blue' })
+		frappe.show_alert({ message: __('Photo removed'), indicator: 'blue' })
 		await loadSubmissions()
 	} catch (e) {
 		editingStudent.images = editingStudent.images.filter(i => i.file_url !== img.file_url)
@@ -611,7 +611,7 @@ async function syncSubmissions() {
 		const res = await syncSubmissionsResource.submit({ session: resolvedSessionId.value })
 		if (res && res.status === 'success') {
 			frappe.show_alert({ 
-				message: __('Đã đồng bộ {0} bài nộp mới').replace('{0}', res.synced_count), 
+				message: __('{0} new submissions synced').replace('{0}', res.synced_count), 
 				indicator: 'green' 
 			})
 			await loadSubmissions()
@@ -768,7 +768,7 @@ function tagClass(status) {
 }
 
 function statusLabel(status) {
-	const map = { done: __('Đã duyệt'), grading: __('Đang chấm'), flag: __('Cần sửa'), pending: __('Chờ') }
+	const map = { done: __('Approvered'), grading: __('Dotted'), flag: __('Needs correction'), pending: __('Wait') }
 	return map[status] || status
 }
 
@@ -810,12 +810,12 @@ async function gradeCurrent() {
     await loadSubmissions()
     
     if (res && res.success) {
-      frappe.show_alert({ message: __('Chấm bài hoàn tất'), indicator: 'green' })
+      frappe.show_alert({ message: __('Grading Completed'), indicator: 'green' })
     }
   } catch (e) {
     console.error('Grading error:', e)
     frappe.show_alert({ 
-      message: __('Lỗi kết nối hoặc Timeout. AI vẫn đang chạy ngầm, vui lòng đợi hoặc nạp lại trang.'), 
+      message: __('Connection error or Timeout. AI is still running in the background, please wait or reload the page.'), 
       indicator: 'orange' 
     })
     loadSubmissions()
@@ -857,7 +857,7 @@ function pollGradingStatus(submissionId) {
 }
 
 async function handleGradeSubmission(sub) {
-  if (!confirm(__('Bạn có chắc chắn muốn bắt đầu chấm bài cho học sinh này?'))) return
+  if (!confirm(__('Are you sure you want to start grading this student?'))) return
   currentIdx.value = filteredSubmissions.value.findIndex(s => s.id === sub.id)
   await gradeCurrent()
 }
@@ -872,7 +872,7 @@ function handleEditSubmission(sub) {
 }
 async function addStudent() {
 	if (!newStudent.email || !resolvedSessionId.value) {
-		frappe.show_alert({ message: __('Vui lòng nhập Email học sinh'), indicator: 'orange' })
+		frappe.show_alert({ message: __('Please enter Student Email'), indicator: 'orange' })
 		return
 	}
 	try {
@@ -937,7 +937,7 @@ async function saveEditedStudent() {
 }
 
 async function handleDeleteSubmission(sub) {
-  if (!confirm(__('Bạn có chắc chắn muốn xóa học sinh này?'))) return
+  if (!confirm(__('Are you sure you want to delete this student?'))) return
   await createResource({
     url: 'frappe.client.delete',
     auto: false
@@ -950,13 +950,13 @@ async function handleDeleteSubmission(sub) {
 
 async function runBatchGrading() {
   if (isBatchGrading.value || !resolvedSessionId.value) return
-  if (!confirm(__('Bạn có chắc chắn muốn chấm TOÀN BỘ bài làm trong phiên này?'))) return
+  if (!confirm(__('Are you sure you want to grade THE ENTIRE work in this session?'))) return
   isBatchGrading.value = true
   try {
     await startBatchGradingResource.submit({ 
       session: resolvedSessionId.value 
     })
-    frappe.show_alert({ message: __('Đang tiến hành chấm bài hàng loạt...'), indicator: 'blue' })
+    frappe.show_alert({ message: __('Batch marking in progress...'), indicator: 'blue' })
     setTimeout(loadSubmissions, 5000)
   } catch (e) {
     console.error(e)
@@ -990,7 +990,7 @@ async function approveCurrent() {
 				status: 'Done'
 			}
 		})
-		frappe.show_alert({ message: __('Đã duyệt bài của {0}').format(currentSub.value.name), indicator: 'green' })
+		frappe.show_alert({ message: __('Approved {0} \'s post').format(currentSub.value.name), indicator: 'green' })
 		await loadSubmissions()
 	} catch (e) {
 		console.error(e)
@@ -1019,11 +1019,11 @@ async function flagCurrent() {
 
 function exportGrades() {
 	// Implement CSV export if needed
-	frappe.msgprint(__('Tính năng xuất điểm đang được phát triển.'))
+	frappe.msgprint(__('The export feature is under development.'))
 }
 
 async function saveAllToDatabase() {
-	frappe.show_alert({ message: __('Dữ liệu đã được đồng bộ tự động.'), indicator: 'blue' })
+	frappe.show_alert({ message: __('Data has been synced automatically.'), indicator: 'blue' })
 }
 </script>
 
