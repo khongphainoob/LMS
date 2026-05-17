@@ -261,10 +261,10 @@ const courses = ref([])
 const batches = ref([])
 
 const starterPrompts = [
-  'Giải thích khái niệm khó nhất trong bài này',
-  'Gợi ý tớ cách làm bài tập này (không cho đáp án)',
-  'Tạo cho tớ 3 câu hỏi trắc nghiệm ôn tập',
-  'Lên kế hoạch học tập cho chương này',
+  __('Explain the most difficult concept in this article'),
+  __('Suggest me how to do this exercise (no answers given)'),
+  __('Create for me 3 multiple choice review questions'),
+  __('Make a study plan for this chapter'),
 ]
 
 // API Resources

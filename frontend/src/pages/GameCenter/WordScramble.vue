@@ -128,6 +128,14 @@
 <script setup>
 import { ref, computed, nextTick } from "vue"
 import { Star, Heart } from "lucide-vue-next"
+import { useGameSession } from '@/utils/gameSession'
+
+const props = defineProps({
+	classGame: { type: [String, Number], default: null }
+})
+const emit = defineEmits(['finished'])
+
+const { startGame: _startGame, submitScore, submitResult, startError, gameConfig } = useGameSession(props.classGame)
 
 const score = ref(0)
 const lives = ref(3)
@@ -141,7 +149,7 @@ const gameOver = ref(false)
 const hintsLeft = ref(3)
 const wordResults = ref([])
 
-const words = [
+const words = ref([
 	{ answer: "ALGORITHM", hint: "A step-by-step procedure", category: "tech" },
 	{ answer: "BACTERIA", hint: "Microscopic organisms", category: "science" },
 	{ answer: "CALCULUS", hint: "Branch of mathematics", category: "math" },
@@ -152,7 +160,7 @@ const words = [
 	{ answer: "HYDROGEN", hint: "Lightest element", category: "science" },
 	{ answer: "INTERNET", hint: "Global network", category: "tech" },
 	{ answer: "JUPITER", hint: "Largest planet", category: "science" },
-]
+])
 
 const correctCount = computed(() => wordResults.value.filter(Boolean).length)
 
@@ -180,7 +188,8 @@ function scrambleWord(word) {
 }
 
 function loadWord() {
-	const word = words[currentIndex.value]
+	if (!words.value || words.value.length === 0) return
+	const word = words.value[currentIndex.value]
 	scrambledLetters.value = scrambleWord(word.answer)
 	answerSlots.value = new Array(word.answer.length).fill(null)
 	isWrong.value = false
@@ -198,7 +207,7 @@ function pickLetter(idx) {
 
 function clearAnswer() {
 	scrambledLetters.value.forEach((l) => (l.picked = false))
-	answerSlots.value = new Array(words[currentIndex.value].answer.length).fill(null)
+	answerSlots.value = new Array(words.value[currentIndex.value].answer.length).fill(null)
 	isWrong.value = false
 	feedback.value = null
 }
@@ -206,7 +215,7 @@ function clearAnswer() {
 function useHint() {
 	if (hintsLeft.value <= 0) return
 	hintsLeft.value--
-	const correct = words[currentIndex.value].answer
+	const correct = words.value[currentIndex.value].answer
 	for (let i = 0; i < correct.length; i++) {
 		if (answerSlots.value[i] !== correct[i]) {
 			answerSlots.value[i] = correct[i]
@@ -221,7 +230,7 @@ function useHint() {
 
 function checkAnswer() {
 	const answer = answerSlots.value.join("")
-	const correct = words[currentIndex.value].answer
+	const correct = words.value[currentIndex.value].answer
 	if (answer === correct) {
 		const timeBonus = hintsLeft.value > 0 ? 5 : 0
 		const baseScore = correct.length * 3
@@ -229,11 +238,12 @@ function checkAnswer() {
 		wordResults.value.push(true)
 		feedback.value = { correct: true, message: __("Correct! +" + (baseScore + timeBonus) + " pts \u{2728}") }
 		setTimeout(() => {
-			if (currentIndex.value < words.length - 1) {
+			if (currentIndex.value < words.value.length - 1) {
 				currentIndex.value++
 				loadWord()
 			} else {
 				gameOver.value = true
+				_submitAndFinish()
 			}
 		}, 1000)
 	} else {
@@ -245,25 +255,63 @@ function checkAnswer() {
 		setTimeout(() => {
 			if (lives.value <= 0) {
 				gameOver.value = true
-			} else if (currentIndex.value < words.length - 1) {
+				_submitAndFinish()
+			} else if (currentIndex.value < words.value.length - 1) {
 				currentIndex.value++
 				loadWord()
 			} else {
 				gameOver.value = true
+				_submitAndFinish()
 			}
 		}, 1500)
 	}
 }
 
-function resetGame() {
+function applyCustomQuestions() {
+	if (gameConfig.value) {
+		try {
+			const parsed = typeof gameConfig.value === 'string' ? JSON.parse(gameConfig.value) : gameConfig.value
+			if (Array.isArray(parsed) && parsed.length > 0) {
+				words.value = parsed.map(w => ({
+					answer: String(w.answer).toUpperCase(),
+					hint: w.hint || '',
+					category: w.category || 'general'
+				}))
+			}
+		} catch (e) {
+			console.error("Failed to parse custom scrambled words:", e)
+		}
+	}
+}
+
+async function _submitAndFinish() {
+	if (!props.classGame) return
+	const rawScore = Math.round(score.value)
+	await submitScore(rawScore, {})
+	emit('finished', submitResult.value || { score: rawScore, max_score: 300 })
+}
+
+async function resetGame() {
 	score.value = 0
 	lives.value = maxLives
 	currentIndex.value = 0
 	hintsLeft.value = 3
 	wordResults.value = []
 	gameOver.value = false
+	if (props.classGame) {
+		await _startGame()
+		applyCustomQuestions()
+	}
 	loadWord()
 }
 
-loadWord()
+// Auto-start session when classGame is provided
+if (props.classGame) {
+	_startGame().then(() => {
+		applyCustomQuestions()
+		loadWord()
+	})
+} else {
+	loadWord()
+}
 </script>

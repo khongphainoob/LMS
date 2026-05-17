@@ -1,0 +1,52 @@
+[
+  {
+    "answer": "ALGORITHM",
+    "hint": "A step-by-step procedure for solving a problem or making a calculation",
+    "category": "tech"
+  },
+  {
+    "answer": "BACTERIA",
+    "hint": "Microscopic, single-celled organisms that exist all around us",
+    "category": "science"
+  },
+  {
+    "answer": "CALCULUS",
+    "hint": "A branch of mathematics dealing with limits, derivatives, and integrals",
+    "category": "math"
+  },
+  {
+    "answer": "DATABASE",
+    "hint": "An organized collection of structured information or data stored electronically",
+    "category": "tech"
+  },
+  {
+    "answer": "ELECTRON",
+    "hint": "A stable subatomic particle with a charge of negative electricity",
+    "category": "science"
+  },
+  {
+    "answer": "FRACTION",
+    "hint": "A numerical quantity that is not a whole number (e.g. 1/2 or 3/4)",
+    "category": "math"
+  },
+  {
+    "answer": "GEOMETRY",
+    "hint": "The branch of mathematics concerned with the properties and relations of points, lines, and solids",
+    "category": "math"
+  },
+  {
+    "answer": "HARDWARE",
+    "hint": "The physical parts of a computer system, such as the monitor, keyboard, and CPU",
+    "category": "tech"
+  },
+  {
+    "answer": "HYDROGEN",
+    "hint": "The chemical element of atomic number 1, the lightest gas in the universe",
+    "category": "science"
+  },
+  {
+    "answer": "INTERNET",
+    "hint": "A global computer network providing a variety of information and communication facilities",
+    "category": "tech"
+  }
+]

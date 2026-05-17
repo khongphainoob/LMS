@@ -361,6 +361,11 @@ const routes = [
 		name: 'GameCenterTab',
 		component: () => import('@/pages/GameCenter.vue'),
 	},
+	{
+		path: '/game-center/lobby',
+		name: 'GameLobby',
+		component: () => import('@/pages/GameCenter/GameLobby.vue'),
+	},
 ]
 
 let router = createRouter({

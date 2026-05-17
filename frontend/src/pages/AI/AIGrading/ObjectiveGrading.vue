@@ -10,8 +10,8 @@
 					<icons.ChevronLeft class="h-6 w-6 text-slate-600 stroke-[3px]" />
 				</button>
 				<div>
-					<h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight uppercase">{{ __('Chấm trắc nghiệm AI') }}</h2>
-					<p class="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] mt-1">{{ __('Tối ưu hóa quy trình chấm điểm MCQ với thị giác máy tính.') }}</p>
+					<h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight uppercase">{{ __('AI Quiz Scoring') }}</h2>
+					<p class="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] mt-1">{{ __('Optimize the MCQ scoring process with computer vision.') }}</p>
 				</div>
 			</div>
 			<button 
@@ -19,7 +19,7 @@
 				class="flex items-center gap-3 px-8 py-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white font-black text-xs uppercase tracking-widest hover:border-amber-400 transition-all shadow-xl active:scale-95"
 			>
 				<icons.BookOpen class="h-4 w-4" />
-				{{ __('Hướng dẫn sử dụng') }}
+				{{ __('Instructions for use') }}
 			</button>
 		</div>
 
@@ -33,8 +33,8 @@
 					<div class="mb-10 flex h-24 w-24 items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-200 group-hover:scale-110 transition-all">
 						<icons.Camera class="h-12 w-12 stroke-[2.5px]" />
 					</div>
-					<h3 class="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase">{{ __('Chấm qua Camera / Ảnh') }}</h3>
-					<p class="text-[15px] text-slate-500 font-bold leading-relaxed max-w-sm">{{ __('Tự động nhận diện bài làm từ ảnh chụp hoặc file PDF để chấm điểm tức thì.') }}</p>
+					<h3 class="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase">{{ __('Dot via Camera / Photo') }}</h3>
+					<p class="text-[15px] text-slate-500 font-bold leading-relaxed max-w-sm">{{ __('Automatically recognize work from photos or PDFs for instant grading.') }}</p>
 				</div>
 				<div class="absolute -right-10 -bottom-10 h-64 w-64 bg-amber-500/5 rounded-full blur-[80px]"></div>
 			</button>
@@ -47,8 +47,8 @@
 					<div class="mb-10 flex h-24 w-24 items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-teal-400 to-emerald-500 text-white shadow-lg shadow-teal-200 group-hover:scale-110 transition-all">
 						<icons.LayoutTemplate class="h-12 w-12 stroke-[2.5px]" />
 					</div>
-					<h3 class="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase">{{ __('Nhập Form Đáp án') }}</h3>
-					<p class="text-[15px] text-slate-500 font-bold leading-relaxed max-w-sm">{{ __('Dành cho chấm điểm thủ công hoặc các cấu trúc đề thi tùy chỉnh không qua hình ảnh.') }}</p>
+					<h3 class="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase">{{ __('Enter the Answer Form') }}</h3>
+					<p class="text-[15px] text-slate-500 font-bold leading-relaxed max-w-sm">{{ __('For manual scoring or non-visual custom exam question structures.') }}</p>
 				</div>
 				<div class="absolute -right-10 -bottom-10 h-64 w-64 bg-teal-500/5 rounded-full blur-[80px]"></div>
 			</button>
@@ -61,7 +61,7 @@
 					<div class="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-amber-400 shadow-lg">
 						<icons.History class="h-6 w-6" />
 					</div>
-					<h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{{ __('Phiên chấm bài gần đây') }}</h3>
+					<h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{{ __('Recent Grading Sessions') }}</h3>
 				</div>
 				<div class="relative w-full lg:w-[35rem]">
 					<icons.Search class="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -69,7 +69,7 @@
 						v-model="sessionSearchQuery"
 						type="text"
 						class="w-full pl-16 pr-6 py-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-base font-bold text-slate-900 dark:text-white outline-none focus:border-amber-400 transition-all shadow-inner"
-						:placeholder="__('Tìm kiếm phiên chấm...')"
+						:placeholder="__('Search sessions')"
 					/>
 				</div>
 			</div>
@@ -80,7 +80,7 @@
 					class="flex flex-col items-center justify-center py-24 text-center"
 				>
 					<icons.FolderOpen class="h-16 w-16 text-slate-200 mb-6" />
-					<p class="text-lg font-black text-slate-400 uppercase tracking-widest">{{ __('Chưa có dữ liệu phiên chấm MCQ.') }}</p>
+					<p class="text-lg font-black text-slate-400 uppercase tracking-widest">{{ __('MCQ session data is not available.') }}</p>
 				</div>
 
 				<div
@@ -96,7 +96,7 @@
 							{{ session.session_name }}
 						</h4>
 						<div class="flex flex-wrap items-center gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-							<span class="flex items-center gap-3"><icons.Users class="h-4 w-4" /> {{ session.class_name || __('Lớp học') }}</span>
+							<span class="flex items-center gap-3"><icons.Users class="h-4 w-4" /> {{ session.class_name || __('Classroom') }}</span>
 							<span class="flex items-center gap-3"><icons.Calendar class="h-4 w-4" /> {{ session.modified_display }}</span>
 						</div>
 					</div>
@@ -105,7 +105,7 @@
 							@click="openWorkspace(session)"
 							class="px-10 py-4 rounded-2xl bg-white border-2 border-slate-100 text-slate-900 font-black text-xs uppercase tracking-widest transition-all hover:scale-105 hover:shadow-xl active:scale-95 shadow-lg"
 						>
-							{{ __('Mở phiên') }}
+							{{ __('Open a session') }}
 						</button>
 						<button
 							@click="deleteSession(session.name)"
@@ -177,7 +177,7 @@ const filteredSessions = computed(() => {
 })
 
 const creatorTitle = computed(() => {
-	return creatorType.value === 'image' ? __('Khởi tạo Chấm MCQ qua Ảnh') : __('Khởi tạo Chấm MCQ qua Form')
+	return creatorType.value === 'image' ? __('Initialize MCQ Dots via Photo') : __('Initialize MCQ Dots via Form')
 })
 
 const creatorComponent = computed(() => {
@@ -198,7 +198,7 @@ function openWorkspace(session) {
 }
 
 async function deleteSession(name) {
-	if (!confirm(__('Bạn có chắc chắn muốn xóa phiên này?'))) return
+	if (!confirm(__('Are you sure you want to remove this session?'))) return
 	await createResource({
 		url: 'frappe.client.delete',
 		auto: false

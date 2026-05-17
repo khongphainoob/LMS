@@ -25,8 +25,19 @@
 			></div>
 		</div>
 
+		<!-- Error State -->
+		<div v-if="startError" class="text-center p-8 border border-red-200 bg-red-50 rounded-2xl mb-4 space-y-4 max-w-md mx-auto shadow-sm">
+			<div class="text-4xl">⚠️</div>
+			<h4 class="text-base font-bold text-red-800">{{ __("Limit Reached") }}</h4>
+			<p class="text-sm text-red-600 font-medium leading-relaxed">{{ startError }}</p>
+			<div class="flex justify-center gap-3 pt-2">
+				<button @click="resetQuiz" class="px-4 py-2 bg-white hover:bg-surface-gray-1 active:scale-95 text-ink-gray-7 text-xs font-bold rounded-xl border border-outline-gray-2 shadow-sm transition-all">{{ __("Try Again") }}</button>
+				<button @click="exitGame" class="px-4 py-2 bg-red-600 hover:bg-red-750 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition-all">{{ __("Exit Game") }}</button>
+			</div>
+		</div>
+
 		<!-- Quiz Content -->
-		<div v-if="!quizFinished" class="border border-outline-gray-2 bg-surface-white rounded-xl p-5">
+		<div v-if="!quizFinished && !startError" class="border border-outline-gray-2 bg-surface-white rounded-xl p-5">
 			<div class="mb-1 text-xs text-ink-gray-5 font-medium">{{ getCategoryLabel(questions[currentQuestionIndex].category) }}</div>
 			<h4 class="text-lg font-semibold text-ink-gray-9 mb-5">
 				{{ questions[currentQuestionIndex].question }}
@@ -56,12 +67,16 @@
 
 		<!-- Results -->
 		<div v-if="quizFinished" class="border border-outline-gray-2 bg-surface-white rounded-xl p-6 text-center space-y-4">
-			<div class="text-4xl">{{ score >= 4 ? "\u{1F389}" : score >= 2 ? "\u{1F44D}" : "\u{1F4AA}" }}</div>
+			<div class="text-4xl">{{ correctAnswersCount >= 4 ? "\u{1F389}" : correctAnswersCount >= 2 ? "\u{1F44D}" : "\u{1F4AA}" }}</div>
 			<h4 class="text-lg font-bold text-ink-gray-9">{{ __("Quiz Complete!") }}</h4>
 			<div class="flex justify-center gap-6">
 				<div>
-					<div class="text-3xl font-bold text-ink-blue-4">{{ score }}/{{ questions.length }}</div>
+					<div class="text-3xl font-bold text-ink-blue-4">{{ correctAnswersCount }}/{{ questions.length }}</div>
 					<div class="text-xs text-ink-gray-5">{{ __("Correct") }}</div>
+				</div>
+				<div>
+					<div class="text-3xl font-bold text-indigo-600">{{ score }}</div>
+					<div class="text-xs text-ink-gray-5">{{ __("Points") }}</div>
 				</div>
 				<div>
 					<div class="text-3xl font-bold text-ink-amber-5">{{ avgTime }}s</div>
@@ -93,7 +108,19 @@
 
 <script setup>
 import { ref, computed, onUnmounted } from "vue"
+import { useRouter } from "vue-router"
 import { Clock, CheckCircle2, XCircle } from "lucide-vue-next"
+import { useGameSession } from "@/utils/gameSession"
+
+const props = defineProps({
+	classGame: { type: String, default: null },
+})
+const emit = defineEmits(['finished'])
+
+const router = useRouter()
+
+// Session lifecycle (only active when classGame is provided)
+const { startGame, submitScore, isStarting, startError, submitResult, gameConfig } = useGameSession(props.classGame)
 
 const timePerQuestion = 15
 const timeLeft = ref(timePerQuestion)
@@ -101,12 +128,14 @@ const currentQuestionIndex = ref(0)
 const selectedAnswer = ref(null)
 const hasAnswered = ref(false)
 const score = ref(0)
+const correctAnswersCount = ref(0)
+const correctAnswersList = ref([])
 const quizFinished = ref(false)
 const questionTimes = ref([])
 const questionStartTime = ref(null)
 let timerInterval = null
 
-const questions = [
+const questions = ref([
 	{
 		question: "What does HTML stand for?",
 		options: ["Hyper Text Markup Language", "High Tech Modern Language", "Hyper Transfer Markup Language", "Home Tool Markup Language"],
@@ -155,7 +184,7 @@ const questions = [
 		correct: 2,
 		category: "history",
 	},
-]
+])
 
 const avgTime = computed(() => {
 	if (!questionTimes.value.length) return 0
@@ -198,14 +227,25 @@ function selectAnswer(idx) {
 	clearInterval(timerInterval)
 	const elapsed = (Date.now() - questionStartTime.value) / 1000
 	questionTimes.value.push(Math.round(elapsed))
-	if (idx === questions[currentQuestionIndex.value].correct) {
-		score.value++
+	if (idx === questions.value[currentQuestionIndex.value].correct) {
+		correctAnswersCount.value++
+		correctAnswersList.value.push(true)
+		
+		// Apply linear deduction formula: maxPoints - elapsed * weight
+		const maxPoints = 100
+		const weight = 3 // subtract 3 points per second elapsed
+		const minPoints = 50 // floor score for answering correctly
+		const calculatedScore = maxPoints - (elapsed * weight)
+		
+		score.value += Math.max(minPoints, Math.round(calculatedScore))
+	} else {
+		correctAnswersList.value.push(false)
 	}
 	setTimeout(nextQuestion, 1200)
 }
 
 function nextQuestion() {
-	if (currentQuestionIndex.value < questions.length - 1) {
+	if (currentQuestionIndex.value < questions.value.length - 1) {
 		currentQuestionIndex.value++
 		selectedAnswer.value = null
 		hasAnswered.value = false
@@ -213,6 +253,24 @@ function nextQuestion() {
 	} else {
 		quizFinished.value = true
 		clearInterval(timerInterval)
+		// Submit score to server if in session mode
+		if (props.classGame) {
+			const rawScore = score.value // submit the accumulated score directly (max 800)
+			const meta = {
+				correct_answers: correctAnswersCount.value,
+				total_questions: questions.value.length,
+				avg_time: avgTime.value,
+			}
+			submitScore(rawScore, meta).then(() => {
+				emit('finished', {
+					...(submitResult.value || {}),
+					// Include local metadata for display
+					correct_answers: meta.correct_answers,
+					total_questions: meta.total_questions,
+					wrong_answers: meta.total_questions - meta.correct_answers,
+				})
+			})
+		}
 	}
 }
 
@@ -222,7 +280,7 @@ function getOptionClass(idx) {
 			? "border-ink-blue-4 bg-blue-50 dark:bg-blue-900/20"
 			: "border-outline-gray-2 hover:border-outline-gray-3 hover:bg-surface-gray-1"
 	}
-	if (idx === questions[currentQuestionIndex.value].correct) {
+	if (idx === questions.value[currentQuestionIndex.value].correct) {
 		return "border-green-400 bg-green-50 dark:bg-green-900/20"
 	}
 	if (selectedAnswer.value === idx) {
@@ -235,7 +293,7 @@ function getOptionLetterClass(idx) {
 	if (!hasAnswered.value) {
 		return "bg-surface-gray-2 text-ink-gray-6"
 	}
-	if (idx === questions[currentQuestionIndex.value].correct) {
+	if (idx === questions.value[currentQuestionIndex.value].correct) {
 		return "bg-green-500 text-white"
 	}
 	if (selectedAnswer.value === idx) {
@@ -253,30 +311,63 @@ function getDotClass(idx) {
 }
 
 function answeredCorrectly(idx) {
-	return idx < questionTimes.value.length && score.value > 0
+	return correctAnswersList.value[idx] === true
 }
 
 function getResultMessage() {
-	const pct = (score.value / questions.length) * 100
+	const pct = (correctAnswersCount.value / questions.value.length) * 100
 	if (pct >= 80) return __("Outstanding! You're a quiz master! \u{1F3C6}")
 	if (pct >= 60) return __("Great job! Keep up the good work! \u{1F31F}")
 	if (pct >= 40) return __("Not bad! Room for improvement. \u{1F4AA}")
 	return __("Keep practicing! You'll get better! \u{1F4DA}")
 }
 
-function resetQuiz() {
+function applyCustomQuestions() {
+	if (gameConfig.value) {
+		try {
+			const parsed = typeof gameConfig.value === 'string' ? JSON.parse(gameConfig.value) : gameConfig.value
+			if (Array.isArray(parsed) && parsed.length > 0) {
+				questions.value = parsed
+			}
+		} catch (e) {
+			console.error("Failed to parse custom game questions:", e)
+		}
+	}
+}
+
+async function resetQuiz() {
 	currentQuestionIndex.value = 0
 	selectedAnswer.value = null
 	hasAnswered.value = false
 	score.value = 0
+	correctAnswersCount.value = 0
+	correctAnswersList.value = []
 	quizFinished.value = false
 	questionTimes.value = []
-	startTimer()
+	if (props.classGame) {
+		await startGame()
+		applyCustomQuestions()
+		if (!startError.value) startTimer()
+	} else {
+		startTimer()
+	}
 }
 
 onUnmounted(() => {
 	clearInterval(timerInterval)
 })
 
-startTimer()
+function exitGame() {
+	router.push({ name: 'GameCenterTab', params: { tab: 'games' } })
+}
+
+// Initialize
+if (props.classGame) {
+	startGame().then(() => {
+		applyCustomQuestions()
+		if (!startError.value) startTimer()
+	})
+} else {
+	startTimer()
+}
 </script>

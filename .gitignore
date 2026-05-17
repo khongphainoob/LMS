@@ -5,6 +5,7 @@
 tags
 lms/docs/current
 lms/public/dist
+lms/public/frontend/assets/
 __pycache__/
 
 # Temporary and status files
@@ -33,6 +34,7 @@ check_session.py
 get_error*.py
 get_sessions.py
 test_agent.sh
+show_table.sh
 
 # Temporary text files
 status*.txt

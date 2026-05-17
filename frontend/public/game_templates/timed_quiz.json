@@ -1,0 +1,112 @@
+[
+  {
+    "question": "What does HTML stand for?",
+    "options": [
+      "Hyper Text Markup Language",
+      "High Tech Modern Language",
+      "Hyper Transfer Markup Language",
+      "Home Tool Markup Language"
+    ],
+    "correct": 0,
+    "category": "tech"
+  },
+  {
+    "question": "Which planet is known as the Red Planet?",
+    "options": [
+      "Venus",
+      "Mars",
+      "Jupiter",
+      "Saturn"
+    ],
+    "correct": 1,
+    "category": "science"
+  },
+  {
+    "question": "What is the square root of 144?",
+    "options": [
+      "10",
+      "11",
+      "12",
+      "14"
+    ],
+    "correct": 2,
+    "category": "math"
+  },
+  {
+    "question": "Which programming language is mainly used for iOS app development?",
+    "options": [
+      "Java",
+      "Swift",
+      "Python",
+      "C++"
+    ],
+    "correct": 1,
+    "category": "tech"
+  },
+  {
+    "question": "What is the chemical symbol for water?",
+    "options": [
+      "H2O",
+      "CO2",
+      "NaCl",
+      "O2"
+    ],
+    "correct": 0,
+    "category": "science"
+  },
+  {
+    "question": "Who painted the famous 'Mona Lisa'?",
+    "options": [
+      "Vincent van Gogh",
+      "Pablo Picasso",
+      "Leonardo da Vinci",
+      "Claude Monet"
+    ],
+    "correct": 2,
+    "category": "art"
+  },
+  {
+    "question": "What is the capital of Japan?",
+    "options": [
+      "Seoul",
+      "Beijing",
+      "Tokyo",
+      "Bangkok"
+    ],
+    "correct": 2,
+    "category": "general"
+  },
+  {
+    "question": "How many bones are there in an adult human body?",
+    "options": [
+      "186",
+      "206",
+      "226",
+      "256"
+    ],
+    "correct": 1,
+    "category": "science"
+  },
+  {
+    "question": "What is the value of Pi rounded to two decimal places?",
+    "options": [
+      "3.12",
+      "3.14",
+      "3.16",
+      "3.18"
+    ],
+    "correct": 1,
+    "category": "math"
+  },
+  {
+    "question": "Which ocean is the largest on Earth?",
+    "options": [
+      "Atlantic Ocean",
+      "Indian Ocean",
+      "Arctic Ocean",
+      "Pacific Ocean"
+    ],
+    "correct": 3,
+    "category": "general"
+  }
+]

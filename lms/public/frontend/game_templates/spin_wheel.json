@@ -1,0 +1,194 @@
+{
+  "science": [
+    {
+      "q": "What is the powerhouse of the cell?",
+      "a": [
+        "Mitochondria",
+        "Nucleus",
+        "Ribosome",
+        "Chloroplast"
+      ],
+      "c": 0
+    },
+    {
+      "q": "Which is the lightest element in the periodic table?",
+      "a": [
+        "Helium",
+        "Hydrogen",
+        "Lithium",
+        "Oxygen"
+      ],
+      "c": 1
+    },
+    {
+      "q": "What gas do plants absorb during photosynthesis?",
+      "a": [
+        "Oxygen",
+        "Carbon Dioxide",
+        "Nitrogen",
+        "Helium"
+      ],
+      "c": 1
+    },
+    {
+      "q": "What is the nearest star to Earth?",
+      "a": [
+        "Proxima Centauri",
+        "Alpha Centauri",
+        "Sirius",
+        "The Sun"
+      ],
+      "c": 3
+    }
+  ],
+  "history": [
+    {
+      "q": "Who was the first President of the United States?",
+      "a": [
+        "Thomas Jefferson",
+        "Abraham Lincoln",
+        "George Washington",
+        "John Adams"
+      ],
+      "c": 2
+    },
+    {
+      "q": "In which year did World War II end?",
+      "a": [
+        "1918",
+        "1941",
+        "1945",
+        "1950"
+      ],
+      "c": 2
+    },
+    {
+      "q": "Who was the first human to travel into outer space?",
+      "a": [
+        "Neil Armstrong",
+        "Yuri Gagarin",
+        "Buzz Aldrin",
+        "John Glenn"
+      ],
+      "c": 1
+    }
+  ],
+  "geography": [
+    {
+      "q": "What is the capital city of France?",
+      "a": [
+        "London",
+        "Berlin",
+        "Rome",
+        "Paris"
+      ],
+      "c": 3
+    },
+    {
+      "q": "Which river is the longest in the world?",
+      "a": [
+        "Amazon River",
+        "Nile River",
+        "Yangtze River",
+        "Mississippi River"
+      ],
+      "c": 1
+    },
+    {
+      "q": "What is the tallest mountain in the world?",
+      "a": [
+        "K2",
+        "Mount Kilimanjaro",
+        "Mount Everest",
+        "Mount Fuji"
+      ],
+      "c": 2
+    }
+  ],
+  "math": [
+    {
+      "q": "What is the square root of 144?",
+      "a": [
+        "10",
+        "11",
+        "12",
+        "14"
+      ],
+      "c": 2
+    },
+    {
+      "q": "What is the sum of angles in a triangle?",
+      "a": [
+        "90 degrees",
+        "180 degrees",
+        "270 degrees",
+        "360 degrees"
+      ],
+      "c": 1
+    },
+    {
+      "q": "What is the value of 5 factorial (5!)?",
+      "a": [
+        "60",
+        "100",
+        "120",
+        "150"
+      ],
+      "c": 2
+    }
+  ],
+  "tech": [
+    {
+      "q": "What does CPU stand for?",
+      "a": [
+        "Central Process Unit",
+        "Computer Personal Unit",
+        "Central Processing Unit",
+        "Core Processing Utility"
+      ],
+      "c": 2
+    },
+    {
+      "q": "Which company created the iPhone?",
+      "a": [
+        "Google",
+        "Microsoft",
+        "Apple",
+        "Samsung"
+      ],
+      "c": 2
+    },
+    {
+      "q": "What is the main database query language?",
+      "a": [
+        "HTML",
+        "SQL",
+        "Python",
+        "C++"
+      ],
+      "c": 1
+    }
+  ],
+  "literature": [
+    {
+      "q": "Who wrote the play 'Romeo and Juliet'?",
+      "a": [
+        "Charles Dickens",
+        "William Shakespeare",
+        "Mark Twain",
+        "Jane Austen"
+      ],
+      "c": 1
+    },
+    {
+      "q": "What is the first book of the Harry Potter series?",
+      "a": [
+        "Chamber of Secrets",
+        "Prisoner of Azkaban",
+        "Philosopher's Stone",
+        "Goblet of Fire"
+      ],
+      "c": 2
+    }
+  ]
+}

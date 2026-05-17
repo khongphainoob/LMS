@@ -7,7 +7,7 @@
 				@click="$router.push({ name: 'AIGradingObjective' })"
 			>
 				<icons.ChevronLeft class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-				{{ __('Quay lại') }}
+				{{ __('Revert') }}
 			</button>
 			<div class="h-5 w-px bg-gray-200" />
 			<div>
@@ -71,7 +71,7 @@
             <div class="flex items-center justify-between mt-auto pt-1">
 							<div class="flex items-center gap-3">
 								<div v-if="sub.status === 'grading'" class="flex items-center gap-1">
-									<button @click.stop="stopGrading(sub)" class="p-1 hover:bg-rose-100 rounded text-rose-600" title="Dừng chấm">
+									<button @click.stop="stopGrading(sub)" class="p-1 hover:bg-rose-100 rounded text-rose-600" :title="__('Stop marking')">
 										<Square class="w-4 h-4 fill-current" />
 									</button>
 									<Loader2 class="w-4 h-4 animate-spin text-amber-600" />
@@ -235,7 +235,7 @@
 									<!-- Header của Câu hỏi -->
 									<div class="flex items-center justify-between mb-1">
 										<span class="font-bold text-gray-800">
-											{{ (q.question_no || q.q_no || '').startsWith('Câu') ? (q.question_no || q.q_no) : __('Question') + ' ' + (q.question_no || q.q_no) }}
+											{{ (q.question_no || q.q_no || '').startsWith(__('Sentence')) ? (q.question_no || q.q_no) : __('Question') + ' ' + (q.question_no || q.q_no) }}
 										</span>
 										<div class="flex items-center gap-1">
 											<input v-model.number="q.score" class="w-10 rounded border border-gray-200 px-1 py-0.5 text-center font-mono text-xs text-blue-600 focus:border-blue-400 focus:outline-none" />
@@ -251,7 +251,7 @@
 												<div class="flex items-center gap-3">
 													<span class="text-gray-500 font-mono text-[10px] bg-white border border-gray-200 px-1.5 py-0.5 rounded">
 														HS: <span class="text-gray-800 font-bold">{{ detail.student_choice || '-' }}</span> 
-														| ĐA: <span class="text-emerald-600 font-bold">{{ detail.correct_answer || '-' }}</span>
+														{{ __('| MULTI:') }} <span class="text-emerald-600 font-bold">{{ detail.correct_answer || '-' }}</span>
 													</span>
 													<input 
 														v-model.number="detail.score"
@@ -899,11 +899,11 @@ async function gradeCurrent() {
 		// Bắt đầu poll để tự động nạp kết quả khi xong
 		pollGradingStatus(submissionId)
 
-		frappe.show_alert({ message: __('Đã bắt đầu chấm bài (chạy nền). Có thể làm việc khác.'), indicator: 'blue' })
+		frappe.show_alert({ message: __('Grading started (background run). Can do something else.'), indicator: 'blue' })
   } catch (e) {
     console.error('Grading error:', e)
     frappe.show_alert({ 
-			message: __('Không thể bắt đầu chấm bài. Vui lòng thử lại.'),
+			message: __('Failed to start grading. Please try again.'),
 			indicator: 'red'
     })
     loadSubmissions()

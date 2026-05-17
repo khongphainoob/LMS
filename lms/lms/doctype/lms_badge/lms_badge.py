@@ -62,6 +62,7 @@ def eval_condition(doc, condition):
 
 @frappe.whitelist()
 def assign_badge(badge):
+	frappe.only_for(["Moderator"])
 	badge = frappe._dict(json.loads(badge))
 	if not badge.event == "Auto Assign":
 		return

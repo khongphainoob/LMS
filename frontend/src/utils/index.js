@@ -509,7 +509,7 @@ const getSidebarItems = () => {
 					label: 'Game Center',
 					icon: 'Trophy',
 					to: 'GameCenter',
-					activeFor: ['GameCenter'],
+					activeFor: ['GameCenter', 'GameCenterTab', 'GameCenterGame'],
 					condition: () => {
 						return userResource?.data
 					},

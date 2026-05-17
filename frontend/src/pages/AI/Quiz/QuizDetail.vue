@@ -68,7 +68,7 @@
               </div>
               <div class="flex justify-between items-center pb-4 border-b border-slate-100/50 dark:border-slate-800">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{{ __('Ngôn ngữ') }}</span>
-                <span class="text-sm font-black text-slate-800 dark:text-white uppercase">{{ quiz.language === 'vi' ? 'Tiếng Việt' : 'English' }}</span>
+                <span class="text-sm font-black text-slate-800 dark:text-white uppercase">{{ quiz.language === 'vi' ? __('Vietnamese') : 'English' }}</span>
               </div>
               <div v-if="quiz.source_file" class="pt-4">
                 <span class="block text-[11px] font-bold text-slate-400 uppercase mb-4 tracking-tight">{{ __('Tài liệu nguồn') }}</span>
@@ -318,7 +318,7 @@ const displayQuestions = computed(() => {
 })
 
 const deleteQuestion = (index) => {
-  if (confirm('Bạn có chắc muốn xóa câu hỏi này?')) {
+  if (confirm(__('Are you sure you want to delete this question?'))) {
     questionsList.value.splice(index, 1)
   }
 }
