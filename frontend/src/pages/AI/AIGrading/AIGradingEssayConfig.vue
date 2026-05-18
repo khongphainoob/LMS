@@ -109,12 +109,12 @@
 		>
 			<div class="mb-4 space-y-3">
 				<div class="flex items-center justify-between">
-					<span class="text-sm font-semibold text-gray-800">{{ __('Phiên Chấm điểm') }}</span>
+					<span class="text-sm font-semibold text-gray-800">{{ __('Grading Session') }}</span>
 					<span
 						class="rounded-full px-2 py-0.5 text-[10px] font-medium"
 						:class="accentClasses.badge"
 					>
-						{{ __('Yêu cầu chọn phiên') }}
+						{{ __('Session Requests') }}
 					</span>
 				</div>
 				<div class="relative">
@@ -123,7 +123,7 @@
 						class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none transition-all"
 						:class="'focus:border-' + accentClasses.text.split('-')[1]"
 						:style="`focus: border-color: ${accentClasses.buttonStyle.split(': ')[1]}`"
-						:placeholder="__('Tìm kiếm phiên theo ID hoặc tên...')"
+						:placeholder="__('Search for a session by ID or name...')"
 					/>
 					<span class="absolute right-3 top-2.5 text-xs text-gray-400">🔍</span>
 				</div>
@@ -140,8 +140,8 @@
 					class="rounded-[2rem] border-2 border-dashed border-slate-100 bg-white/50 px-10 py-16 text-center shadow-inner"
 				>
 					<div class="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-50 text-4xl shadow-sm mb-6">📭</div>
-					<h3 class="text-base font-black text-slate-800 uppercase tracking-tight">{{ __('Chưa có phiên chấm điểm') }}</h3>
-					<p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">{{ __('Hãy tạo phiên mới để bắt đầu chấm bài bằng AI') }}</p>
+					<h3 class="text-base font-black text-slate-800 uppercase tracking-tight">{{ __('No scoring sessions yet') }}</h3>
+					<p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">{{ __('Let\'s create a new session to start marking with AI') }}</p>
 				</div>
 
 				<div
@@ -247,7 +247,7 @@
 			<template #body-content>
 				<div class="space-y-4 p-4">
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-medium text-gray-700">{{ __('Session Name (Tên phiên)') }}</label>
+						<label class="text-sm font-medium text-gray-700">{{ __('Session Name') }}</label>
 						<Input
 							type="text"
 							v-model="newSession.name"
@@ -255,7 +255,7 @@
 						/>
 					</div>
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-medium text-gray-700">{{ __('Course (Khoá học)') }}</label>
+						<label class="text-sm font-medium text-gray-700">{{ __('Course') }}</label>
 						<select
 							v-model="newSession.course"
 							class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-[#2d6a4f] focus:bg-white outline-none"
@@ -265,7 +265,7 @@
 						</select>
 					</div>
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-medium text-gray-700">{{ __('Batch (Lớp học)') }}</label>
+						<label class="text-sm font-medium text-gray-700">{{ __('Batch (Class)') }}</label>
 						<select
 							v-model="newSession.batch"
 							class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-[#2d6a4f] focus:bg-white outline-none"
@@ -277,7 +277,7 @@
 
 					<!-- Reference Resource Selection -->
 					<div v-if="type === 'hw'" class="flex flex-col gap-1">
-						<label class="text-sm font-medium text-gray-700">{{ __('Assignment (Bài tập)') }}</label>
+						<label class="text-sm font-medium text-gray-700">{{ __('Assignment') }}</label>
 						<select
 							v-model="newSession.reference_doc"
 							class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-[#b45309] focus:bg-white outline-none"
@@ -288,7 +288,7 @@
 					</div>
 
 					<div v-if="type === 'test'" class="flex flex-col gap-1">
-						<label class="text-sm font-medium text-gray-700">{{ __('Quiz (Bài trắc nghiệm)') }}</label>
+						<label class="text-sm font-medium text-gray-700">{{ __('Quiz') }}</label>
 						<select
 							v-model="newSession.reference_doc"
 							class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-[#1d4ed8] focus:bg-white outline-none"
@@ -298,7 +298,7 @@
 						</select>
 					</div>
 					<div class="flex flex-col gap-1 mt-2">
-						<label class="text-sm font-medium text-gray-700">{{ __('Upload File Đề bài & Đáp án') }}</label>
+						<label class="text-sm font-medium text-gray-700">{{ __('Upload Topic & Answer File') }}</label>
 						<input type="file" ref="fileInput" class="hidden" accept=".pdf,.doc,.docx" @change="handleFileChange" />
 						<div
 							class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-6 transition-all cursor-pointer"
@@ -307,8 +307,8 @@
 						>
 							<span class="mb-2 text-2xl text-gray-400">📄</span>
 							<span v-if="uploadedFileName" class="text-sm font-bold text-center" :class="accentClasses.text">{{ uploadedFileName }}</span>
-							<span v-else class="text-xs font-medium text-gray-600 text-center">{{ __('Kéo thả hoặc click để upload file') }}</span>
-							<span class="mt-1 text-[10px] text-gray-400">{{ __('Hỗ trợ: PDF, DOCX (Tối đa 10MB)') }}</span>
+							<span v-else class="text-xs font-medium text-gray-600 text-center">{{ __('Drag drop or click to upload file') }}</span>
+							<span class="mt-1 text-[10px] text-gray-400">{{ __('Support: PDF, DOCX (Up to 10MB)') }}</span>
 						</div>
 					</div>
 					<div class="flex flex-col gap-1 mt-2">
@@ -374,7 +374,7 @@
 						</div>
 					</div>
 					<div class="flex flex-col gap-1 mt-2">
-						<label class="text-sm font-medium text-gray-700">{{ __('Upload File Đề bài & Đáp án') }}</label>
+						<label class="text-sm font-medium text-gray-700">{{ __('Upload Topic & Answer File') }}</label>
 						<input
 							type="file"
 							ref="editFileInput"
@@ -389,8 +389,8 @@
 						>
 							<span class="mb-2 text-2xl text-gray-400">📄</span>
 							<span v-if="editUploadedFileName" class="text-sm font-bold text-center" :class="accentClasses.text">{{ editUploadedFileName }}</span>
-							<span v-else class="text-xs font-medium text-gray-600 text-center">{{ __('Kéo thả hoặc click để upload file') }}</span>
-							<span class="mt-1 text-[10px] text-gray-400">{{ __('Hỗ trợ: PDF, DOCX (Tối đa 10MB)') }}</span>
+							<span v-else class="text-xs font-medium text-gray-600 text-center">{{ __('Drag drop or click to upload file') }}</span>
+							<span class="mt-1 text-[10px] text-gray-400">{{ __('Support: PDF, DOCX (Up to 10MB)') }}</span>
 						</div>
 						<div v-if="sessionAttachments.length" class="mt-2 rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs text-gray-600">
 							{{ __('Current file:') }}
@@ -455,7 +455,7 @@
 						class="inline-flex items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-700 transition-all hover:border-violet-300 hover:bg-violet-100"
 						@click="goRubricBuilder"
 					>
-						{{ __('Tạo Rubric bằng AI') }}
+						{{ __('Create Rubric with AI') }}
 					</button>
 				</div>
 			</template>
@@ -585,7 +585,7 @@ const standardGrades = [
 	{ value: '10', display: '10', label: __('Grade 10') },
 	{ value: '11', display: '11', label: __('Grade 11') },
 	{ value: '12', display: '12', label: __('Grade 12') },
-	{ value: 'uni', display: 'ĐH', label: __('University') },
+	{ value: 'uni', display: __('University'), label: __('University') },
 ]
 
 const englishCerts = [

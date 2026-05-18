@@ -134,6 +134,11 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 scheduler_events = {
+	"cron": {
+		"*/15 * * * *": [
+			"lms.lms.gamification.tasks.recalculate_leaderboard",
+		]
+	},
 	"all": [
 		"lms.sqlite.build_index_in_background",
 	],
@@ -144,6 +149,7 @@ scheduler_events = {
 		"lms.lms.doctype.lms_live_class.lms_live_class.update_attendance",
 	],
 	"daily": [
+		"lms.lms.gamification.tasks.check_gamification_badges",
 		"lms.job.doctype.job_opportunity.job_opportunity.update_job_openings",
 		"lms.lms.doctype.lms_payment.lms_payment.send_payment_reminder",
 		"lms.lms.doctype.lms_batch.lms_batch.send_batch_start_reminder",

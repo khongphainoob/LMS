@@ -26,7 +26,7 @@
 			<!-- Drop Zone -->
 			<div
 				class="flex gap-2 mb-5 p-3 rounded-xl border-2 border-dashed transition-colors min-h-[56px] items-center"
-				:class="isDragOver ? 'border-ink-blue-4 bg-blue-50 dark:bg-blue-900/10' : 'border-outline-gray-3 bg-surface-gray-1'"
+				:class="isDragOver ? 'border-amber-400 bg-amber-50' : 'border-outline-gray-3 bg-surface-gray-1'"
 				@dragover.prevent="isDragOver = true"
 				@dragleave="isDragOver = false"
 				@drop.prevent="onDrop"
@@ -34,12 +34,12 @@
 				<div
 					v-for="(item, idx) in sortedItems"
 					:key="item.id"
-					class="flex items-center gap-1 bg-ink-blue-4 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm cursor-grab active:cursor-grabbing"
+					class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border-2 border-amber-400 bg-amber-100/40 text-black shadow-sm cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95 transition-all"
 					draggable="true"
 					@dragstart="onItemDragStart($event, idx, true)"
 					@dragover.prevent
 				>
-					<span class="text-xs opacity-60 mr-1">{{ idx + 1 }}</span>
+					<span class="text-xs text-amber-600 font-bold mr-1">{{ idx + 1 }}.</span>
 					{{ item.value }}
 				</div>
 				<div
@@ -81,7 +81,7 @@
 				<button
 					@click="submitAnswer"
 					:disabled="sortedItems.length !== rounds[currentRound].items.length"
-					class="px-4 py-1.5 text-xs rounded-lg bg-ink-blue-4 text-white font-medium hover:bg-ink-blue-5 transition-colors disabled:opacity-40"
+					class="px-4 py-1.5 text-xs rounded-lg bg-black text-white font-bold shadow-sm hover:bg-neutral-800 hover:ring-2 hover:ring-black hover:ring-offset-2 active:scale-95 transition-all disabled:opacity-40"
 				>
 					{{ __("Submit") }}
 				</button>
@@ -133,6 +133,15 @@
 </template>
 
 <script setup>
+import { useGameSession } from '@/utils/gameSession'
+
+const props = defineProps({
+	classGame: { type: [String, Number], default: null }
+})
+const emit = defineEmits(['finished'])
+
+const { startGame: _startGame, submitScore, submitResult, startError, gameConfig } = useGameSession(props.classGame)
+
 import { ref, computed, reactive } from "vue"
 import { Star, Zap } from "lucide-vue-next"
 
@@ -145,7 +154,7 @@ const finished = ref(false)
 const roundResults = ref([])
 let dragData = null
 
-const rounds = [
+const rounds = ref([
 	{
 		type: "number",
 		instruction: "Arrange the numbers from smallest to largest",
@@ -206,15 +215,17 @@ const rounds = [
 		],
 		label: "\u{1F30C} Planets",
 	},
-]
+])
 
 const availableItems = computed(() => {
+	if (!rounds.value || rounds.value.length === 0) return []
 	const sortedIds = new Set(sortedItems.value.map((i) => i.id))
-	return rounds[currentRound.value].items.filter((i) => !sortedIds.has(i.id))
+	return rounds.value[currentRound.value].items.filter((i) => !sortedIds.has(i.id))
 })
 
 function getRoundLabel() {
-	return rounds[currentRound.value].label
+	if (!rounds.value || rounds.value.length === 0) return ""
+	return rounds.value[currentRound.value].label || "Sort Order"
 }
 
 function onItemDragStart(e, itemOrIdx, fromSorted) {
@@ -246,7 +257,7 @@ function clearSorted() {
 }
 
 function submitAnswer() {
-	const correct = rounds[currentRound.value].items
+	const correct = rounds.value[currentRound.value].items
 	const isCorrect = sortedItems.value.every(
 		(item, idx) => item.order === correct[idx].order
 	)
@@ -264,22 +275,68 @@ function submitAnswer() {
 		roundResults.value.push(false)
 	}
 	setTimeout(() => {
-		if (currentRound.value < rounds.length - 1) {
+		if (currentRound.value < rounds.value.length - 1) {
 			currentRound.value++
 			sortedItems.value = []
 			feedback.value = null
 		} else {
 			finished.value = true
+			_submitAndFinish()
 		}
 	}, 1500)
 }
 
-function resetGame() {
+function applyCustomQuestions() {
+	if (gameConfig.value) {
+		try {
+			const parsed = typeof gameConfig.value === 'string' ? JSON.parse(gameConfig.value) : gameConfig.value
+			if (Array.isArray(parsed) && parsed.length > 0) {
+				rounds.value = parsed.map((r, idx) => {
+					// ensure every item is properly ordered and has unique id
+					const items = (r.items || []).map((item, itemIdx) => ({
+						id: item.id || `item_${idx}_${itemIdx}`,
+						value: item.value || '',
+						order: item.order !== undefined ? Number(item.order) : itemIdx
+					})).sort((a, b) => a.order - b.order) // sort items by order initially so they are ordered properly inside rounds
+					
+					return {
+						type: r.type || "custom",
+						instruction: r.question || r.instruction || "Arrange the items in the correct order",
+						items: items,
+						label: r.label || `Challenge ${idx + 1}`
+					}
+				})
+			}
+		} catch (e) {
+			console.error("Failed to parse custom drag drop rounds:", e)
+		}
+	}
+}
+
+async function _submitAndFinish() {
+	if (!props.classGame) return
+	const rawScore = Math.round(score.value)
+	await submitScore(rawScore, {})
+	emit('finished', submitResult.value || { score: rawScore, max_score: 500 })
+}
+
+async function resetGame() {
 	score.value = 0
 	currentRound.value = 0
 	sortedItems.value = []
 	feedback.value = null
 	finished.value = false
 	roundResults.value = []
+	if (props.classGame) {
+		await _startGame()
+		applyCustomQuestions()
+	}
+}
+
+// Auto-start session when classGame is provided
+if (props.classGame) {
+	_startGame().then(() => {
+		applyCustomQuestions()
+	})
 }
 </script>

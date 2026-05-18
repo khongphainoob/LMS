@@ -1,0 +1,132 @@
+[
+  {
+    "question": "Arrange these space exploration milestones in chronological order (oldest to newest).",
+    "label": "🚀 Space Exploration",
+    "items": [
+      {
+        "id": "s1",
+        "value": "First artificial satellite Sputnik 1 (1957)",
+        "order": 1
+      },
+      {
+        "id": "s2",
+        "value": "First human Yuri Gagarin in space (1961)",
+        "order": 2
+      },
+      {
+        "id": "s3",
+        "value": "Apollo 11 Moon Landing (1969)",
+        "order": 3
+      },
+      {
+        "id": "s4",
+        "value": "International Space Station launch (1998)",
+        "order": 4
+      }
+    ]
+  },
+  {
+    "question": "Arrange these computer storage units from smallest capacity to largest.",
+    "label": "💾 Tech Storage",
+    "items": [
+      {
+        "id": "t1",
+        "value": "Kilobyte (KB)",
+        "order": 1
+      },
+      {
+        "id": "t2",
+        "value": "Megabyte (MB)",
+        "order": 2
+      },
+      {
+        "id": "t3",
+        "value": "Gigabyte (GB)",
+        "order": 3
+      },
+      {
+        "id": "t4",
+        "value": "Terabyte (TB)",
+        "order": 4
+      }
+    ]
+  },
+  {
+    "question": "Arrange these historically critical inventions from oldest to newest.",
+    "label": "💡 Historical Inventions",
+    "items": [
+      {
+        "id": "h1",
+        "value": "Wheel (circa 3500 BC)",
+        "order": 1
+      },
+      {
+        "id": "h2",
+        "value": "Printing Press (1440)",
+        "order": 2
+      },
+      {
+        "id": "h3",
+        "value": "Steam Engine (1712)",
+        "order": 3
+      },
+      {
+        "id": "h4",
+        "value": "Personal Computer (1975)",
+        "order": 4
+      }
+    ]
+  },
+  {
+    "question": "Arrange these taxonomic ranks of biological classification from most general to most specific.",
+    "label": "🌿 Taxonomy Ranks",
+    "items": [
+      {
+        "id": "b1",
+        "value": "Kingdom",
+        "order": 1
+      },
+      {
+        "id": "b2",
+        "value": "Class",
+        "order": 2
+      },
+      {
+        "id": "b3",
+        "value": "Family",
+        "order": 3
+      },
+      {
+        "id": "b4",
+        "value": "Species",
+        "order": 4
+      }
+    ]
+  },
+  {
+    "question": "Arrange the layers of the Earth's atmosphere starting from closest to the ground to furthest out.",
+    "label": "☁️ Atmosphere Layers",
+    "items": [
+      {
+        "id": "a1",
+        "value": "Troposphere (closest)",
+        "order": 1
+      },
+      {
+        "id": "a2",
+        "value": "Stratosphere",
+        "order": 2
+      },
+      {
+        "id": "a3",
+        "value": "Mesosphere",
+        "order": 3
+      },
+      {
+        "id": "a4",
+        "value": "Thermosphere (furthest)",
+        "order": 4
+      }
+    ]
+  }
+]

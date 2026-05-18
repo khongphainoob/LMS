@@ -17,7 +17,7 @@
         <div class="flex items-center gap-3">
           <button @click="showNewSessionModal = true" class="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-amber-200 transition-all hover:bg-amber-600 hover:scale-[1.02] active:scale-95">
             <icons.Plus class="h-4 w-4 stroke-[3px]" />
-            {{ __('Bắt đầu phiên mới') }}
+            {{ __('Starting a NEW TGFR session') }}
           </button>
         </div>
       </div>
@@ -31,16 +31,16 @@
           <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div class="max-w-xl">
               <span class="inline-block rounded-full bg-white/20 px-4 py-1 text-xs font-bold uppercase tracking-widest text-white backdrop-blur-md mb-4">
-                {{ __('Gia sư cá nhân AI') }}
+                {{ __('AI personal tutor') }}
               </span>
               <h2 class="text-4xl sm:text-5xl font-black text-white leading-[1.1] mb-4">
-                {{ __('Khám phá tri thức qua') }} <br />
+                {{ __('Knowledge Discovery') }} <br />
                 <span class="text-slate-900 underline decoration-white/30 decoration-8 underline-offset-4">
-                  {{ __('tư duy phản biện.') }}
+                  {{ __('CRITICAL THINKING') }}
                 </span>
               </h2>
               <p class="text-lg text-white/90 font-medium">
-                {{ __('Hệ thống Socratic Tutor không chỉ đưa ra đáp án, chúng tôi giúp bạn tự tìm ra câu trả lời bằng cách gợi mở và phân tích sâu sắc.') }}
+                {{ __('The Socratic Tutor system doesn\'t just provide answers, we help you find your own by providing insight and analysis.') }}
               </p>
             </div>
             <div class="flex flex-wrap gap-4">
@@ -63,13 +63,13 @@
               <icons.BookOpen class="h-5 w-5" />
             </div>
             <h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {{ __('Phiên thảo luận gần đây') }}
+              {{ __('Recent Discussion Sessions') }}
             </h3>
           </div>
           <div class="flex items-center gap-2">
             <div class="relative">
               <icons.Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input type="text" v-model="searchQuery" placeholder="Tìm bài học..." class="pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-amber-400 text-sm w-48 transition-all" />
+              <input type="text" v-model="searchQuery" :placeholder="__('Find lessons...')" class="pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-amber-400 text-sm w-48 transition-all" />
             </div>
             <button @click="sessionsResource.fetch()" class="p-2 rounded-xl border border-slate-200 hover:bg-white hover:shadow-sm transition-all text-slate-500">
               <icons.RefreshCw :class="['h-4 w-4', sessionsResource.loading && 'animate-spin']" />
@@ -83,13 +83,13 @@
             <icons.MessageSquarePlus class="relative h-16 w-16 text-amber-500" />
           </div>
           <h4 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
-            {{ __('Không tìm thấy phiên học nào') }}
+            {{ __('No version found') }}
           </h4>
           <p class="text-slate-500 max-w-xs mb-8">
-            {{ __('Hãy bắt đầu bài học đầu tiên hoặc thử tìm kiếm với từ khóa khác.') }}
+            {{ __('Start the first lesson or try searching with a different keyword.') }}
           </p>
           <button @click="showNewSessionModal = true" class="rounded-2xl bg-white px-8 py-3 font-bold text-slate-900 shadow-xl transition-transform hover:scale-105 active:scale-95">
-            {{ __('Bắt đầu ngay') }}
+            {{ __('Start Now') }}
           </button>
         </div>
 
@@ -110,7 +110,7 @@
               <div class="p-4 pt-5">
                 <div class="mb-1 flex items-center justify-between">
                   <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none">
-                    {{ session.course || __('Kiến thức tổng hợp') }}
+                    {{ session.course || __('General knowledge') }}
                   </span>
                   <span class="text-[10px] font-medium text-slate-400">
                     {{ formatDate(session.last_active) }}
@@ -134,7 +134,7 @@
           <!-- Xem thêm (Load more) button -->
           <div v-if="hasMoreSessions" class="mt-10 flex justify-center">
             <button @click="loadMoreSessions" class="rounded-xl border-2 border-slate-200 bg-white px-8 py-3 text-sm font-bold text-slate-600 hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm">
-              {{ __('Xem thêm') }}
+              {{ __('See also') }}
             </button>
           </div>
         </div>
@@ -152,10 +152,10 @@
                 <icons.Rocket class="h-10 w-10" />
               </div>
               <h2 class="text-3xl font-black text-slate-900 leading-tight mb-2">
-                {{ __('Bắt đầu cuộc hành trình mới') }}
+                {{ __('Start a new journey') }}
               </h2>
               <p class="text-slate-500">
-                {{ __('Tải lên bài làm và rubric để Gia sư AI có đủ dữ liệu hỗ trợ bạn.') }}
+                {{ __('Upload assignments and rubrics so AI tutors have enough data to support you.') }}
               </p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -168,7 +168,7 @@
                       <icons.ImagePlus class="h-6 w-6" />
                     </div>
                     <span class="text-sm font-bold text-slate-900">
-                      {{ attachedImagesInModal.length ? `${attachedImagesInModal.length} ảnh đã chọn` : __('Tải ảnh bài làm') }}
+                      {{ attachedImagesInModal.length ? `${attachedImagesInModal.length} ảnh đã chọn` : __('Upload a photo of your work') }}
                     </span>
                   </button>
                   <!-- Preview thumbnails -->
@@ -187,7 +187,7 @@
                       <icons.FileText class="h-6 w-6" />
                     </div>
                     <span class="text-sm font-bold text-slate-900">
-                      {{ attachedRubricInModal ? attachedRubricInModal.name : __('Tải Rubric chấm điểm') }}
+                      {{ attachedRubricInModal ? attachedRubricInModal.name : __('Download Rubric Scoring') }}
                     </span>
                   </button>
                 </div>
@@ -196,19 +196,19 @@
                 <div class="space-y-4">
                   <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                      {{ __('Lớp học liên quan') }}
+                      {{ __('Related Classes') }}
                     </label>
                     <select v-model="newSessionForm.course" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold outline-none focus:border-amber-400 focus:bg-white transition-all">
-                      <option :value="null">{{ __('Hỏi đáp tổng hợp') }}</option>
+                      <option :value="null">{{ __('General Q&A') }}</option>
                       <option v-for="c in courses" :key="c.name" :value="c.name">{{ c.title }}</option>
                     </select>
                   </div>
                   <div v-if="newSessionForm.course">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                      {{ __('Bài học cụ thể') }}
+                      {{ __('Specific Lessons') }}
                     </label>
                     <select v-model="newSessionForm.lesson" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold outline-none focus:border-amber-400 focus:bg-white transition-all">
-                      <option :value="null">{{ __('Toàn bộ khóa học') }}</option>
+                      <option :value="null">{{ __('Entire Course') }}</option>
                       <option v-for="l in lessonsResource.data" :key="l.name" :value="l.name">{{ l.title }}</option>
                     </select>
                   </div>
@@ -217,10 +217,10 @@
             </div>
             <div class="mt-12 flex gap-4">
               <button @click="showNewSessionModal = false" class="flex-1 rounded-2xl border border-slate-200 py-4 font-bold text-slate-500 hover:bg-slate-50 transition-all">
-                {{ __('Hủy bỏ') }}
+                {{ __('Disposal') }}
               </button>
               <button @click="startSession" :disabled="!attachedImagesInModal.length || sessionsResource.loading" class="flex-1 rounded-2xl bg-slate-900 py-4 font-bold text-amber-400 shadow-2xl transition-all hover:bg-slate-800 active:scale-95">
-                {{ __('Bắt đầu học tập') }}
+                {{ __('Start learning') }}
               </button>
             </div>
           </div>
@@ -243,10 +243,10 @@ const { brand } = sessionStore()
 
 // Dashboard stats
 const stats = [
-  { label: __('Phiên học'), value: '12' },
-  { label: __('Năng lực tăng'), value: '+14%' },
-  { label: __('Dẫn chứng tốt'), value: '85%' },
-  { label: __('Tư duy mở'), value: 'Level 4' }
+  { label: __('Session'), value: '12' },
+  { label: __('Increased capacity'), value: '+14%' },
+  { label: __('Good evidence'), value: '85%' },
+  { label: __('Open-mindedness'), value: 'Level 4' }
 ]
 
 const showNewSessionModal = ref(false)
@@ -341,7 +341,7 @@ function selectSession(session) {
 }
 
 function confirmDeleteSession(session) {
-  if (confirm(__('Bạn có chắc chắn muốn xóa phiên thảo luận này?'))) {
+  if (confirm(__('Are you sure you want to delete this session?'))) {
     createResource({
       url: 'lms.lms.services.socratic.api.delete_session',
       params: { session_key: session.session_key },
