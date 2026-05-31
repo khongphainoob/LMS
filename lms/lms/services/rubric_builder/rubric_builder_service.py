@@ -4,7 +4,7 @@ import json
 import re
 from typing import Dict, Any, List, Optional
 from lms.lms.services.base_service import BaseService
-from lms.lms.agents.grading.rubric_generator import generate_rubric_structure
+from lms.lms.agents.grading.graph import build_rubric_graph
 
 class RubricBuilderService(BaseService):
     def __init__(self):
@@ -20,7 +20,10 @@ class RubricBuilderService(BaseService):
         level: str = "High School",
         language: str = "vietnamese"
     ) -> Dict[str, Any]:
-        """Use the rubric_generator to create a rubric structure from text."""
+        """Use the LangGraph pipeline to analyze content and create a rubric structure."""
+        
+        from lms.lms.services.ai_rate_limit import check_and_record_usage
+        check_and_record_usage(frappe.session.user, "Rubric Gen", increment=1)
         
         full_context = assessment_description
         if criteria_descriptions:
@@ -29,21 +32,49 @@ class RubricBuilderService(BaseService):
             else:
                 full_context += f"\n\nInitial Criteria Suggestions:\n{criteria_descriptions}"
             
-        criteria_data = generate_rubric_structure(full_context)
+        initial_state = {
+            "input_text": full_context,
+            "grading_scale": grading_scale,
+            "max_score": float(max_score),
+            "subject": subject,
+            "level": level,
+            "knowledge_map": "",
+            "analysis_topics": [],
+            "criteria": [],
+            "tokens_used": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_cost_usd": 0.0,
+            "error": None
+        }
         
-        if not criteria_data:
-            frappe.throw("AI failed to generate rubric from the provided content.")
+        graph = build_rubric_graph()
+        
+        from lms.lms.services.observability import get_unified_config_dict, flush_langfuse
+        config = get_unified_config_dict(agent_name="rubric_builder", session_id=f"rubric_{frappe.generate_hash(length=8)}", tags=["RubricBuilder"])
+        
+        final_state = graph.invoke(initial_state, config)
+        flush_langfuse()
+        
+        if final_state.get("error") or not final_state.get("criteria"):
+            frappe.throw(final_state.get("error", "AI failed to generate rubric criteria."))
             
         # Map generator output to the expected format for saving
         result = {
             "rubric_title": f"AI Rubric - {subject or 'General'}",
-            "description": f"Generated from uploaded file content. Level: {level}",
+            "description": "Đã khởi tạo thành công.",
             "grading_scale": grading_scale,
             "max_score": max_score,
             "subject": subject,
             "level": level,
             "assessment_description": assessment_description,
-            "criteria": criteria_data
+            "criteria": final_state.get("criteria"),
+            "usage_data": {
+                "tokens_used": final_state.get("tokens_used", 0),
+                "input_tokens": final_state.get("input_tokens", 0),
+                "output_tokens": final_state.get("output_tokens", 0),
+                "total_cost_usd": final_state.get("total_cost_usd", 0.0)
+            }
         }
         
         return result
@@ -62,7 +93,11 @@ class RubricBuilderService(BaseService):
             "grading_scale": rubric_data.get("grading_scale", "10-point"),
             "max_score": rubric_data.get("max_score", 10.0),
             "course": course,
-            "is_active": 1
+            "is_active": 1,
+            "tokens_used": rubric_data.get("usage_data", {}).get("tokens_used", 0),
+            "input_tokens": rubric_data.get("usage_data", {}).get("input_tokens", 0),
+            "output_tokens": rubric_data.get("usage_data", {}).get("output_tokens", 0),
+            "total_cost_usd": rubric_data.get("usage_data", {}).get("total_cost_usd", 0.0)
         })
         
         # Add criteria child table

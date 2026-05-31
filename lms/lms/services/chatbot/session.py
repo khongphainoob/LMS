@@ -41,7 +41,7 @@ def get_chat_history(session_key: str, limit: int = 20) -> list:
     return []
 
 
-def save_message_to_history(session_key: str, role: str, content: str, session_name: str = None, history: list = None) -> list:
+def save_message_to_history(session_key: str, role: str, content: str, session_name: str = None, history: list = None, extra_data: dict = None) -> list:
     """Appends a message to the history and saves to Redis + DB."""
     if history is None:
         history = get_chat_history(session_key)
@@ -58,14 +58,24 @@ def save_message_to_history(session_key: str, role: str, content: str, session_n
     # Update DB if session_name is available
     if session_name:
         try:
-            doc = frappe.get_doc(
-                {
-                    "doctype": "Chatbot Message",
-                    "session": session_name,
-                    "role": role,
-                    "content": content,
-                }
-            )
+            doc_data = {
+                "doctype": "Chatbot Message",
+                "session": session_name,
+                "role": role,
+                "content": content,
+            }
+            if extra_data and role == "assistant":
+                doc_data.update({
+                    "tokens_used": extra_data.get("tokens_used", 0),
+                    "input_tokens": extra_data.get("input_tokens", 0),
+                    "output_tokens": extra_data.get("output_tokens", 0),
+                    "total_cost_usd": extra_data.get("total_cost_usd", 0),
+                    "latency_ms": extra_data.get("latency_ms", 0),
+                    "model_used": extra_data.get("model_used"),
+                    "message_type": extra_data.get("message_type")
+                })
+            
+            doc = frappe.get_doc(doc_data)
             doc.insert(ignore_permissions=True)
         except Exception as e:
             frappe.log_error(f"Error saving message to DB: {str(e)}\n{frappe.get_traceback()}", "Chatbot Message DB Error")

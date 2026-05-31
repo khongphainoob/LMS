@@ -13,13 +13,21 @@
     "last_active",
     "column_break_7",
     "status",
+    "flag_reason",
+    "teacher_note",
     "document_category",
     "total_tokens",
+    "input_tokens",
+    "output_tokens",
     "total_cost_usd",
     "message_count",
     "section_break_attachments",
     "attached_image",
-    "attached_rubric"
+    "attached_images",
+    "attached_rubric",
+    "column_break_learning",
+    "knowledge_state",
+    "scaffolding_level"
   ],
   "fields": [
     {
@@ -74,9 +82,20 @@
     {
       "fieldname": "status",
       "fieldtype": "Select",
-      "options": "Active\nClosed\nBlocked",
+      "options": "Active\nClosed\nBlocked\nFlagged",
       "default": "Active",
       "in_list_view": 1
+    },
+    {
+      "fieldname": "flag_reason",
+      "fieldtype": "Small Text",
+      "label": "Flag Reason",
+      "depends_on": "eval:doc.status=='Flagged'"
+    },
+    {
+      "fieldname": "teacher_note",
+      "fieldtype": "Small Text",
+      "label": "Teacher Note"
     },
     {
       "fieldname": "document_category",
@@ -89,6 +108,18 @@
       "fieldtype": "Int",
       "default": 0,
       "label": "Total Tokens Used"
+    },
+    {
+      "fieldname": "input_tokens",
+      "fieldtype": "Int",
+      "default": 0,
+      "label": "Input Tokens"
+    },
+    {
+      "fieldname": "output_tokens",
+      "fieldtype": "Int",
+      "default": 0,
+      "label": "Output Tokens"
     },
     {
       "fieldname": "total_cost_usd",
@@ -113,9 +144,31 @@
       "label": "Attached Image"
     },
     {
+      "fieldname": "attached_images",
+      "fieldtype": "Long Text",
+      "label": "Attached Images JSON"
+    },
+    {
       "fieldname": "attached_rubric",
       "fieldtype": "Attach",
       "label": "Attached Rubric"
+    },
+    {
+      "fieldname": "column_break_learning",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "knowledge_state",
+      "fieldtype": "Code",
+      "options": "JSON",
+      "label": "Knowledge State (BKT)",
+      "description": "Bayesian Knowledge Tracing state"
+    },
+    {
+      "fieldname": "scaffolding_level",
+      "fieldtype": "Int",
+      "default": 0,
+      "label": "Scaffolding Level"
     }
   ],
   "permissions": [

@@ -136,67 +136,90 @@ import { computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePageMeta } from 'frappe-ui'
 import { sessionStore } from '@/stores/session'
+import { useSettings } from '@/stores/settings'
 
 const { brand } = sessionStore()
+const { settings } = useSettings()
 const router = useRouter()
 const user = inject('$user')
 
 const isTeacher = computed(() => user.data?.is_moderator || user.data?.is_instructor)
 const isStudent = computed(() => user.data?.is_student)
 
-const teacherItems = computed(() => [
-  {
-    label: 'AI Grading',
-    description: __('The system supports automatic scoring for multiple-choice and essay tests.'),
-    emoji: '🤖',
-    to: 'AIGrading',
-  },
-  {
-    label: 'Grading Book',
-    description: __('Review class scores, track progress and grading results.'),
-    emoji: '📖',
-    to: 'GradingBook',
-  },
-  {
-    label: 'Lesson Planning',
-    description: __('Create smart teaching plans with the help of AI.'),
-    emoji: '📅',
-    to: 'LessonPlanning',
-  },
-  {
-    label: 'Quiz Creator',
-    description: __('Automatically create exercises from source documents (PDF, DOCX) with multiple cognitive levels.'),
-    emoji: '📝',
-    to: 'AIQuizDashboard',
-  },
-  {
-    label: 'Documents',
-    description: __('Upload and manage course materials and resources.'),
-    emoji: '📁',
-    to: 'Documents',
-  },
-])
+const teacherItems = computed(() => {
+  const items = [
+    {
+      label: 'AI Grading',
+      description: __('The system supports automatic scoring for multiple-choice and essay tests.'),
+      emoji: '🤖',
+      to: 'AIGrading',
+      condition: parseInt(settings.data?.ai_grading) !== 0,
+    },
+    {
+      label: 'Grading Book',
+      description: __('Review class scores, track progress and grading results.'),
+      emoji: '📖',
+      to: 'GradingBook',
+      condition: parseInt(settings.data?.grading_book) !== 0,
+    },
+    {
+      label: 'Lesson Planning',
+      description: __('Create smart teaching plans with the help of AI.'),
+      emoji: '📅',
+      to: 'LessonPlanning',
+      condition: parseInt(settings.data?.enable_lesson_planning) !== 0,
+    },
+    {
+      label: 'Quiz Creator',
+      description: __('Automatically create exercises from source documents (PDF, DOCX) with multiple cognitive levels.'),
+      emoji: '📝',
+      to: 'AIQuizDashboard',
+      condition: parseInt(settings.data?.enable_quiz_creator) !== 0,
+    },
+    {
+      label: 'Exam Generator',
+      description: __('Generate full, print-ready exam papers with varied formats and answer keys.'),
+      emoji: '📄',
+      to: 'ExamDashboard',
+      condition: true,
+    },
+    {
+      label: 'Documents',
+      description: __('Upload and manage course materials and resources.'),
+      emoji: '📁',
+      to: 'Documents',
+      condition: parseInt(settings.data?.enable_documents) !== 0,
+    },
+  ]
+  return items.filter(item => item.condition)
+})
 
-const studentItems = [
-  {
-    label: 'Score Insights',
-    description: __('AI score breakdown with trends and suggestions for improvement.'),
-    emoji: '📊',
-    to: 'StudentScoreDashboard',
-  },
-  {
-    label: 'Smart Chatbot',
-    description: __('Ask questions about lessons and get quick support 24/7.'),
-    emoji: '💬',
-    to: 'StudentAIHelper',
-  },
-  {
-    label: 'Socratic AI Tutor',
-    description: __('Learning through suggestive methods to train thinking.'),
-    emoji: '🧠',
-    to: 'SocraticTutor',
-  },
-]
+const studentItems = computed(() => {
+  const items = [
+    {
+      label: 'Score Insights',
+      description: __('AI score breakdown with trends and suggestions for improvement.'),
+      emoji: '📊',
+      to: 'StudentScoreDashboard',
+      condition: parseInt(settings.data?.enable_score_insights) !== 0,
+    },
+    {
+      label: 'Smart Chatbot',
+      description: __('Ask questions about lessons and get quick support 24/7.'),
+      emoji: '💬',
+      to: 'StudentAIHelper',
+      condition: parseInt(settings.data?.enable_smart_chatbot) !== 0,
+    },
+    {
+      label: 'Socratic AI Tutor',
+      description: __('Learning through suggestive methods to train thinking.'),
+      emoji: '🧠',
+      to: 'SocraticTutor',
+      condition: parseInt(settings.data?.enable_socratic_tutor) !== 0,
+    },
+  ]
+  return items.filter(item => item.condition)
+})
 
 const go = (name) => {
   if (name && router.hasRoute(name)) {

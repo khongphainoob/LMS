@@ -89,7 +89,7 @@ import * as icons from 'lucide-vue-next'
 import markdownit from 'markdown-it'
 import DOMPurify from 'dompurify'
 
-const md = markdownit({ html: true })
+const md = markdownit({ html: true, linkify: true, typographer: true })
 const isOpen = ref(false)
 const input = ref('')
 const messages = ref([])
@@ -138,7 +138,27 @@ const scrollToBottom = () => {
   })
 }
 
-const renderMarkdown = (c) => DOMPurify.sanitize(md.render(c || ''))
+const renderMarkdown = (content) => {
+  if (!content) return ''
+  
+  let html = md.render(content)
+  
+  if (window.katex) {
+    html = html.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+      try {
+        return '<div class="math-block">' + window.katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false }) + '</div>'
+      } catch (e) { return match }
+    })
+    
+    html = html.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
+      try {
+        return window.katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false })
+      } catch (e) { return match }
+    })
+  }
+  
+  return DOMPurify.sanitize(html)
+}
 
 onMounted(() => {
   messages.value = [{ role: 'assistant', content: __('May I help you?') }]

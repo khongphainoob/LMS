@@ -42,12 +42,21 @@
 				/>
 				<select
 					v-if="currentScope === 'Course'"
-					v-model="selectedCourse"
-					@change="onCourseChange"
+					v-model="selectedBatch"
+					@change="onBatchChange"
 					class="rounded-lg border border-outline-gray-2 bg-surface-white px-3 py-1.5 text-sm"
 				>
-					<option value="">{{ __('Select Course...') }}</option>
-					<option v-for="c in courses" :key="c.name" :value="c.name">{{ c.title }}</option>
+					<option value="">{{ __('All Batches') }}</option>
+					<option v-for="b in batches" :key="b.name" :value="b.name">{{ b.title || b.name }}</option>
+				</select>
+				<select
+					v-if="currentScope === 'Course'"
+					v-model="selectedCourse"
+					@change="onCourseChange"
+					class="rounded-lg border border-outline-gray-2 bg-surface-white px-3 py-1.5 text-sm max-w-[200px]"
+				>
+					<option value="">{{ __('All Courses') }}</option>
+					<option v-for="c in displayedCoursesFilter" :key="c.name" :value="c.name">{{ c.title || c.name }}</option>
 				</select>
 				<select v-model="selectedCategory" @change="loadDocuments()" class="rounded-lg border border-outline-gray-2 bg-surface-white px-3 py-1.5 text-sm">
 					<option value="">{{ __('All Categories') }}</option>
@@ -122,12 +131,21 @@
 								<option value="Community">Community</option>
 							</select>
 						</div>
-						<div v-if="uploadForm.scope === 'Course'">
-							<label class="mb-1.5 block text-sm font-medium text-ink-gray-7">{{ __('Course') }}</label>
-							<select v-model="uploadForm.course" class="w-full rounded-lg border border-outline-gray-2 px-3 py-2 text-sm bg-white">
-								<option value="">{{ __('Select course') }}</option>
-								<option v-for="c in courses" :key="c.name" :value="c.name">{{ c.title }}</option>
-							</select>
+						<div v-if="uploadForm.scope === 'Course'" class="col-span-2 grid grid-cols-2 gap-4">
+							<div>
+								<label class="mb-1.5 block text-sm font-medium text-ink-gray-7">{{ __('Batch') }}</label>
+								<select v-model="uploadForm.batch" @change="onUploadBatchChange" class="w-full rounded-lg border border-outline-gray-2 px-3 py-2 text-sm bg-white">
+									<option value="">{{ __('Select batch') }}</option>
+									<option v-for="b in batches" :key="b.name" :value="b.name">{{ b.title || b.name }}</option>
+								</select>
+							</div>
+							<div>
+								<label class="mb-1.5 block text-sm font-medium text-ink-gray-7">{{ __('Course') }}</label>
+								<select v-model="uploadForm.course" class="w-full rounded-lg border border-outline-gray-2 px-3 py-2 text-sm bg-white">
+									<option value="">{{ __('Select course') }}</option>
+									<option v-for="c in displayedCoursesUpload" :key="c.name" :value="c.name">{{ c.title || c.name }}</option>
+								</select>
+							</div>
 						</div>
 					</div>
 					<div>
@@ -158,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { createResource, Breadcrumbs, Dialog, usePageMeta } from 'frappe-ui'
 import { FileText, FolderOpen, Upload, Download } from 'lucide-vue-next'
@@ -170,12 +188,14 @@ const router = useRouter()
 const documents = ref([])
 const categories = ref([])
 const courses = ref([])
+const batches = ref([])
 const loading = ref(true)
 const uploading = ref(false)
 const showUploadModal = ref(false)
 const currentScope = ref('Course')
 const searchText = ref('')
 const selectedCategory = ref('')
+const selectedBatch = ref('')
 const selectedCourse = ref('')
 
 const scopes = [
@@ -186,6 +206,7 @@ const scopes = [
 const uploadForm = reactive({
 	title: '',
 	scope: 'Course',
+	batch: '',
 	course: '',
 	category: '',
 	description: '',
@@ -206,6 +227,7 @@ const docsResource = createResource({
 	url: 'lms.lms.api.get_documents',
 	makeParams: () => ({
 		course: currentScope.value === 'Course' ? selectedCourse.value : undefined,
+		batch: currentScope.value === 'Course' ? selectedBatch.value : undefined,
 		category: selectedCategory.value || undefined,
 		search: searchText.value || undefined,
 		limit: 50,
@@ -227,15 +249,25 @@ const categoriesResource = createResource({
 	onSuccess: (data) => { categories.value = data || [] },
 })
 
-const coursesResource = createResource({
-	url: 'frappe.client.get_list',
-	makeParams: () => ({
-		doctype: 'LMS Course',
-		fields: ['name', 'title'],
-		limit_page_length: 100,
-		order_by: 'title asc',
-	}),
-	onSuccess: (data) => { courses.value = data || [] },
+const studentContextResource = createResource({
+	url: 'lms.lms.services.course_batch_resolver.get_selection_context',
+	auto: true,
+	onSuccess: (data) => {
+		courses.value = data.courses || []
+		batches.value = data.batches || []
+	}
+})
+
+const displayedCoursesFilter = computed(() => {
+	if (!selectedBatch.value) return courses.value
+	const b = batches.value.find(x => x.name === selectedBatch.value)
+	return b ? b.courses : []
+})
+
+const displayedCoursesUpload = computed(() => {
+	if (!uploadForm.batch) return courses.value
+	const b = batches.value.find(x => x.name === uploadForm.batch)
+	return b ? b.courses : []
 })
 
 const uploadResource = createResource({
@@ -243,7 +275,7 @@ const uploadResource = createResource({
 	onSuccess: () => {
 		uploading.value = false
 		showUploadModal.value = false
-		Object.assign(uploadForm, { title: '', scope: 'Course', course: '', category: '', description: '', file: null })
+		Object.assign(uploadForm, { title: '', scope: 'Course', batch: '', course: '', category: '', description: '', file: null })
 		loadDocuments()
 	},
 	onError: () => { uploading.value = false },
@@ -254,10 +286,21 @@ function loadDocuments() {
 	docsResource.fetch()
 }
 
+function onBatchChange() {
+	selectedCourse.value = ''
+	selectedCategory.value = ''
+	categoriesResource.fetch()
+	loadDocuments()
+}
+
 function onCourseChange() {
 	selectedCategory.value = ''
 	categoriesResource.fetch()
 	loadDocuments()
+}
+
+function onUploadBatchChange() {
+	uploadForm.course = ''
 }
 
 function onFileSelect(e) {
@@ -272,6 +315,7 @@ function handleUpload() {
 		uploadResource.submit({
 			title: uploadForm.title,
 			scope: uploadForm.scope,
+			batch: uploadForm.batch || undefined,
 			course: uploadForm.course || undefined,
 			category: uploadForm.category || undefined,
 			description: uploadForm.description || undefined,
@@ -302,6 +346,5 @@ function formatDate(dateStr) {
 onMounted(() => {
 	docsResource.fetch()
 	categoriesResource.fetch()
-	coursesResource.fetch()
 })
 </script>

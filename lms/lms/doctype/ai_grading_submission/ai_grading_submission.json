@@ -11,6 +11,7 @@
   "student_name",
   "column_break_4",
   "status",
+  "flag_reason",
   "score",
   "teacher_override_score",
   "section_break_files",
@@ -67,6 +68,12 @@
    "in_list_view": 1,
    "label": "Status",
    "options": "Pending\nGrading\nDone\nFlagged\nFailed"
+  },
+  {
+   "depends_on": "eval:doc.status=='Flagged'",
+   "fieldname": "flag_reason",
+   "fieldtype": "Small Text",
+   "label": "Flag Reason"
   },
   {
    "fieldname": "score",

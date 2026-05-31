@@ -105,6 +105,23 @@ def context_node(state: ChatbotState) -> dict:
 		except Exception as e:
 			print(f"--- [ERROR] Chatbot Context (Student): {e} ---")
 
+	
+	# 3. Fetch RAG Context
+	try:
+		from lms.lms.services.rag.api import search
+		messages = state.get("messages", [])
+		if messages:
+			last_msg = messages[-1].content if hasattr(messages[-1], 'content') else messages[-1].get('content', '')
+			if last_msg:
+				rag_results = search(last_msg, course=course_name, top_k=3)
+				if rag_results:
+					# Format RAG results
+					rag_text = "\n\n".join([f"Source: {res.get('metadata', {}).get('document_id', 'Unknown')}\n{res.get('content', '')}" for res in rag_results])
+					updates["rag_context"] = rag_text
+					print(f"--- [NODE: CONTEXT] RAG Retrieval Success: {len(rag_results)} chunks ---")
+	except Exception as e:
+		print(f"--- [ERROR] Chatbot Context (RAG): {e} ---")
+
 	# --- SAVE TO CACHE ---
 	# Cache kết quả trong 600 giây (10 phút)
 	cache.set_value(cache_key, updates, expires_in_sec=600)

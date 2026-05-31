@@ -13,7 +13,7 @@
           <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
           <div>
             <h1 class="text-lg font-bold tracking-tight text-slate-800 dark:text-white uppercase leading-none">{{ currentLessonName || __('Smart Chatbot') }}</h1>
-            <p class="text-[10px] font-semibold uppercase tracking-widest text-amber-500 dark:text-amber-400 mt-1">{{ __('Hệ thống đang sẵn sàng') }}</p>
+            <p class="text-[10px] font-semibold uppercase tracking-widest text-amber-500 dark:text-amber-400 mt-1">{{ __('System is ready') }}</p>
           </div>
         </div>
         
@@ -22,7 +22,7 @@
           class="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-xs font-semibold text-slate-700 shadow-xl transition-all hover:scale-105 active:scale-95 uppercase tracking-widest border border-slate-50"
         >
           <icons.Plus class="h-4 w-4 stroke-[2px] text-amber-500" />
-          {{ __('Phiên chat mới') }}
+          {{ __('New chat session') }}
         </button>
       </div>
     </header>
@@ -31,7 +31,7 @@
       <!-- Session Sidebar (Left) -->
       <aside class="hidden lg:flex flex-col w-64 border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
         <div class="p-6 flex items-center justify-between border-b border-slate-50 dark:border-slate-800">
-          <h3 class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{{ __('LỊCH SỬ') }}</h3>
+          <h3 class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{{ __('HISTORY') }}</h3>
           <button @click="sessionsResource.fetch()" class="p-2 rounded-lg hover:bg-amber-500/10 text-amber-600 transition-all">
             <icons.RefreshCw :class="['h-4 w-4', sessionsResource.loading && 'animate-spin']" />
           </button>
@@ -51,7 +51,7 @@
               <div class="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" :class="currentSessionKey === session.session_key ? 'bg-white/20' : 'bg-amber-100 text-amber-600'">
                 <icons.MessageCircle class="h-3.5 w-3.5" />
               </div>
-              <span class="text-[11px] font-bold truncate pr-6" :class="currentSessionKey === session.session_key ? 'text-white' : 'text-slate-800 dark:text-white'">{{ session.lesson || session.course || __('Tổng quát') }}</span>
+              <span class="text-[11px] font-bold truncate pr-6" :class="currentSessionKey === session.session_key ? 'text-white' : 'text-slate-800 dark:text-white'">{{ session.lesson || session.course || __('General') }}</span>
             </div>
             <div class="flex items-center justify-between" :class="currentSessionKey === session.session_key ? 'text-white/70' : 'opacity-40'">
               <span class="text-[8px] font-bold uppercase tracking-widest">{{ formatDate(session.last_active) }}</span>
@@ -98,7 +98,7 @@
                   <div class="prose prose-sm prose-slate dark:prose-invert max-w-none font-medium" v-html="renderMarkdown(message.content)"></div>
                 </div>
                 <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 px-2" :class="message.role === 'user' ? 'text-right' : 'text-left'">
-                  {{ message.role === 'user' ? __('BẠN') : __('AI TRỢ LÝ') }}
+                  {{ message.role === 'user' ? __('YOU') : __('AI ASSISTANT') }}
                 </p>
               </div>
             </div>
@@ -125,7 +125,7 @@
                 v-model="userInput"
                 rows="1"
                 class="flex-1 bg-transparent px-6 py-3 text-sm font-semibold text-slate-800 dark:text-white outline-none border-none ring-0 focus:ring-0 resize-none placeholder:text-slate-400"
-                :placeholder="__('Đặt câu hỏi về bài học của bạn...')"
+                :placeholder="__('Ask a question about your lesson...')"
                 :disabled="chatbotResource.loading"
                 @keydown.enter.prevent="handleSend"
               ></textarea>
@@ -198,30 +198,17 @@
             <div class="session-setup-icon">
               <icons.MessageSquarePlus class="icon-glyph" />
             </div>
-            <h2 class="session-setup-title">{{ __('Thiết lập thảo luận') }}</h2>
-            <p class="session-setup-subtitle">{{ __('Tối ưu hóa phản hồi AI') }}</p>
+            <h2 class="session-setup-title">{{ __('Discussion Setup') }}</h2>
+            <p class="session-setup-subtitle">{{ __('Optimize AI Response') }}</p>
           </div>
           
           <div class="session-setup-grid">
-            <div class="session-setup-field">
-               <label class="session-setup-label">{{ __('Khóa học') }}</label>
-               <select v-model="newSessionForm.course" class="session-setup-select">
-                 <option :value="null">{{ __('Tổng quát') }}</option>
-                 <option v-for="c in courses" :key="c.name" :value="c.name">{{ c.title }}</option>
-               </select>
-            </div>
-            <div class="session-setup-field">
-               <label class="session-setup-label">{{ __('Lớp') }}</label>
-               <select v-model="newSessionForm.batch" class="session-setup-select">
-                 <option :value="null">{{ __('Tất cả lớp') }}</option>
-                 <option v-for="b in batches" :key="b.name" :value="b.name">{{ b.title }}</option>
-               </select>
-            </div>
+            <CourseBatchSelector v-model="courseBatchModel" :context="aiContext" />
           </div>
 
           <div class="session-setup-actions">
-             <button class="btn-cancel" @click="showNewSessionModal = false">{{ __('Hủy bỏ') }}</button>
-             <button class="btn-confirm" @click="createNewSession">{{ __('Bắt đầu thảo luận') }}</button>
+             <button class="btn-cancel" @click="showNewSessionModal = false">{{ __('Cancel') }}</button>
+             <button class="btn-confirm" @click="createNewSession">{{ __('Start discussion') }}</button>
           </div>
         </div>
       </template>
@@ -237,6 +224,7 @@ import dayjs from '@/utils/dayjs'
 import * as icons from 'lucide-vue-next'
 import markdownit from 'markdown-it'
 import DOMPurify from 'dompurify'
+import CourseBatchSelector from '@/components/ai/CourseBatchSelector.vue'
 
 const md = markdownit({
   html: true,
@@ -245,7 +233,25 @@ const md = markdownit({
 })
 
 const renderMarkdown = (content) => {
-  return DOMPurify.sanitize(md.render(content || ''))
+  if (!content) return ''
+  
+  let html = md.render(content)
+  
+  if (window.katex) {
+    html = html.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+      try {
+        return '<div class="math-block">' + window.katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false }) + '</div>'
+      } catch (e) { return match }
+    })
+    
+    html = html.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
+      try {
+        return window.katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false })
+      } catch (e) { return match }
+    })
+  }
+  
+  return DOMPurify.sanitize(html)
 }
 
 const { brand } = sessionStore()
@@ -256,9 +262,9 @@ const currentSessionKey = ref(null)
 const currentLessonName = ref(null)
 const showNewSessionModal = ref(false)
 
-const newSessionForm = reactive({ course: null, batch: null, lesson: null })
-const courses = ref([])
-const batches = ref([])
+const newSessionForm = reactive({ lesson: null })
+const courseBatchModel = ref({ mode: 'course', batch: null, course: null })
+const aiContext = computed(() => studentContext.data || { courses: [], batches: [] })
 
 const starterPrompts = [
   __('Explain the most difficult concept in this article'),
@@ -301,19 +307,15 @@ const historyResource = createResource({
         content: m.content
       }))
     } else {
-      messages.value = [{ role: 'assistant', content: __('Chào bạn! Tôi là trợ lý AI học tập. Hôm nay bạn muốn thảo luận về nội dung gì?') }]
+      messages.value = [{ role: 'assistant', content: __('Hello! I am your AI learning assistant. What would you like to discuss today?') }]
     }
     scrollToBottom()
   }
 })
 
 const studentContext = createResource({
-  url: 'lms.lms.services.chatbot.api.get_student_context',
-  auto: true,
-  onSuccess: (data) => {
-    courses.value = data.courses || []
-    batches.value = data.batches || []
-  }
+  url: 'lms.lms.services.course_batch_resolver.get_selection_context',
+  auto: true
 })
 
 onMounted(() => {
@@ -332,8 +334,9 @@ const handleSend = () => {
     message: text,
     session_key: currentSessionKey.value,
     lesson_name: currentLessonName.value,
-    course: newSessionForm.course,
-    batch: newSessionForm.batch
+    course: courseBatchModel.value.course,
+    batch: courseBatchModel.value.batch,
+    selection_mode: courseBatchModel.value.mode
   })
 }
 
@@ -345,7 +348,7 @@ const selectSession = (session) => {
 }
 
 const confirmDeleteSession = (sessionKey) => {
-  if (confirm(__('Bạn có chắc chắn muốn xóa phiên thảo luận này? Toàn bộ tin nhắn sẽ bị mất.'))) {
+  if (confirm(__('Are you sure you want to delete this discussion session? All messages will be lost.'))) {
     createResource({
       url: 'lms.lms.services.chatbot.api.delete_session',
       onSuccess: () => {
@@ -362,10 +365,15 @@ const confirmDeleteSession = (sessionKey) => {
 const createNewSession = () => {
   createResource({
     url: 'lms.lms.services.chatbot.api.create_session',
-    params: { ...newSessionForm },
+    params: { 
+      course: courseBatchModel.value.course,
+      batch: courseBatchModel.value.batch,
+      selection_mode: courseBatchModel.value.mode,
+      lesson: newSessionForm.lesson
+    },
     onSuccess: (data) => {
       currentSessionKey.value = data.session_key
-      currentLessonName.value = newSessionForm.lesson || newSessionForm.course
+      currentLessonName.value = newSessionForm.lesson || courseBatchModel.value.course
       messages.value = []
       showNewSessionModal.value = false
       sessionsResource.fetch()
@@ -376,7 +384,7 @@ const createNewSession = () => {
 const usePrompt = (prompt) => { userInput.value = prompt; handleSend() }
 
 const clearHistory = () => {
-  if (confirm(__('Bạn có chắc chắn muốn xóa lịch sử cuộc trò chuyện này?'))) {
+  if (confirm(__('Are you sure you want to delete this conversation history?'))) {
     createResource({
       url: 'lms.lms.services.chatbot.api.delete_session',
       onSuccess: () => {

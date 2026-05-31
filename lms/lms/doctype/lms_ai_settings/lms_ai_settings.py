@@ -10,3 +10,8 @@ class LMSAISettings(Document):
 def get_ai_settings():
     settings = frappe.get_single("LMS AI Settings")
     return settings.as_dict()
+
+@frappe.whitelist()
+def get_registered_agents():
+    from lms.lms.agents.registry import get_all_agent_names
+    return get_all_agent_names()

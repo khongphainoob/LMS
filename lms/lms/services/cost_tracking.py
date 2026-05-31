@@ -228,6 +228,9 @@ class CostTrackingService(BaseService):
         total_cost = sum(ct["total_cost_usd"] for ct in cost_tracks)
         total_tokens = sum(ct["total_tokens"] for ct in cost_tracks)
         total_submissions = sum(ct["submission_count"] for ct in cost_tracks)
+        
+        exchange_rate = self.get_exchange_rate()
+        total_cost_vnd = total_cost * exchange_rate
 
         # Breakdown by provider
         providers = {}
@@ -271,6 +274,8 @@ class CostTrackingService(BaseService):
 
         return {
             "total_cost": total_cost,
+            "total_cost_vnd": total_cost_vnd,
+            "exchange_rate": exchange_rate,
             "total_tokens": total_tokens,
             "total_submissions": total_submissions,
             "average_cost_per_submission": total_cost / total_submissions if total_submissions > 0 else 0,
@@ -490,6 +495,14 @@ class CostTrackingService(BaseService):
             "max_cost_per_session",
             default=self.DEFAULT_MAX_COST_PER_SESSION
         )
+        
+    def get_exchange_rate(self) -> float:
+        """Get USD to VND exchange rate from settings."""
+        rate = frappe.db.get_single_value("LMS AI Settings", "usd_to_vnd_exchange_rate")
+        try:
+            return float(rate) if rate else 25400.0
+        except (ValueError, TypeError):
+            return 25400.0
 
 
 # Convenience functions for quick access

@@ -3,20 +3,14 @@
 		<!-- Header Section - Elegant White -->
 		<div class="flex flex-col lg:flex-row items-center justify-between gap-10">
 			<div class="flex items-center gap-6">
-				<button
-					class="group flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-slate-100 shadow-sm transition-all hover:scale-105 active:scale-95"
-					@click="router.push({ name: 'AIIntegration' })"
-				>
-					<icons.ChevronLeft class="h-6 w-6 text-slate-600 stroke-[3px]" />
-				</button>
 				<div>
-					<h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight uppercase">{{ __('AI Quiz Scoring') }}</h2>
-					<p class="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] mt-1">{{ __('Optimize the MCQ scoring process with computer vision.') }}</p>
+					<h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight">{{ __('AI Quiz Scoring') }}</h2>
+					<p class="text-sm font-medium text-amber-600 mt-1">{{ __('Optimize the MCQ scoring process with computer vision.') }}</p>
 				</div>
 			</div>
 			<button 
 				@click="router.push({ name: 'AIGradingHelp' })"
-				class="flex items-center gap-3 px-8 py-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white font-black text-xs uppercase tracking-widest hover:border-amber-400 transition-all shadow-xl active:scale-95"
+				class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white font-medium text-sm hover:border-amber-400 transition-all shadow-sm active:scale-95"
 			>
 				<icons.BookOpen class="h-4 w-4" />
 				{{ __('Instructions for use') }}
@@ -33,8 +27,8 @@
 					<div class="mb-10 flex h-24 w-24 items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-200 group-hover:scale-110 transition-all">
 						<icons.Camera class="h-12 w-12 stroke-[2.5px]" />
 					</div>
-					<h3 class="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase">{{ __('Dot via Camera / Photo') }}</h3>
-					<p class="text-[15px] text-slate-500 font-bold leading-relaxed max-w-sm">{{ __('Automatically recognize work from photos or PDFs for instant grading.') }}</p>
+					<h3 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">{{ __('Dot via Camera / Photo') }}</h3>
+					<p class="text-sm text-slate-600 leading-relaxed max-w-sm">{{ __('Automatically recognize work from photos or PDFs for instant grading.') }}</p>
 				</div>
 				<div class="absolute -right-10 -bottom-10 h-64 w-64 bg-amber-500/5 rounded-full blur-[80px]"></div>
 			</button>
@@ -47,8 +41,8 @@
 					<div class="mb-10 flex h-24 w-24 items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-teal-400 to-emerald-500 text-white shadow-lg shadow-teal-200 group-hover:scale-110 transition-all">
 						<icons.LayoutTemplate class="h-12 w-12 stroke-[2.5px]" />
 					</div>
-					<h3 class="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase">{{ __('Enter the Answer Form') }}</h3>
-					<p class="text-[15px] text-slate-500 font-bold leading-relaxed max-w-sm">{{ __('For manual scoring or non-visual custom exam question structures.') }}</p>
+					<h3 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">{{ __('Enter the Answer Form') }}</h3>
+					<p class="text-sm text-slate-600 leading-relaxed max-w-sm">{{ __('For manual scoring or non-visual custom exam question structures.') }}</p>
 				</div>
 				<div class="absolute -right-10 -bottom-10 h-64 w-64 bg-teal-500/5 rounded-full blur-[80px]"></div>
 			</button>
@@ -61,14 +55,14 @@
 					<div class="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-amber-400 shadow-lg">
 						<icons.History class="h-6 w-6" />
 					</div>
-					<h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{{ __('Recent Grading Sessions') }}</h3>
+					<h3 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Recent Grading Sessions') }}</h3>
 				</div>
 				<div class="relative w-full lg:w-[35rem]">
 					<icons.Search class="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
 					<input 
 						v-model="sessionSearchQuery"
 						type="text"
-						class="w-full pl-16 pr-6 py-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-base font-bold text-slate-900 dark:text-white outline-none focus:border-amber-400 transition-all shadow-inner"
+						class="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-amber-400 transition-all shadow-sm"
 						:placeholder="__('Search sessions')"
 					/>
 				</div>
@@ -80,7 +74,7 @@
 					class="flex flex-col items-center justify-center py-24 text-center"
 				>
 					<icons.FolderOpen class="h-16 w-16 text-slate-200 mb-6" />
-					<p class="text-lg font-black text-slate-400 uppercase tracking-widest">{{ __('MCQ session data is not available.') }}</p>
+					<p class="text-base font-medium text-slate-500">{{ __('MCQ session data is not available.') }}</p>
 				</div>
 
 				<div
@@ -88,28 +82,28 @@
 					:key="session.name"
 					class="group flex flex-col sm:flex-row items-center gap-10 rounded-[3rem] border border-slate-50 dark:border-slate-800 bg-white dark:bg-slate-950 p-8 transition-all hover:border-amber-400 hover:shadow-xl"
 				>
-					<div class="h-20 w-20 flex-shrink-0 flex items-center justify-center rounded-[1.5rem] bg-slate-100 dark:bg-slate-900 text-3xl font-black text-slate-400 group-hover:bg-slate-900 group-hover:text-amber-400 transition-all shadow-inner">
+					<div class="h-14 w-14 flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900 text-xl font-semibold text-slate-500 group-hover:bg-slate-900 group-hover:text-amber-400 transition-all shadow-sm">
 						{{ session.session_name?.[0] || 'S' }}
 					</div>
 					<div class="flex-1 min-w-0">
-						<h4 class="text-2xl font-black text-slate-900 dark:text-white truncate group-hover:text-amber-600 transition-colors mb-2">
+						<h4 class="text-lg font-semibold text-slate-900 dark:text-white truncate group-hover:text-amber-600 transition-colors mb-1">
 							{{ session.session_name }}
 						</h4>
-						<div class="flex flex-wrap items-center gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-							<span class="flex items-center gap-3"><icons.Users class="h-4 w-4" /> {{ session.class_name || __('Classroom') }}</span>
-							<span class="flex items-center gap-3"><icons.Calendar class="h-4 w-4" /> {{ session.modified_display }}</span>
+						<div class="flex flex-wrap items-center gap-6 text-sm font-medium text-slate-500">
+							<span class="flex items-center gap-2"><icons.Users class="h-4 w-4" /> {{ session.class_name || __('Classroom') }}</span>
+							<span class="flex items-center gap-2"><icons.Calendar class="h-4 w-4" /> {{ session.modified_display }}</span>
 						</div>
 					</div>
 					<div class="flex items-center gap-5">
 						<button
 							@click="openWorkspace(session)"
-							class="px-10 py-4 rounded-2xl bg-white border-2 border-slate-100 text-slate-900 font-black text-xs uppercase tracking-widest transition-all hover:scale-105 hover:shadow-xl active:scale-95 shadow-lg"
+							class="px-6 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium text-sm transition-all hover:border-slate-300 hover:shadow-sm active:scale-95 shadow-sm"
 						>
 							{{ __('Open a session') }}
 						</button>
 						<button
 							@click="deleteSession(session.name)"
-							class="p-4 rounded-2xl border-2 border-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95"
+							class="p-2.5 rounded-xl border border-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95"
 						>
 							<icons.Trash2 class="h-5 w-5" />
 						</button>
@@ -130,7 +124,7 @@
 						<div class="mx-auto h-20 w-20 rounded-[2rem] bg-slate-900 flex items-center justify-center text-amber-400 mb-6 shadow-2xl">
 							<icons.Plus class="h-10 w-10" />
 						</div>
-						<h2 class="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">{{ creatorTitle }}</h2>
+						<h2 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ creatorTitle }}</h2>
 					</div>
 					<component 
 						:is="creatorComponent" 

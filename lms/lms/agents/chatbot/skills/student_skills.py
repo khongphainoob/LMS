@@ -67,42 +67,34 @@ def get_student_course_info(student_name: str, course_name: Optional[str] = None
 
 
 @tool
-def get_course_documents(course_name: Optional[str] = None, search: Optional[str] = None) -> str:
+def get_course_documents(search: str, course_name: Optional[str] = None) -> str:
 	"""
-	Lay danh sach tai lieu (LMS Document) co san trong mot khoa hoc su dung Vector Search.
-	Su dung tool nay khi hoc sinh hoi 'khoa hoc nay co tai lieu gi khong?' hoac 'tim tai lieu ve chu de X'.
+	Tim kiem tai lieu (LMS Document) hoac tra loi cau hoi dua tren kho tai lieu cua he thong.
+	Su dung tool nay MỖI KHI hoc sinh hoi ve mot kien thuc, chu de (VD: "he dieu hanh chuong 1", "AI la gi").
 	Tham so:
-	- course_name: Ten (ID) cua khoa hoc.
-	- search: Tu khoa hoac cau hoi de tim kiem tai lieu lien quan.
+	- search: (BAT BUOC) Tu khoa hoac cau hoi can tim (VD: "he dieu hanh chuong 1").
+	- course_name: (Tuy chon) ID khoa hoc hien tai.
 	"""
 	from ..utils_rag import query_vector_db
 	try:
-		if not course_name:
-			return "Vui long cung cap ten khoa hoc de tim kiem tai lieu."
+		if not search:
+			return "Vui long cung cap tham so 'search' de tim kiem."
 			
-		# Su dung Vector Search neu co tu khoa search, neu khong dung keyword search truyen thong
-		if search:
-			results = query_vector_db(search, n_results=5, filters={"source": course_name})
-			if not results:
-				return f"Khong tim thay tai lieu nao lien quan den '{search}' trong khoa hoc {course_name}."
-			
-			res = [f"Ket qua tim kiem vector cho '{search}' trong {course_name}:"]
-			for r in results:
-				res.append(f"- {r['metadata']['title']} (ID: {r['metadata']['source']}): \"{r['content'][:100]}...\"")
-			return "\n".join(res)
-		else:
-			# Fallback ve keyword search neu khong co search query
-			from lms.lms.api import get_documents
-			docs = get_documents(course=course_name, limit=10)
-			if not docs:
-				return f"Khong tim thay tai lieu nao trong khoa hoc {course_name}."
-			
-			res = [f"Cac tai lieu co san trong khoa hoc {course_name}:"]
-			for d in docs:
-				res.append(f"- {d.title} (ID: {d.name})")
-			return "\n".join(res)
+		filters = {"course_id": course_name} if course_name else None
+		results = query_vector_db(search, n_results=5, filters=filters)
+		
+		if not results:
+			return f"Khong tim thay tai lieu nao lien quan den '{search}'."
+		
+		res = [f"Ket qua tim kiem vector cho '{search}':"]
+		for r in results:
+			title = r.get('document_title', 'Khong ro')
+			doc_id = r.get('document_id', 'Khong ro')
+			text_preview = r.get('text', '')[:200].replace('\n', ' ')
+			res.append(f"- {title} (ID: {doc_id}): \"{text_preview}...\"")
+		return "\n".join(res)
 	except Exception as e:
-		return f"Loi khi truy van tai liệu: {str(e)}"
+		return f"Loi khi truy van tai lieu: {str(e)}"
 
 
 @tool

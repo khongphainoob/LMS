@@ -1,0 +1,44 @@
+{
+ "charts": [
+  {
+   "chart_name": "Total Cost by Lesson Plans"
+  },
+  {
+   "chart_name": "Total Cost by AI Quizzes"
+  },
+  {
+   "chart_name": "Total Cost by AI Grading"
+  }
+ ],
+ "content": "[{\"id\": \"block1\", \"type\": \"header\", \"data\": {\"text\": \"Settings & Pricing\", \"level\": 4}}, {\"id\": \"block2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Model Pricing\", \"col\": 3}}, {\"id\": \"block3\", \"type\": \"header\", \"data\": {\"text\": \"Cost Analysis\", \"level\": 4}}, {\"id\": \"block4\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Total Cost by Lesson Plans\", \"col\": 6}}, {\"id\": \"block5\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Total Cost by AI Quizzes\", \"col\": 6}}, {\"id\": \"block6\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Total Cost by AI Grading\", \"col\": 6}}]",
+ "creation": "2026-05-28 20:43:52.449759",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "pie-chart",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "AI Analytics",
+ "links": [],
+ "modified": "2026-05-29 08:35:03.158568",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "AI Analytics",
+ "number_cards": [],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 0.0,
+ "shortcuts": [
+  {
+   "doc_view": "",
+   "label": "Model Pricing",
+   "link_to": "LMS AI Model Pricing",
+   "type": "DocType"
+  }
+ ],
+ "title": "AI Analytics"
+}

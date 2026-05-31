@@ -10,8 +10,8 @@
           <icons.ChevronLeft class="h-7 w-7 text-slate-600 dark:text-slate-400 stroke-[3px]" />
         </button>
         <div class="flex flex-col">
-          <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight uppercase">{{ __('Thiết lập Đề thi') }}</h2>
-          <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wide">{{ __('Tùy chỉnh các thông số để AI tạo ra bộ đề phù hợp nhất.') }}</p>
+          <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight uppercase">{{ __('Exam Setup') }}</h2>
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wide">{{ __('Customize parameters so AI can generate the most suitable question set.') }}</p>
         </div>
       </div>
 
@@ -23,7 +23,7 @@
         >
           <icons.Zap v-if="!loading" class="h-5 w-5" />
           <icons.Loader2 v-else class="h-5 w-5 animate-spin" />
-          {{ loading ? __('Đang xử lý...') : __('Bắt đầu tạo') }}
+          {{ loading ? __('Processing...') : __('Start creating') }}
         </button>
       </div>
     </div>
@@ -36,12 +36,12 @@
           
           <div class="flex items-center gap-4 mb-10 relative z-10">
             <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-sky-400/20">1</div>
-            <h3 class="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">{{ __('Nguồn dữ liệu') }}</h3>
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">{{ __('Data Source') }}</h3>
           </div>
 
           <div class="space-y-8 relative z-10">
             <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-2">{{ __('Tiêu đề bộ đề') }}</label>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-2">{{ __('Question Set Title') }}</label>
               <input 
                 v-model="config.title"
                 type="text" 
@@ -65,11 +65,11 @@
               </div>
               
               <div v-if="!file" class="text-center">
-                <p class="text-lg font-bold text-slate-800 dark:text-white mb-2">{{ __('Kéo thả tài liệu vào đây') }}</p>
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-widest mb-8">{{ __('Hỗ trợ PDF, DOCX, TXT tối đa 20MB') }}</p>
+                <p class="text-lg font-bold text-slate-800 dark:text-white mb-2">{{ __('Drag and drop document here') }}</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-widest mb-8">{{ __('Supports PDF, DOCX, TXT max 20MB') }}</p>
                 <input type="file" ref="fileInput" class="hidden" accept=".pdf,.docx,.txt" @change="handleFile">
                 <button @click="$refs.fileInput.click()" class="px-10 py-4 rounded-xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-widest shadow-lg shadow-sky-400/20 hover:shadow-[0_0_20px_rgba(56,189,248,0.4)] transition-all">
-                  {{ __('CHỌN TỪ THIẾT BỊ') }}
+                  {{ __('SELECT FROM DEVICE') }}
                 </button>
               </div>
               
@@ -84,7 +84,7 @@
             </div>
 
             <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-2">{{ __('Yêu cầu bổ sung') }}</label>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-2">{{ __('Additional requirements') }}</label>
               <textarea 
                 v-model="config.prompt"
                 rows="4"
@@ -103,13 +103,13 @@
 
           <div class="flex items-center gap-4 mb-10 relative z-10">
             <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center font-bold shadow-lg shadow-amber-400/20">2</div>
-            <h3 class="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">{{ __('Cấu hình AI') }}</h3>
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">{{ __('AI Configuration') }}</h3>
           </div>
 
           <div class="space-y-10 relative z-10">
             <!-- Bloom Levels Dropdown -->
             <div>
-              <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">{{ __('Mức độ nhận thức (Bloom)') }}</h4>
+              <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">{{ __('Cognitive Level (Bloom)') }}</h4>
               <div class="relative group/select">
                 <select 
                   v-model="config.level"
@@ -125,7 +125,7 @@
 
             <!-- Language Dropdown -->
             <div>
-              <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">{{ __('Ngôn ngữ câu hỏi') }}</h4>
+              <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">{{ __('Question Language') }}</h4>
               <div class="relative group/select">
                 <select 
                   v-model="config.language"
@@ -141,19 +141,19 @@
 
             <!-- Question Types Configuration -->
             <div>
-              <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">{{ __('Cấu hình từng loại câu hỏi') }}</h4>
+              <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">{{ __('Question Type Configuration') }}</h4>
               <div class="space-y-6">
                 <!-- Choices -->
                 <div class="p-6 rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 hover:bg-gradient-to-br hover:from-white hover:to-sky-50 transition-all group/item">
                   <div class="flex items-center justify-between mb-4">
                     <div>
                       <div class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">Choices</div>
-                      <div class="text-[10px] font-medium text-slate-400 uppercase">{{ __('Trắc nghiệm 4 đáp án') }}</div>
+                      <div class="text-[10px] font-medium text-slate-400 uppercase">{{ __('4-Option Multiple Choice') }}</div>
                     </div>
                   </div>
                   <div class="flex items-center justify-between gap-4">
                     <div class="flex-1">
-                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Số câu') }}</div>
+                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Number of questions') }}</div>
                       <div class="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm focus-within:border-sky-400 transition-colors">
                         <button @click="config.questions.choices.count = Math.max(0, config.questions.choices.count - 1)" class="p-3 hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-sky-500 font-bold">−</button>
                         <input v-model.number="config.questions.choices.count" type="number" class="w-20 text-center text-sm font-bold bg-transparent border-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
@@ -161,7 +161,7 @@
                       </div>
                     </div>
                     <div class="flex-1">
-                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Điểm/câu') }}</div>
+                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Points/question') }}</div>
                       <div class="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm focus-within:border-sky-400 transition-colors">
                         <input v-model.number="config.questions.choices.points" type="number" class="w-full p-2 text-center text-xs font-bold bg-transparent border-none focus:ring-0">
                       </div>
@@ -174,12 +174,12 @@
                   <div class="flex items-center justify-between mb-4">
                     <div>
                       <div class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">Input</div>
-                      <div class="text-[10px] font-medium text-slate-400 uppercase">{{ __('Điền vào chỗ trống') }}</div>
+                      <div class="text-[10px] font-medium text-slate-400 uppercase">{{ __('Fill in the blank') }}</div>
                     </div>
                   </div>
                   <div class="flex items-center justify-between gap-4">
                     <div class="flex-1">
-                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Số câu') }}</div>
+                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Number of questions') }}</div>
                       <div class="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm focus-within:border-sky-400 transition-colors">
                         <button @click="config.questions.input.count = Math.max(0, config.questions.input.count - 1)" class="p-3 hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-sky-500 font-bold">−</button>
                         <input v-model.number="config.questions.input.count" type="number" class="w-20 text-center text-sm font-bold bg-transparent border-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
@@ -187,7 +187,7 @@
                       </div>
                     </div>
                     <div class="flex-1">
-                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Điểm/câu') }}</div>
+                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Points/question') }}</div>
                       <div class="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm focus-within:border-sky-400 transition-colors">
                         <input v-model.number="config.questions.input.points" type="number" class="w-full p-2 text-center text-xs font-bold bg-transparent border-none focus:ring-0">
                       </div>
@@ -200,12 +200,12 @@
                   <div class="flex items-center justify-between mb-4">
                     <div>
                       <div class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">Open ended</div>
-                      <div class="text-[10px] font-medium text-slate-400 uppercase">{{ __('Tự luận ngắn') }}</div>
+                      <div class="text-[10px] font-medium text-slate-400 uppercase">{{ __('Short Essay') }}</div>
                     </div>
                   </div>
                   <div class="flex items-center justify-between gap-4">
                     <div class="flex-1">
-                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Số câu') }}</div>
+                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Number of questions') }}</div>
                       <div class="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm focus-within:border-sky-400 transition-colors">
                         <button @click="config.questions.open.count = Math.max(0, config.questions.open.count - 1)" class="p-3 hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-sky-500 font-bold">−</button>
                         <input v-model.number="config.questions.open.count" type="number" class="w-20 text-center text-sm font-bold bg-transparent border-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
@@ -213,7 +213,7 @@
                       </div>
                     </div>
                     <div class="flex-1">
-                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Điểm/câu') }}</div>
+                      <div class="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">{{ __('Points/question') }}</div>
                       <div class="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm focus-within:border-sky-400 transition-colors">
                         <input v-model.number="config.questions.open.points" type="number" class="w-full p-2 text-center text-xs font-bold bg-transparent border-none focus:ring-0">
                       </div>
@@ -235,13 +235,13 @@
           <div class="absolute inset-0 bg-yellow-400/20 rounded-full animate-ping"></div>
           <icons.Sparkles class="h-16 w-16 text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 to-orange-500 relative z-10 fill-yellow-300" style="color: #facc15" />
         </div>
-        <h3 class="text-2xl font-bold text-slate-800 dark:text-white mb-4 uppercase tracking-tight">{{ __('Gửi yêu cầu thành công') }}</h3>
-        <p class="text-sm text-slate-500 font-medium mb-10 leading-relaxed">{{ __('AI đang tiến hành phân tích và tạo bộ đề. Bạn có thể theo dõi tiến độ tại Dashboard.') }}</p>
+        <h3 class="text-2xl font-bold text-slate-800 dark:text-white mb-4 uppercase tracking-tight">{{ __('Request sent successfully') }}</h3>
+        <p class="text-sm text-slate-500 font-medium mb-10 leading-relaxed">{{ __('AI is analyzing and generating the question set. You can track progress on the Dashboard.') }}</p>
         <button 
           @click="router.push({ name: 'AIQuizDashboard' })"
           class="w-full py-5 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-widest shadow-xl shadow-sky-400/20"
         >
-          {{ __('Quay lại Dashboard') }}
+          {{ __('Back to Dashboard') }}
         </button>
       </div>
     </div>

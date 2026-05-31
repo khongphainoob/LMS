@@ -39,10 +39,14 @@
 					<template #target>
 						<div class="relative">
 							<img
+								v-if="badge.badge_image && !badge.badge_image.includes('badge.png')"
 								:src="badge.badge_image"
 								:alt="badge.badge"
 								class="h-[80px]"
 							/>
+							<div v-else class="h-[80px] w-[80px] flex items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white text-3xl shadow-md border-2 border-white">
+								{{ getFallbackEmoji(badge.badge) }}
+							</div>
 							<div
 								v-if="badge.count > 1"
 								class="flex items-end bg-surface-gray-2 p-2 text-xs font-semibold rounded-full absolute right-0 bottom-0"
@@ -58,10 +62,14 @@
 						<div class="w-[250px] text-base">
 							<div class="bg-surface-gray-2 rounded-t-md py-5">
 								<img
+									v-if="badge.badge_image && !badge.badge_image.includes('badge.png')"
 									:src="badge.badge_image"
 									:alt="badge.badge"
 									class="h-[200px] mx-auto"
 								/>
+								<div v-else class="h-[200px] w-[200px] mx-auto flex items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white text-[5rem] shadow-xl border-4 border-white">
+									{{ getFallbackEmoji(badge.badge) }}
+								</div>
 							</div>
 							<div class="p-5">
 								<div class="text-2xl font-semibold mb-2">
@@ -155,6 +163,18 @@ const badges = createResource({
 		return finalBadges
 	},
 })
+
+const getFallbackEmoji = (title) => {
+	if (!title) return "🏆"
+	title = title.toLowerCase()
+	if (title.includes("streak") || title.includes("chuỗi")) return "🔥"
+	if (title.includes("champion") || title.includes("vô địch")) return "🏆"
+	if (title.includes("scholar") || title.includes("học giả")) return "🎓"
+	if (title.includes("top") || title.includes("đỉnh")) return "⭐"
+	if (title.includes("master") || title.includes("thủ khoa")) return "👑"
+	if (title.includes("help") || title.includes("giúp")) return "🤝"
+	return "🏅"
+}
 
 const shareOnSocial = (badge, medium) => {
 	let shareUrl

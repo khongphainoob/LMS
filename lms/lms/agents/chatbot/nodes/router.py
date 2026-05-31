@@ -17,7 +17,7 @@ Chỉ trả về JSON thuần túy."""
 def router_node(state: ChatbotState) -> dict:
     from lms.lms.agents.provider import get_llm
     
-    llm = get_llm("chatbot", temperature=0)
+    llm, model_name, _ = get_llm("chatbot", temperature=0)
 
     messages = [
         SystemMessage(content=ROUTER_SYSTEM),

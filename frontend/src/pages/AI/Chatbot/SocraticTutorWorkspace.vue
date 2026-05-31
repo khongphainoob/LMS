@@ -27,11 +27,11 @@
         <div class="flex items-center gap-3">
           <button @click="retryAnalysis" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200">
             <icons.RefreshCw class="h-3.5 w-3.5" />
-            {{ __('Chấm lại bài') }}
+            {{ __('Regrade') }}
           </button>
           <button @click="resetConversation" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors">
             <icons.RotateCcw class="h-3.5 w-3.5" />
-            {{ __('Làm mới') }}
+            {{ __('Refresh') }}
           </button>
         </div>
       </div>
@@ -46,26 +46,28 @@
               <icons.Target class="h-5 w-5" />
             </div>
             <div>
-              <h3 class="text-sm font-bold text-slate-800">{{ __('Mục tiêu & Dữ liệu') }}</h3>
-              <p class="text-xs text-slate-500">{{ __('Thông tin được gửi cho AI') }}</p>
+              <h3 class="text-sm font-bold text-slate-800">{{ __('Objectives & Data') }}</h3>
+              <p class="text-xs text-slate-500">{{ __('Information sent to AI') }}</p>
             </div>
           </div>
           
-          <div v-if="lastSessionImage" class="relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm mb-4">
-            <img :src="lastSessionImage" class="w-full h-auto object-cover max-h-[300px]" />
+          <div v-if="lastSessionImages && lastSessionImages.length > 0" class="flex flex-col gap-3 mb-4">
+            <div v-for="(img, idx) in lastSessionImages" :key="idx" class="relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white">
+              <img :src="img" class="w-full h-auto object-cover max-h-[300px]" />
+            </div>
           </div>
 
           <div v-if="lastSessionRubric" class="flex items-start gap-3 p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
             <div class="mt-0.5"><icons.FileText class="h-4 w-4 text-emerald-500" /></div>
             <div>
-              <div class="text-xs font-bold text-slate-700">{{ __('Tiêu chí chấm điểm') }}</div>
+              <div class="text-xs font-bold text-slate-700">{{ __('Grading Criteria') }}</div>
               <div class="text-[11px] text-slate-500 truncate max-w-[200px]" :title="lastSessionRubric">{{ formattedRubricName }}</div>
             </div>
           </div>
           
-          <div v-if="!lastSessionImage && !lastSessionRubric" class="text-center py-8 text-slate-400">
+          <div v-if="(!lastSessionImages || lastSessionImages.length === 0) && !lastSessionRubric" class="text-center py-8 text-slate-400">
             <icons.Inbox class="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p class="text-xs font-medium">{{ __('Không có ảnh bài làm hoặc tiêu chí đính kèm') }}</p>
+            <p class="text-xs font-medium">{{ __('No submission image or criteria attached') }}</p>
           </div>
         </div>
 
@@ -76,7 +78,7 @@
               <h3 class="text-sm font-black text-slate-900 uppercase tracking-tight">{{ __('Socratic Method') }}</h3>
             </div>
             <p class="text-xs leading-relaxed text-slate-900 font-medium">
-              {{ __('Phương pháp Socratic không đưa ra câu trả lời trực tiếp mà dùng các câu hỏi gợi mở để giúp bạn tự tìm ra hướng giải quyết. Hãy suy nghĩ cẩn thận trước khi trả lời nhé!') }}
+              {{ __("The Socratic method doesn't give direct answers but uses guiding questions to help you find the solution. Think carefully before answering!") }}
             </p>
           </div>
           <icons.Brain class="absolute -right-6 -bottom-6 h-32 w-32 text-amber-500 opacity-10" />
@@ -89,7 +91,7 @@
           
           <div v-if="messages.length === 0 && !chatbotResource.loading" class="flex flex-col items-center justify-center h-full text-slate-400 opacity-60">
             <icons.MessageSquareDashed class="h-12 w-12 mb-3" />
-            <p class="text-sm font-medium">{{ __('Hãy bắt đầu trò chuyện để nhận gợi ý') }}</p>
+            <p class="text-sm font-medium">{{ __('Start chatting to receive suggestions') }}</p>
           </div>
 
           <div 
@@ -119,7 +121,7 @@
                 <!-- Badge for specific message types from AI -->
                 <div v-if="msg.role === 'assistant' && msg.message_type === 'socratic_hint'" class="flex items-center gap-1.5 text-amber-600 mb-2 border-b border-amber-100 pb-2">
                   <icons.Lightbulb class="h-3.5 w-3.5" />
-                  <span class="text-[10px] font-bold uppercase tracking-widest">{{ __('Gợi ý Socratic') }}</span>
+                  <span class="text-[10px] font-bold uppercase tracking-widest">{{ __('Socratic Suggestion') }}</span>
                 </div>
                 
                 <div 
@@ -129,7 +131,7 @@
                 ></div>
               </div>
               <div class="mt-1.5 text-[10px] font-medium px-1" :class="msg.role === 'user' ? 'text-right text-slate-500' : 'text-left text-slate-400'">
-                {{ msg.role === 'user' ? __('Bạn') : __('Socratic AI') }}
+                {{ msg.role === 'user' ? __('You') : __('Socratic AI') }}
               </div>
             </div>
           </div>
@@ -142,7 +144,7 @@
               </div>
             </div>
             <div class="bg-white border border-slate-200 shadow-sm rounded-2xl rounded-tl-sm px-5 py-3.5 flex items-center gap-3">
-              <div class="text-sm font-bold text-slate-800">{{ __('Đang suy luận và phân tích...') }}</div>
+              <div class="text-sm font-bold text-slate-800">{{ __('Inferring and analyzing...') }}</div>
               <div class="flex items-center gap-1">
                 <span class="h-1.5 w-1.5 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
                 <span class="h-1.5 w-1.5 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
@@ -159,7 +161,7 @@
               v-model="userInput"
               rows="1"
               class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3.5 pr-14 text-sm outline-none transition-all focus:bg-white focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 resize-none shadow-sm"
-              :placeholder="__('Nhập câu trả lời hoặc thắc mắc của bạn...')"
+              :placeholder="__('Enter your answer or question...')"
               :disabled="chatbotResource.loading || isAwaitingResponse"
               @keydown.enter.prevent="handleSend"
             ></textarea>
@@ -173,7 +175,7 @@
             </button>
           </div>
           <div class="text-center mt-2 text-[10px] text-slate-400 font-medium">
-            {{ __('AI có thể mắc lỗi. Vui lòng kiểm tra lại thông tin quan trọng.') }}
+            {{ __('AI can make mistakes. Please verify important information.') }}
           </div>
         </div>
       </section>
@@ -205,6 +207,7 @@ const scrollContainer = ref(null)
 const currentSessionTitle = ref('')
 
 const lastSessionImage = ref(null)
+const lastSessionImages = ref([])
 const lastSessionRubric = ref(null)
 
 const formattedRubricName = computed(() => {
@@ -241,6 +244,9 @@ const chatbotResource = createResource({
 
 const historyResource = createResource({
   url: 'lms.lms.services.socratic.api.get_socratic_history',
+  params: {
+    session_key: props.sessionKey
+  },
   onSuccess: (data) => {
     if (data && data.length > 0) {
       messages.value = data
@@ -255,8 +261,19 @@ const sessionDetailResource = createResource({
     session_key: props.sessionKey
   },
   onSuccess: (data) => {
-    currentSessionTitle.value = data.lesson || data.course || __('Phiên thảo luận chung')
+    currentSessionTitle.value = data.lesson || data.course || __('General Discussion Session')
     lastSessionImage.value = data.attached_image
+    
+    if (data.attached_images) {
+      try {
+        lastSessionImages.value = JSON.parse(data.attached_images)
+      } catch (e) {
+        lastSessionImages.value = data.attached_image ? [data.attached_image] : []
+      }
+    } else {
+      lastSessionImages.value = data.attached_image ? [data.attached_image] : []
+    }
+    
     lastSessionRubric.value = data.attached_rubric
   }
 })
@@ -283,7 +300,7 @@ const handleSend = () => {
 }
 
 const resetConversation = () => {
-  if (confirm(__('Bạn có chắc chắn muốn làm mới cuộc hội thoại này?'))) {
+  if (confirm(__('Are you sure you want to refresh this conversation?'))) {
     createResource({
       url: 'lms.lms.services.socratic.api.reset_socratic_session',
       params: { session_key: props.sessionKey },
@@ -297,7 +314,7 @@ const resetConversation = () => {
 }
 
 const retryAnalysis = () => {
-  if (confirm(__('Hệ thống sẽ xoá lịch sử chat và thực hiện chấm lại bài làm này. Bạn có chắc chắn?'))) {
+  if (confirm(__('The system will clear chat history and regrade this submission. Are you sure?'))) {
     isAwaitingResponse.value = true
     createResource({
       url: 'lms.lms.services.socratic.api.retry_analysis',
@@ -384,7 +401,7 @@ onMounted(() => {
 
     if (payload.status === 'error') {
       console.error(__('[Socratic Debug] Error from server:'), payload.error)
-      const errorText = payload.error || __('Đã có lỗi xảy ra. Vui lòng thử lại.')
+      const errorText = payload.error || __('An error occurred. Please try again.')
       messages.value.push({ role: 'assistant', content: errorText, message_type: 'error' })
       scrollToBottom()
       return

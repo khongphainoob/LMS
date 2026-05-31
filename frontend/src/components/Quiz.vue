@@ -71,8 +71,9 @@
 				<div class="flex items-center justify-center space-x-2 mt-4">
 					<Button
 						v-if="
-							!quiz.data.max_attempts ||
-							attempts.data?.length < quiz.data.max_attempts
+							(!quiz.data.max_attempts ||
+							attempts.data?.length < quiz.data.max_attempts) &&
+							questions.length > 0
 						"
 						variant="solid"
 						@click="startQuiz"
@@ -84,6 +85,9 @@
 					<Button v-if="inVideo" @click="props.backToVideo()">
 						{{ __('Resume Video') }}
 					</Button>
+				</div>
+				<div v-if="questions.length === 0" class="text-ink-gray-7 mt-2">
+					{{ __('This quiz has no questions yet.') }}
 				</div>
 				<div
 					v-if="
@@ -333,7 +337,7 @@ const activeQuestion = ref(0)
 const currentQuestion = ref('')
 const selectedOptions = reactive([0, 0, 0, 0])
 const showAnswers = reactive([])
-let questions = reactive([])
+const questions = ref([])
 const possibleAnswer = ref(null)
 const timer = ref(0)
 let timerInterval = null
@@ -374,13 +378,17 @@ const quiz = createResource({
 
 const populateQuestions = () => {
 	let data = quiz.data
+	if (!data.questions) {
+		data.questions = []
+	}
 	if (data.shuffle_questions) {
-		questions = shuffleArray(data.questions)
+		let shuffled = shuffleArray([...data.questions])
 		if (data.limit_questions_to) {
-			questions = questions.slice(0, data.limit_questions_to)
+			shuffled = shuffled.slice(0, data.limit_questions_to)
 		}
+		questions.value = shuffled
 	} else {
-		questions = data.questions
+		questions.value = data.questions
 	}
 }
 
@@ -484,8 +492,8 @@ const questionDetails = createResource({
 })
 
 watch(activeQuestion, (value) => {
-	if (value > 0) {
-		currentQuestion.value = quiz.data.questions[value - 1].question
+	if (value > 0 && questions.value && questions.value[value - 1]) {
+		currentQuestion.value = questions.value[value - 1].question
 		questionDetails.reload()
 	}
 })
@@ -500,6 +508,10 @@ watch(
 )
 
 const startQuiz = () => {
+	if (!questions.value || questions.value.length === 0) {
+		toast.error(__('This quiz has no questions yet.'))
+		return
+	}
 	activeQuestion.value = 1
 	localStorage.removeItem(quiz.data.title)
 	if (quiz.data.duration) startTimer()
@@ -598,7 +610,7 @@ const nextQuestion = () => {
 }
 
 const resetQuestion = () => {
-	if (activeQuestion.value == quiz.data.questions.length) return
+	if (activeQuestion.value == questions.value.length) return
 	activeQuestion.value = activeQuestion.value + 1
 	selectedOptions.splice(0, selectedOptions.length, ...[0, 0, 0, 0])
 	showAnswers.length = 0
@@ -607,8 +619,8 @@ const resetQuestion = () => {
 
 const submitQuiz = () => {
 	if (!quiz.data.show_answers) {
-		if (questionDetails.data.type == 'Open Ended') addToLocalStorage()
-		else checkAnswer()
+		if (questionDetails.data && questionDetails.data.type == 'Open Ended') addToLocalStorage()
+		else if (questionDetails.data) checkAnswer()
 		setTimeout(() => {
 			createSubmission()
 		}, 500)

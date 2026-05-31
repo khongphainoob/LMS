@@ -59,7 +59,7 @@ You MUST return a JSON object with:
     
     try:
         # 2. Setup LLM (Use pre-fetched config to avoid parallel DB calls)
-        llm = get_llm(f"Quiz {frappe_type}", **state.get("frappe_config", {}))
+        llm, _, _ = get_llm(f"Quiz {frappe_type}", **state.get("frappe_config", {}))
         # Ensure the model knows it needs to fill QuizSchema
         response = llm.with_structured_output(QuizSchema).invoke([
             ("system", system_prompt),

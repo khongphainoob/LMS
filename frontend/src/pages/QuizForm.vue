@@ -196,6 +196,27 @@
 				{{ __('No questions added yet') }}
 			</div>
 		</div>
+
+		<!-- AI Grading Entry Panel -->
+		<div v-if="hasOpenEnded" class="px-20 pb-5 space-y-5 mb-5 border-t pt-8">
+			<div class="flex items-center justify-between mb-4">
+				<div>
+					<div class="text-lg font-semibold text-ink-gray-9 flex items-center gap-2">
+						<Bot class="w-5 h-5 text-purple-600" />
+						{{ __('AI Essay Grader Configuration') }}
+					</div>
+					<div class="text-ink-gray-6 text-sm mt-1">
+						{{ __('This quiz contains open-ended questions. You can configure the AI agent to automatically grade submissions based on your rubric.') }}
+					</div>
+				</div>
+				<Button variant="solid" @click="router.push({ name: 'AIGradingEssayConfig', params: { type: 'exam' } })">
+					<template #prefix>
+						<Bot class="w-4 h-4" />
+					</template>
+					{{ __('Configure AI Grader') }}
+				</Button>
+			</div>
+		</div>
 	</div>
 
 	<Question
@@ -241,7 +262,7 @@ import {
 	onBeforeUnmount,
 } from 'vue'
 import { sessionStore } from '../stores/session'
-import { ClipboardList, ListChecks, Plus, Trash2, Upload } from 'lucide-vue-next'
+import { ClipboardList, ListChecks, Plus, Trash2, Upload, Bot } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { escapeHTML } from '@/utils'
 import Question from '@/components/Modals/Question.vue'
@@ -268,6 +289,10 @@ const props = defineProps({
 
 const questions = computed(() => {
 	return quizDetails.doc?.questions || []
+})
+
+const hasOpenEnded = computed(() => {
+	return questions.value.some(q => ['Open Ended', 'User Input'].includes(q.type))
 })
 
 onMounted(() => {
@@ -343,8 +368,13 @@ const questionColumns = computed(() => {
 		},
 		{
 			label: __('Question'),
-			key: __('question_detail'),
-			width: '40rem',
+			key: 'question_detail',
+			width: '35rem',
+		},
+		{
+			label: __('Type'),
+			key: 'type',
+			width: '8rem',
 		},
 		{
 			label: __('Marks'),

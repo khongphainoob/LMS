@@ -36,7 +36,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Bloom Level",
-   "options": "Remember/Understand\nApply/Analyze\nEvaluate/Create"
+   "options": "Remember\nUnderstand\nApply\nAnalyze\nEvaluate\nCreate"
   },
   {
    "fieldname": "language",

@@ -11,10 +11,10 @@
             <icons.ChevronLeft class="h-7 w-7 text-slate-600 dark:text-slate-400 stroke-[3px]" />
           </button>
           <div class="flex flex-col min-w-0">
-            <h2 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight uppercase truncate">{{ quiz.title || __('Đang tải...') }}</h2>
+            <h2 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight uppercase truncate">{{ quiz.title || __('Loading...') }}</h2>
             <div class="flex items-center gap-2 mt-2">
               <span class="px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-900/30 text-[9px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-[0.2em] border border-sky-200/50 dark:border-sky-800/50">
-                {{ __('Dữ liệu chi tiết từ AI') }}
+                {{ __('Detailed Data from AI') }}
               </span>
             </div>
           </div>
@@ -22,11 +22,19 @@
 
         <div class="flex items-center gap-4">
           <button 
+            @click="syncToLMS"
+            :disabled="syncResource.loading"
+            class="flex items-center gap-3 px-8 py-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:shadow-lg hover:shadow-indigo-500/10 transition-all active:scale-95 disabled:opacity-50"
+          >
+            <icons.RefreshCw class="h-4 w-4" :class="{ 'animate-spin': syncResource.loading }" />
+            {{ syncResource.loading ? __('Syncing...') : __('Sync LMS') }}
+          </button>
+          <button 
             @click="exportToExcel"
             class="flex items-center gap-3 px-8 py-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:shadow-lg hover:shadow-emerald-500/10 transition-all active:scale-95"
           >
             <icons.FileSpreadsheet class="h-4 w-4" />
-            {{ __('Xuất Excel') }}
+            {{ __('Export to Excel') }}
           </button>
           <button 
             @click="saveChanges"
@@ -34,7 +42,7 @@
             class="flex items-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold text-[10px] uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(56,189,248,0.4)] transition-all active:scale-95 shadow-lg shadow-sky-400/20 disabled:opacity-50"
           >
             <icons.Save class="h-4 w-4" />
-            {{ saveResource.loading ? __('Đang lưu...') : __('Lưu thay đổi') }}
+            {{ saveResource.loading ? __('Saving...') : __('Save changes') }}
           </button>
         </div>
       </div>
@@ -49,12 +57,12 @@
             
             <h3 class="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-wider mb-8 relative z-10 flex items-center gap-3">
               <span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span>
-              {{ __('Thông số bộ đề') }}
+              {{ __('Question Set Parameters') }}
             </h3>
             
             <div class="space-y-6 relative z-10">
               <div class="flex justify-between items-center pb-4 border-b border-slate-100/50 dark:border-slate-800">
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{{ __('Trạng thái') }}</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{{ __('Status') }}</span>
                 <span 
                   :style="{ backgroundColor: (quiz.status && quiz.status.toLowerCase().includes('complete')) ? '#059669' : '#dc2626' }"
                   class="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white border-2 border-white dark:border-slate-800 shadow-xl shadow-emerald-500/20"
@@ -63,20 +71,20 @@
                 </span>
               </div>
               <div class="flex justify-between items-center pb-4 border-b border-slate-100/50 dark:border-slate-800">
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{{ __('Cấp độ Bloom') }}</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{{ __('Bloom Level') }}</span>
                 <span class="text-sm font-black text-slate-800 dark:text-white">{{ quiz.bloom_level }}</span>
               </div>
               <div class="flex justify-between items-center pb-4 border-b border-slate-100/50 dark:border-slate-800">
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{{ __('Ngôn ngữ') }}</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{{ __('Language') }}</span>
                 <span class="text-sm font-black text-slate-800 dark:text-white uppercase">{{ quiz.language === 'vi' ? __('Vietnamese') : 'English' }}</span>
               </div>
               <div v-if="quiz.source_file" class="pt-4">
-                <span class="block text-[11px] font-bold text-slate-400 uppercase mb-4 tracking-tight">{{ __('Tài liệu nguồn') }}</span>
+                <span class="block text-[11px] font-bold text-slate-400 uppercase mb-4 tracking-tight">{{ __('Source Document') }}</span>
                 <a :href="quiz.source_file" target="_blank" class="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-sky-400 transition-all group shadow-sm">
                   <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-2xl shadow-lg shadow-sky-400/20">📄</div>
                   <div class="flex-1 min-w-0">
                     <span class="block text-[10px] font-black text-slate-800 dark:text-white truncate uppercase tracking-tight">{{ quiz.source_file.split('/').pop() }}</span>
-                    <span class="text-[9px] font-bold text-sky-500 uppercase tracking-widest">{{ __('Xem tài liệu') }}</span>
+                    <span class="text-[9px] font-bold text-sky-500 uppercase tracking-widest">{{ __('View document') }}</span>
                   </div>
                   <icons.ChevronRight class="h-4 w-4 text-slate-300 group-hover:text-sky-500 transition-transform group-hover:translate-x-1" />
                 </a>
@@ -113,14 +121,14 @@
                 <button 
                   @click="editQuestion(index)"
                   class="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-all border border-slate-100 dark:border-slate-700 shadow-sm"
-                  :title="__('Sửa câu hỏi')"
+                  :title="__('Edit Question')"
                 >
                   <icons.Edit2 class="h-4 w-4" />
                 </button>
                 <button 
                   @click="deleteQuestion(index)"
                   class="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all border border-slate-100 dark:border-slate-700 shadow-sm"
-                  :title="__('Xóa câu hỏi')"
+                  :title="__('Delete question')"
                 >
                   <icons.Trash2 class="h-4 w-4" />
                 </button>
@@ -145,7 +153,7 @@
                   </div>
                   <div v-if="opt.correct" class="opt-badge">
                     <icons.CheckCircle2 class="h-4 w-4" />
-                    <span>{{ __('Chính xác') }}</span>
+                    <span>{{ __('Correct') }}</span>
                   </div>
                 </div>
             </div>
@@ -158,7 +166,7 @@
                   <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-500 text-slate-900 flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.4)] animate-pulse border-2 border-white/50">
                     <icons.Zap class="h-5 w-5 fill-current" />
                   </div>
-                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 dark:text-yellow-400 drop-shadow-sm">{{ q.type === 'Open Ended' ? __('Hướng dẫn chấm / Rubric') : __('Đáp án mong đợi') }}</span>
+                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 dark:text-yellow-400 drop-shadow-sm">{{ q.type === 'Open Ended' ? __('Grading Guide / Rubric') : __('Expected Answer') }}</span>
                 </div>
                 <div class="p-4 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-sky-100 dark:border-sky-800/50">
                   <p class="text-[14px] font-bold leading-relaxed text-slate-700 dark:text-slate-200">{{ q.answer }}</p>
@@ -174,7 +182,7 @@
     <div v-if="editModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-6">
       <div class="max-w-2xl w-full bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between mb-8">
-          <h3 class="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">{{ __('Chỉnh sửa câu hỏi') }}</h3>
+          <h3 class="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">{{ __('Edit Question') }}</h3>
           <button @click="editModalOpen = false" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
             <icons.X class="h-6 w-6 text-slate-400" />
           </button>
@@ -183,46 +191,46 @@
         <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
           <!-- Question Text -->
           <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ __('Câu hỏi') }}</label>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ __('Question') }}</label>
             <textarea v-model="editingQuestion.question" rows="3" class="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm font-medium focus:border-sky-400 focus:ring-0 transition-colors"></textarea>
           </div>
 
           <!-- Points -->
           <div class="w-32">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ __('Số điểm') }}</label>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ __('Score') }}</label>
             <input type="number" v-model.number="editingQuestion.points" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm font-bold text-center" />
           </div>
 
           <!-- Options for Choices -->
           <div v-if="editingQuestion.type === 'Choices'" class="space-y-4">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ __('Các lựa chọn & Đáp án') }}</label>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ __('Options & Answers') }}</label>
             <div v-for="i in 4" :key="i" class="flex items-center gap-4">
               <input type="checkbox" v-model="editingQuestion[`is_correct_${i}`]" class="h-6 w-6 rounded-lg text-emerald-500 focus:ring-emerald-500 border-slate-300" />
-              <input v-model="editingQuestion[`option_${i}`]" type="text" :placeholder="`Lựa chọn ${i}`" class="flex-1 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm" />
+              <input v-model="editingQuestion[`option_${i}`]" type="text" :placeholder="__('Option ') + i" class="flex-1 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm" />
             </div>
           </div>
 
           <!-- Answer / Rubric -->
           <div v-if="editingQuestion.type === 'User Input'">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ __('Đáp án chấp nhận') }}</label>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ __('Accepted Answer') }}</label>
             <input v-model="editingQuestion.possibility_1" type="text" class="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm" />
           </div>
 
           <div v-if="editingQuestion.type === 'Open Ended'">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ __('Hướng dẫn chấm / Rubric') }}</label>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ __('Grading Guide / Rubric') }}</label>
             <textarea v-model="editingQuestion.scoring_rubric" rows="4" class="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm"></textarea>
           </div>
         </div>
 
         <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-4">
           <button @click="editModalOpen = false" class="px-6 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest">
-            {{ __('Hủy') }}
+            {{ __('Cancel') }}
           </button>
           <button 
             @click="saveEdit" 
             class="px-8 py-3 rounded-xl bg-gradient-to-r from-sky-300 to-blue-400 text-slate-950 text-sm font-bold uppercase tracking-widest hover:brightness-105 transition-all active:scale-95 border border-white/40 shadow-sm"
           >
-            {{ __('Cập nhật') }}
+            {{ __('Update') }}
           </button>
         </div>
       </div>
@@ -279,6 +287,24 @@ const saveResource = createResource({
     quizResource.fetch()
   }
 })
+
+const syncResource = createResource({
+  url: 'lms.lms.services.ai_quiz.api.sync_to_lms',
+  onSuccess: (data) => {
+    alert(__('LMS Quiz created successfully!'))
+  },
+  onError: (err) => {
+    alert(__('Sync failed: ') + (err.messages?.[0] || err))
+  }
+})
+
+const syncToLMS = () => {
+  if (confirm(__('Are you sure you want to sync this question set to the official LMS system?'))) {
+    syncResource.submit({
+      quiz_id: props.quizID
+    })
+  }
+}
 
 onMounted(() => {
   quizResource.fetch()

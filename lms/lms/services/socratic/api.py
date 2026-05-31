@@ -7,10 +7,9 @@ from .session import (
     save_message_to_history,
     clear_session
 )
-
-
-RATE_LIMIT_REQUESTS_PER_MINUTE = 5
-
+from lms.lms.services.hitl.flagging import should_flag_socratic
+from lms.lms.services.hitl.notification import notify_teacher
+from lms.lms.services.ai_rate_limit import check_and_record_usage
 
 def _ensure_socratic_access(user: str) -> None:
     if user == "Guest":
@@ -22,18 +21,7 @@ def _ensure_socratic_access(user: str) -> None:
 
 
 def _apply_rate_limit(user: str) -> None:
-    key = f"socratic:rate:{user}"
-    cache = frappe.cache()
-    current = cache.get_value(key) or 0
-    try:
-        current_int = int(current)
-    except Exception:
-        current_int = 0
-
-    if current_int >= RATE_LIMIT_REQUESTS_PER_MINUTE:
-        frappe.throw(_("Too many requests. Please wait a minute and try again."))
-
-    cache.set_value(key, str(current_int + 1), expires_in_sec=60)
+    check_and_record_usage(user, "Socratic", increment=1)
 
 
 def _publish_socratic_result(user: str, payload: dict) -> None:
@@ -67,13 +55,19 @@ def send_socratic_message(message: str, lesson_name: str = None, session_key: st
         "session_key": session_key,
         "chat_history": get_chat_history(session_key),
         "scaffolding_level": int(scaffolding_level),
+        "knowledge_state": {},
         "lesson_content": lesson_content,
         "image_data": image_data,
         "rubric_data": rubric_data
     }
 
     try:
-        final_state = socratic_graph.invoke(initial_state)
+        from lms.lms.services.observability import get_unified_config_dict, flush_langfuse
+        config = get_unified_config_dict(agent_name="socratic_agent", session_id=session_key, tags=["Socratic"])
+        
+        final_state = socratic_graph.invoke(initial_state, config)
+        flush_langfuse()
+            
         response = final_state.get("response")
 
         save_message_to_history(session_key, "user", message)
@@ -93,7 +87,7 @@ def send_socratic_message(message: str, lesson_name: str = None, session_key: st
 
 
 @frappe.whitelist(methods=["POST"])
-def send_socratic_message_async(message: str = None, lesson_name: str = None, session_key: str = None, scaffolding_level: int = 0, image_data: str = None, rubric_data: str = None, request_id: str = None):
+def send_socratic_message_async(message: str = None, lesson_name: str = None, session_key: str = None, scaffolding_level: int = 0, image_data: str = None, rubric_data: str = None, request_id: str = None, images_data: str = None):
     if not message and not image_data and not rubric_data:
         frappe.throw(_("Message, image or rubric cannot be empty"))
 
@@ -115,18 +109,66 @@ def send_socratic_message_async(message: str = None, lesson_name: str = None, se
             lesson_content = lesson_doc.body or lesson_doc.content or ""
         except Exception:
             pass
-
-    initial_state = {
-        "user_message": message or "",
-        "student_name": student,
-        "lesson_name": lesson_name,
-        "session_key": session_key,
-        "chat_history": get_chat_history(session_key),
-        "scaffolding_level": int(scaffolding_level),
-        "lesson_content": lesson_content,
-        "image_data": image_data,
-        "rubric_data": rubric_data,
-    }
+            
+    if session_key:
+        session = frappe.db.get_value("Socratic Session", {"session_key": session_key, "student": student}, ["lesson", "attached_image", "attached_images", "attached_rubric", "knowledge_state", "scaffolding_level"], as_dict=True)
+        if session:
+            if not lesson_name and session.lesson:
+                lesson_name = session.lesson
+            if not image_data and session.attached_image:
+                image_data = session.attached_image
+            if not images_data and session.attached_images:
+                images_data = session.attached_images
+            if not rubric_data and session.attached_rubric:
+                rubric_data = session.attached_rubric
+            
+            import json
+            try:
+                knowledge_state_dict = json.loads(session.knowledge_state) if session.knowledge_state else {}
+            except Exception:
+                knowledge_state_dict = {}
+                
+            initial_state = {
+                "user_message": message or "",
+                "student_name": student,
+                "lesson_name": lesson_name,
+                "session_key": session_key,
+                "chat_history": get_chat_history(session_key),
+                "scaffolding_level": session.scaffolding_level or 0,
+                "knowledge_state": knowledge_state_dict,
+                "lesson_content": lesson_content,
+                "image_data": image_data,
+                "images_data": images_data,
+                "rubric_data": rubric_data,
+            }
+        else:
+            initial_state = {
+                "user_message": message or "",
+                "student_name": student,
+                "lesson_name": lesson_name,
+                "session_key": session_key,
+                "chat_history": get_chat_history(session_key),
+                "scaffolding_level": int(scaffolding_level),
+                "knowledge_state": {},
+                "lesson_content": lesson_content,
+                "image_data": image_data,
+                "images_data": images_data,
+                "rubric_data": rubric_data,
+            }
+    else:
+        initial_state = {
+            "user_message": message or "",
+            "student_name": student,
+            "lesson_name": lesson_name,
+            "session_key": session_key,
+            "chat_history": get_chat_history(session_key),
+            "scaffolding_level": int(scaffolding_level),
+            "knowledge_state": {},
+            "lesson_content": lesson_content,
+            "image_data": image_data,
+            "images_data": images_data,
+            "rubric_data": rubric_data,
+        }
 
     job = frappe.enqueue(
         "lms.lms.services.socratic.api._run_socratic_job",
@@ -156,7 +198,11 @@ def _run_socratic_job(user: str, lesson_name: str, request_id: str, initial_stat
         frappe.logger("socratic").info(f"[JOB] session_key={initial_state.get('session_key')}")
         frappe.logger("socratic").info(f"[JOB] user_message length={len(initial_state.get('user_message', ''))}")
 
-        final_state = socratic_graph.invoke(initial_state)
+        from lms.lms.services.observability import get_unified_config_dict, flush_langfuse
+        config = get_unified_config_dict(agent_name="socratic_agent", session_id=initial_state.get("session_key"), tags=["Socratic", "Async"])
+
+        final_state = socratic_graph.invoke(initial_state, config)
+        flush_langfuse()
         
         frappe.logger("socratic").info(f"[JOB] Graph completed. Keys in final_state: {list(final_state.keys())}")
         
@@ -169,9 +215,37 @@ def _run_socratic_job(user: str, lesson_name: str, request_id: str, initial_stat
             response = "Tôi đã nhận được bài làm của bạn. Hãy cho tôi biết bạn cần hỗ trợ gì nhé!"
 
         save_message_to_history(initial_state["session_key"], "user", initial_state.get("user_message"))
-        save_message_to_history(initial_state["session_key"], "assistant", response, message_type=message_type)
+        save_message_to_history(
+            initial_state["session_key"], 
+            "assistant", 
+            response, 
+            message_type=message_type,
+            tokens_used=final_state.get("tokens_used", 0),
+            model_used=final_state.get("model_used", "gemini")
+        )
 
         _log_to_db(user, lesson_name, {**final_state, "response": response, "session_key": initial_state["session_key"]})
+
+        session_name = frappe.db.get_value("Socratic Session", {"session_key": initial_state["session_key"]}, "name")
+        if session_name:
+            session_doc = frappe.get_doc("Socratic Session", session_name)
+            is_flagged, reason, priority = should_flag_socratic(
+                final_state.get("scaffolding_level", 0), 
+                final_state.get("chat_history", [])
+            )
+            
+            if is_flagged:
+                session_doc.status = "Flagged"
+                session_doc.save(ignore_permissions=True)
+                notify_teacher(
+                    event_type="socratic_escalation",
+                    student=user,
+                    course=session_doc.course,
+                    reference_doctype="Socratic Session",
+                    reference_name=session_name,
+                    reason=reason,
+                    priority=priority
+                )
 
         _publish_socratic_result(
             user,
@@ -250,7 +324,7 @@ def get_sessions(start: int = 0, limit: int = 5, search_term: str = None):
     }
 
 @frappe.whitelist()
-def create_session(course: str = None, batch: str = None, lesson: str = None, category: str = None, image_url: str = None, rubric_url: str = None):
+def create_session(course: str = None, batch: str = None, lesson: str = None, category: str = None, image_url: str = None, rubric_url: str = None, image_urls: str = None):
     student = frappe.session.user
     _ensure_socratic_access(student)
     session_key = get_or_create_session_key(student, f"socratic_{lesson or 'general'}_{frappe.utils.now()}")
@@ -267,8 +341,21 @@ def create_session(course: str = None, batch: str = None, lesson: str = None, ca
     image_data = image_url
     rubric_data = rubric_url
     
-    if image_data:
+    if image_urls:
+        import json
+        try:
+            urls = json.loads(image_urls)
+            if urls:
+                doc.attached_images = image_urls
+                doc.attached_image = urls[0]
+                image_data = urls[0]  # fallback
+        except Exception:
+            pass
+    elif image_data:
         doc.attached_image = image_data
+        import json
+        doc.attached_images = json.dumps([image_data])
+        
     if rubric_data:
         doc.attached_rubric = rubric_data
         
@@ -289,8 +376,20 @@ def create_session(course: str = None, batch: str = None, lesson: str = None, ca
     
     # Build a descriptive first message
     parts = ["Hãy phân tích và đánh giá bài làm của tôi."]
-    if image_data:
+    
+    parsed_urls = []
+    if getattr(doc, "attached_images", None):
+        import json
+        try:
+            parsed_urls = json.loads(doc.attached_images)
+        except Exception:
+            pass
+
+    if len(parsed_urls) > 1:
+        parts.append(f"Tôi đã tải lên {len(parsed_urls)} ảnh bài làm.")
+    elif image_data:
         parts.append(f"Tôi đã tải lên ảnh bài làm.")
+        
     if rubric_data:
         parts.append(f"Tôi cũng đã đính kèm tiêu chí chấm điểm (rubric).")
     if lesson:
@@ -305,7 +404,8 @@ def create_session(course: str = None, batch: str = None, lesson: str = None, ca
         "scaffolding_level": 0,
         "lesson_content": lesson_content,
         "image_data": image_data,
-        "rubric_data": rubric_data,
+        "images_data": doc.attached_images,
+        "rubric_data": rubric_data
     }
     
     frappe.enqueue(
@@ -328,19 +428,17 @@ def delete_session(session_key: str):
     _ensure_socratic_access(student)
     session_name = frappe.db.get_value("Socratic Session", {"session_key": session_key, "student": student}, "name")
     if session_name:
-        frappe.delete_doc("Socratic Session", session_name, ignore_permissions=True)
-        clear_session(session_key)
+        clear_session(session_key, delete_parent=True)
     return "OK"
 
 @frappe.whitelist()
 def get_session_detail(session_key: str):
-    """Get session details for the workspace. Uses ignore_permissions internally."""
     student = frappe.session.user
     _ensure_socratic_access(student)
     session = frappe.db.get_value(
         "Socratic Session",
         {"session_key": session_key, "student": student},
-        ["name", "lesson", "course", "batch", "attached_image", "attached_rubric", "status", "message_count"],
+        ["name", "lesson", "course", "batch", "attached_image", "attached_images", "attached_rubric", "status", "message_count"],
         as_dict=True
     )
     if not session:
@@ -370,8 +468,20 @@ def retry_analysis(session_key: str):
 
     request_id = frappe.generate_hash(length=12)
     parts = ["Hãy phân tích và đánh giá bài làm của tôi."]
-    if session.attached_image:
+    
+    parsed_urls = []
+    if getattr(session, "attached_images", None):
+        import json
+        try:
+            parsed_urls = json.loads(session.attached_images)
+        except Exception:
+            pass
+
+    if len(parsed_urls) > 1:
+        parts.append(f"Tôi đã tải lên {len(parsed_urls)} ảnh bài làm.")
+    elif session.attached_image:
         parts.append(f"Tôi đã tải lên ảnh bài làm.")
+        
     if session.attached_rubric:
         parts.append(f"Tôi cũng đã đính kèm tiêu chí chấm điểm (rubric).")
         
@@ -384,6 +494,7 @@ def retry_analysis(session_key: str):
         "scaffolding_level": 0,
         "lesson_content": lesson_content,
         "image_data": session.attached_image,
+        "images_data": session.attached_images,
         "rubric_data": session.attached_rubric,
     }
     
@@ -449,28 +560,28 @@ def _log_to_db(student, lesson_name, state):
         else:
             frappe.db.set_value("Socratic Session", session_name, "last_active", frappe.utils.now_datetime())
 
-        log = frappe.get_doc({
-            "doctype": "Socratic Message",
-            "session": session_name,
-            "role": "assistant",
-            "content": state["response"],
-            "message_type": "socratic_hint",
-            "scaffolding_level": state.get("scaffolding_level", 0),
-            "tokens_used": state.get("tokens_used", 0),
-            "latency_ms": state.get("latency_ms", 0),
-            "model_used": state.get("model_used", "gemini")
-        })
-        log.insert(ignore_permissions=True)
+        import json
+        knowledge_state_str = json.dumps(state.get("knowledge_state", {}))
         
         frappe.db.sql(
             """
             UPDATE `tabSocratic Session`
             SET total_tokens = IFNULL(total_tokens, 0) + %(tokens_used)s,
-                message_count = IFNULL(message_count, 0) + 1
+                input_tokens = IFNULL(input_tokens, 0) + %(input_tokens)s,
+                output_tokens = IFNULL(output_tokens, 0) + %(output_tokens)s,
+                total_cost_usd = IFNULL(total_cost_usd, 0.0) + %(total_cost_usd)s,
+                message_count = IFNULL(message_count, 0) + 1,
+                knowledge_state = %(knowledge_state)s,
+                scaffolding_level = %(scaffolding_level)s
             WHERE name = %(session_name)s
             """,
             {
                 "tokens_used": state.get("tokens_used", 0),
+                "input_tokens": state.get("input_tokens", 0),
+                "output_tokens": state.get("output_tokens", 0),
+                "total_cost_usd": state.get("total_cost_usd", 0.0),
+                "knowledge_state": knowledge_state_str,
+                "scaffolding_level": state.get("scaffolding_level", 0),
                 "session_name": session_name,
             },
         )

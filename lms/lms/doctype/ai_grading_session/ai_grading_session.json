@@ -9,6 +9,7 @@
  "field_order": [
   "session_name",
   "grading_type",
+  "selection_mode",
   "subject",
   "level",
   "column_break_4",
@@ -45,6 +46,15 @@
    "reqd": 1
   },
   {
+   "fieldname": "selection_mode",
+   "fieldtype": "Select",
+   "label": "Selection Mode",
+   "options": "Course\nBatch",
+   "default": "Course",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
    "fieldname": "subject",
    "fieldtype": "Data",
    "label": "Subject"
@@ -68,7 +78,8 @@
    "fieldname": "batch",
    "fieldtype": "Link",
    "label": "Batch",
-   "options": "LMS Batch"
+   "options": "LMS Batch",
+   "depends_on": "eval:doc.selection_mode == 'Batch'"
   },
   {
    "fieldname": "reference_doc_type",

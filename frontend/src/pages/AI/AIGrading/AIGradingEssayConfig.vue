@@ -158,22 +158,22 @@
 					
 					<div class="min-w-0 flex-1">
 						<div 
-							class="truncate text-[15px] font-black text-slate-800 transition-colors uppercase tracking-tight"
+							class="truncate text-base font-medium text-gray-900 transition-colors"
 							:class="'group-hover:' + accentClasses.text"
 						>
 							{{ session.name }}
 						</div>
 						<div class="flex items-center gap-2 mt-1">
-							<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ session.meta }}</span>
-							<span class="h-1 w-1 rounded-full bg-slate-200"></span>
-							<span class="text-[10px] font-mono opacity-50" :class="accentClasses.text">{{ session.id }}</span>
+							<span class="text-xs text-gray-500">{{ session.meta }}</span>
+							<span class="h-1 w-1 rounded-full bg-gray-300"></span>
+							<span class="text-xs text-gray-400" :class="accentClasses.text">{{ session.id }}</span>
 						</div>
 					</div>
 
 					<div class="ml-auto flex flex-wrap items-center justify-end gap-2 sm:w-auto">
 						<!-- Progress/Status Badge (Dynamic Color) -->
 						<div 
-							class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm"
+							class="px-2.5 py-0.5 rounded text-xs font-medium border"
 							:class="accentClasses.badge"
 						>
 							{{ session.status === 'Open' ? __('Active') : (session.progress || __('Open')) }}
@@ -182,8 +182,8 @@
 						<!-- Quick Actions -->
 						<div class="flex items-center gap-1.5 ml-2 border-l border-slate-100 pl-3">
 							<button
-								class="h-8 px-3 rounded-lg flex items-center gap-1.5 text-[10px] font-bold text-slate-500 transition-all border border-transparent"
-								:class="'hover:' + accentClasses.text + ' hover:' + accentClasses.bgLight + ' hover:' + accentClasses.borderLight"
+								class="h-8 px-2.5 rounded flex items-center gap-1.5 text-xs font-medium text-gray-600 transition-all hover:bg-gray-100"
+								:class="'hover:' + accentClasses.text"
 								@click.stop="openSession(session)"
 							>
 								<icons.Play class="h-3.5 w-3.5 fill-current" />
@@ -224,7 +224,7 @@
 				</div>
 				
 				<!-- End of list message -->
-				<div v-if="!hasMoreSessions && allSessions.length > 5" class="py-4 text-center text-[10px] text-gray-400 uppercase tracking-widest">
+				<div v-if="!hasMoreSessions && allSessions.length > 5" class="py-4 text-center text-sm text-gray-500">
 					{{ __('End of list') }}
 				</div>
 				</div>
@@ -255,24 +255,7 @@
 						/>
 					</div>
 					<div class="flex flex-col gap-1">
-						<label class="text-sm font-medium text-gray-700">{{ __('Course') }}</label>
-						<select
-							v-model="newSession.course"
-							class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-[#2d6a4f] focus:bg-white outline-none"
-						>
-							<option value="">{{ __('Select Course...') }}</option>
-							<option v-for="c in coursesResource.data" :key="c.name" :value="c.name">{{ c.title || c.name }}</option>
-						</select>
-					</div>
-					<div class="flex flex-col gap-1">
-						<label class="text-sm font-medium text-gray-700">{{ __('Batch (Class)') }}</label>
-						<select
-							v-model="newSession.batch"
-							class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-[#2d6a4f] focus:bg-white outline-none"
-						>
-							<option value="">{{ __('Select Batch...') }}</option>
-							<option v-for="b in batchesResource.data" :key="b.name" :value="b.name">{{ b.title || b.name }}</option>
-						</select>
+						<CourseBatchSelector v-model="newSessionModel" :context="aiContext" />
 					</div>
 
 					<!-- Reference Resource Selection -->
@@ -351,27 +334,8 @@
 							:placeholder="__('Enter subject')"
 						/>
 					</div>
-					<div class="grid grid-cols-2 gap-3">
-						<div class="flex flex-col gap-1">
-							<label class="text-sm font-medium text-gray-700">{{ __('Course') }}</label>
-							<select
-								v-model="editSessionForm.course"
-								class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-[#2d6a4f] focus:bg-white outline-none"
-							>
-								<option value="">{{ __('None') }}</option>
-								<option v-for="c in coursesResource.data" :key="c.name" :value="c.name">{{ c.title || c.name }}</option>
-							</select>
-						</div>
-						<div class="flex flex-col gap-1">
-							<label class="text-sm font-medium text-gray-700">{{ __('Batch') }}</label>
-							<select
-								v-model="editSessionForm.batch"
-								class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-[#2d6a4f] focus:bg-white outline-none"
-							>
-								<option value="">{{ __('None') }}</option>
-								<option v-for="b in batchesResource.data" :key="b.name" :value="b.name">{{ b.title || b.name }}</option>
-							</select>
-						</div>
+					<div class="flex flex-col gap-1">
+						<CourseBatchSelector v-model="editSessionModel" :context="aiContext" />
 					</div>
 					<div class="flex flex-col gap-1 mt-2">
 						<label class="text-sm font-medium text-gray-700">{{ __('Upload Topic & Answer File') }}</label>
@@ -487,6 +451,7 @@ import {
 	createListResource, 
 	createResource 
 } from 'frappe-ui'
+import CourseBatchSelector from '@/components/ai/CourseBatchSelector.vue'
 
 const props = defineProps({
 	type: { type: String, required: true },
@@ -700,7 +665,8 @@ function onScroll(e) {
 
 // --- New Session Modal ---
 const showNewSessionModal = ref(false)
-const newSession = reactive({ name: '', course: '', batch: '', notes: '', reference_doc: '' })
+const newSessionModel = ref({ mode: 'course', batch: '', course: '' })
+const newSession = reactive({ name: '', notes: '', reference_doc: '' })
 const fileInput = ref(null)
 const uploadedFileName = ref('')
 const showEditSessionModal = ref(false)
@@ -708,13 +674,12 @@ const editFileInput = ref(null)
 const editPickedFile = ref(null)
 const editUploadedFileName = ref('')
 const sessionAttachments = ref([])
+const editSessionModel = ref({ mode: 'course', batch: '', course: '' })
 const editSessionForm = reactive({
 	id: '',
 	session_name: '',
 	subject: '',
 	level: '',
-	course: '',
-	batch: '',
 	ai_notes: '',
 	rubric: '',
 	rubric_template: '',
@@ -739,16 +704,11 @@ const rubricTemplates = createListResource({
 const createSessionResource = createResource({
 	url: 'lms.lms.services.ai_grading.api.create_ai_grading_session',
 })
-const coursesResource = createResource({
-	url: 'frappe.client.get_list',
-	params: { doctype: 'LMS Course', fields: ['name', 'title'], limit: 100 },
+const studentContextResource = createResource({
+	url: 'lms.lms.services.course_batch_resolver.get_selection_context',
 	auto: true,
 })
-const batchesResource = createResource({
-	url: 'frappe.client.get_list',
-	params: { doctype: 'LMS Batch', fields: ['name', 'title'], limit: 100 },
-	auto: true,
-})
+const aiContext = computed(() => studentContextResource.data || { courses: [], batches: [] })
 const sessionDetailResource = createResource({
 	url: 'lms.lms.services.ai_grading.api.get_ai_grading_session_detail',
 })
@@ -832,8 +792,8 @@ async function createSession() {
 			grading_type: props.type === 'exam' ? 'Exam' : (props.type === 'test' ? 'Test' : 'Homework'),
 			subject: selectedSubject.value,
 			level: selectedLevel.value,
-			course: newSession.course,
-			batch: newSession.batch,
+			course: newSessionModel.value.course,
+			batch: newSessionModel.value.batch,
 			reference_doc_type: props.type === 'hw' ? 'LMS Assignment' : (props.type === 'test' ? 'LMS Quiz' : null),
 			reference_doc: newSession.reference_doc,
 			ai_notes: newSession.notes,
@@ -872,6 +832,21 @@ const assignments = createListResource({
 	limit: 50,
 	orderBy: 'modified desc',
 	auto: props.type === 'hw',
+})
+
+watch(() => newSessionModel.value.course, (newCourse) => {
+	newSession.reference_doc = ''
+	if (props.type === 'hw') {
+		assignments.update({
+			filters: { type: 'Text', ...(newCourse ? { course: newCourse } : {}) }
+		})
+		assignments.reload()
+	} else if (props.type === 'test') {
+		quizzes.update({
+			filters: newCourse ? { course: newCourse } : {}
+		})
+		quizzes.reload()
+	}
 })
 
 // --- Proceed ---
@@ -924,8 +899,11 @@ async function openEditSessionModal(sessionId) {
 	editSessionForm.session_name = res.session_name
 	editSessionForm.subject = res.subject
 	editSessionForm.level = res.level
-	editSessionForm.course = res.course
-	editSessionForm.batch = res.batch
+	editSessionModel.value = { 
+		mode: res.batch ? 'batch' : 'course', 
+		batch: res.batch || '', 
+		course: res.course || '' 
+	}
 	editSessionForm.ai_notes = res.ai_notes
 	editSessionForm.rubric = res.rubric
 	editSessionForm.rubric_template = res.rubric_template
@@ -949,6 +927,8 @@ async function saveSessionEdit() {
 			session_name: editSessionForm.session_name.trim(),
 			subject: editSessionForm.subject,
 			level: editSessionForm.level,
+			course: editSessionModel.value.course || null,
+			batch: editSessionModel.value.batch || null,
 			ai_notes: editSessionForm.ai_notes,
 			rubric: editSessionForm.rubric || null,
 			rubric_template: editSessionForm.rubric_template || null,

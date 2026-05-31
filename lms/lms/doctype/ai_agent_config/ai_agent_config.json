@@ -8,20 +8,30 @@
  "field_order": [
   "agent_name",
   "enabled",
+  "category",
+  "description",
+  "column_break_model",
   "provider",
   "model",
   "api_key",
   "base_url",
+  "column_break_params",
   "temperature",
-  "max_tokens"
+  "top_p",
+  "max_tokens",
+  "cost_per_1m_input",
+  "cost_per_1m_output",
+  "section_break_prompt",
+  "system_prompt_override"
  ],
  "fields": [
   {
+   "description": "Must match a constant in agents/registry.py (e.g. chatbot, grading_visual, lesson_planner)",
    "fieldname": "agent_name",
-   "fieldtype": "Select",
+   "fieldtype": "Autocomplete",
    "in_list_view": 1,
    "label": "Agent Name",
-   "options": "grading_visual\ngrading_logic\ngrading_mcq\ngrading_aggregator\ngrading_reviewer\nchatbot\nsocratic_tutor\nrubric_builder\nlesson_planner\nocr\nclassify\nquiz_generator",
+   "options": "chatbot\ngrading_aggregator\ngrading_logic\ngrading_mcq\ngrading_reviewer\ngrading_rubric\ngrading_visual\nlesson_planner\nquiz_generator\nsocratic_evaluator\nsocratic_hint\nsocratic_tutor\ntools_ocr\ntools_ocr_cleaner",
    "reqd": 1
   },
   {
@@ -30,6 +40,24 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Enabled"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "\nChatbot\nGrading\nLesson Planner\nQuiz\nSocratic\nTools\nOther"
+  },
+  {
+   "description": "What does this agent do? Auto-filled from registry if left blank.",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_model",
+   "fieldtype": "Section Break",
+   "label": "Model Configuration"
   },
   {
    "default": "(inherit)",
@@ -56,21 +84,58 @@
    "label": "Base URL Override"
   },
   {
+   "fieldname": "column_break_params",
+   "fieldtype": "Section Break",
+   "label": "Parameters"
+  },
+  {
+   "description": "0.0 = deterministic, 1.0 = creative (default: inherit from global)",
    "fieldname": "temperature",
    "fieldtype": "Float",
    "label": "Temperature"
   },
   {
+   "description": "Nucleus sampling 0.0-1.0 (leave blank to use model default)",
+   "fieldname": "top_p",
+   "fieldtype": "Float",
+   "label": "Top P"
+  },
+  {
    "fieldname": "max_tokens",
    "fieldtype": "Int",
    "label": "Max Tokens"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_prompt",
+   "fieldtype": "Section Break",
+   "label": "Advanced: System Prompt Override"
+  },
+  {
+   "description": "If set, this prompt will REPLACE the default system prompt for this agent. Use with caution!",
+   "fieldname": "system_prompt_override",
+   "fieldtype": "Code",
+   "label": "System Prompt Override",
+   "options": "Markdown"
+  },
+  {
+   "description": "For cost estimation in observability dashboard",
+   "fieldname": "cost_per_1m_input",
+   "fieldtype": "Float",
+   "label": "Cost per 1M Input Tokens (USD)"
+  },
+  {
+   "description": "For cost estimation in observability dashboard",
+   "fieldname": "cost_per_1m_output",
+   "fieldtype": "Float",
+   "label": "Cost per 1M Output Tokens (USD)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-08 10:27:31.186353",
+ "modified": "2026-05-28 20:41:40.913288",
  "modified_by": "Administrator",
  "module": "LMS",
  "name": "AI Agent Config",

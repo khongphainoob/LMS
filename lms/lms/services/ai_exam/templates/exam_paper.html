@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2cm 2cm 2.5cm;
+            @frame footer_frame {
+                -pdf-frame-content: footer_content;
+                left: 50pt; width: 512pt; top: 772pt; height: 20pt;
+            }
+        }
+        body {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+        }
+        .header-table {
+            width: 100%;
+            margin-bottom: 20px;
+            border-bottom: 2px solid black;
+            padding-bottom: 10px;
+        }
+        .header-left {
+            text-align: center;
+            width: 40%;
+            border-right: 1px solid black;
+        }
+        .header-right {
+            text-align: center;
+            width: 60%;
+        }
+        .bold { font-weight: bold; }
+        .uppercase { text-transform: uppercase; }
+        .title {
+            text-align: center;
+            font-size: 16pt;
+            font-weight: bold;
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .student-info { margin-bottom: 20px; }
+        .section-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+        .section-instructions {
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+        .question { margin-bottom: 15px; }
+        .question-text { font-weight: bold; }
+        .options-table { width: 100%; margin-top: 5px; }
+        .option-cell { width: 50%; padding-bottom: 5px; }
+        .media-image { max-width: 100%; text-align: center; margin: 10px 0; }
+        .end-mark { text-align: center; font-weight: bold; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    
+    <div id="footer_content" style="text-align: center; font-size: 10pt;">
+        Trang <pdf:pagenumber> / <pdf:pagecount>
+    </div>
+
+    <table class="header-table">
+        <tr>
+            <td class="header-left">
+                <div class="bold uppercase">{{ exam.school_name or 'TRƯỜNG.........................' }}</div>
+                <div class="bold">{{ exam.department or 'TỔ..............................' }}</div>
+            </td>
+            <td class="header-right">
+                <div class="bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                <div class="bold">Độc lập - Tự do - Hạnh phúc</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="title">{{ exam.title }}</div>
+    <div class="subtitle">
+        Môn: {{ exam.subject }} - Lớp: {{ exam.grade_level }}<br/>
+        Thời gian làm bài: {{ exam.duration_minutes }} phút (Không kể thời gian phát đề)
+    </div>
+
+    <div class="student-info">
+        Họ và tên học sinh: .......................................................................<br/>
+        Lớp: ........................ Số báo danh: ........................
+    </div>
+
+    {% for section in sections %}
+    <div class="section-title">{{ section.section_title }}</div>
+    <div class="section-instructions">{{ section.section_instructions }}</div>
+    
+    {% for q in section.questions %}
+    <div class="question">
+        <span class="question-text">Câu {{ q.question_number }}:</span> {{ q.question_text | safe }}
+        
+        {% if q.media_assets %}
+            {% for media in q.media_assets %}
+            <div class="media-image">
+                <img src="data:image/png;base64,{{ media.content }}" width="300" />
+            </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if q.question_type == 'Multiple Choice' and q.options %}
+        <table class="options-table">
+            <tr>
+                {% for opt in q.options %}
+                <td class="option-cell"><span class="bold">{{ opt.label }}.</span> {{ opt.text | safe }}</td>
+                {% if loop.index % 2 == 0 and not loop.last %}
+            </tr><tr>
+                {% endif %}
+                {% endfor %}
+            </tr>
+        </table>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endfor %}
+
+    <div class="end-mark">----- HẾT -----</div>
+</body>
+</html>

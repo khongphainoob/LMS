@@ -1,0 +1,70 @@
+{
+ "charts": [
+  {
+   "chart_name": "Alerts by Type"
+  },
+  {
+   "chart_name": "HITL Alerts Trend"
+  }
+ ],
+ "content": "[{\"id\": \"block1\", \"type\": \"header\", \"data\": {\"text\": \"Shortcuts\", \"level\": 4}}, {\"id\": \"block2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"HITL Alert\", \"col\": 3}}, {\"id\": \"block3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"AI Grading Submission (Flagged)\", \"col\": 3}}, {\"id\": \"block4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Chatbot Session (Flagged)\", \"col\": 3}}, {\"id\": \"block5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Socratic Session (Flagged)\", \"col\": 3}}, {\"id\": \"block6\", \"type\": \"header\", \"data\": {\"text\": \"Alert Metrics\", \"level\": 4}}, {\"id\": \"block7\", \"type\": \"card\", \"data\": {\"card_name\": \"Open Alerts\", \"col\": 4}}, {\"id\": \"block8\", \"type\": \"card\", \"data\": {\"card_name\": \"High Priority Alerts\", \"col\": 4}}, {\"id\": \"block9\", \"type\": \"header\", \"data\": {\"text\": \"Charts\", \"level\": 4}}, {\"id\": \"block10\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Alerts by Type\", \"col\": 6}}, {\"id\": \"block11\", \"type\": \"chart\", \"data\": {\"chart_name\": \"HITL Alerts Trend\", \"col\": 6}}]",
+ "creation": "2026-05-29 08:02:38.026555",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "shield",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "HITL Monitoring",
+ "links": [],
+ "modified": "2026-05-29 08:27:30.967269",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "HITL Monitoring",
+ "number_cards": [
+  {
+   "number_card_name": "Open Alerts"
+  },
+  {
+   "number_card_name": "High Priority Alerts"
+  }
+ ],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 4.0,
+ "shortcuts": [
+  {
+   "doc_view": "",
+   "label": "HITL Alert",
+   "link_to": "HITL Alert",
+   "stats_filter": "[[\"HITL Alert\",\"status\",\"=\",\"Open\",false]]",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "AI Grading Submission (Flagged)",
+   "link_to": "AI Grading Submission",
+   "stats_filter": "[[\"AI Grading Submission\",\"status\",\"=\",\"Flagged\",false]]",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Chatbot Session (Flagged)",
+   "link_to": "Chatbot Session",
+   "stats_filter": "[[\"Chatbot Session\",\"status\",\"=\",\"Flagged\",false]]",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Socratic Session (Flagged)",
+   "link_to": "Socratic Session",
+   "stats_filter": "[[\"Socratic Session\",\"status\",\"=\",\"Flagged\",false]]",
+   "type": "DocType"
+  }
+ ],
+ "title": "HITL Monitoring"
+}

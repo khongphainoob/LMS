@@ -22,7 +22,7 @@ class SocraticState(TypedDict):
     model_used: str
 
 def socratic_node(state: SocraticState) -> SocraticState:
-    llm = get_llm("socratic_tutor")
+    llm, _, _ = get_llm("socratic_tutor")
     model_name = "socratic_tutor"
     
     level = state.get("scaffolding_level", 0)

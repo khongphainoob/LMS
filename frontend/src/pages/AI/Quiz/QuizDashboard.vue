@@ -12,7 +12,7 @@
           </button>
           <div class="flex flex-col">
             <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight uppercase">{{ __('AI Quiz Creator') }}</h2>
-            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wide">{{ __('Tự động hóa quy trình soạn thảo bộ đề từ tài liệu nguồn.') }}</p>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wide">{{ __('Automate the question generation process from source documents.') }}</p>
           </div>
         </div>
         
@@ -21,7 +21,7 @@
           class="flex items-center gap-4 px-10 py-5 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(56,189,248,0.6)] transition-all active:scale-95 shadow-lg shadow-sky-400/20"
         >
           <icons.PlusCircle class="h-5 w-5" />
-          {{ __('Tạo đề mới') }}
+          {{ __('Create new test') }}
         </button>
       </div>
 
@@ -46,8 +46,8 @@
         <div class="absolute top-0 right-0 h-64 w-64 bg-sky-400/5 blur-[100px] rounded-full"></div>
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 relative z-10">
           <div>
-            <h3 class="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">{{ __('Danh sách Quizzes') }}</h3>
-            <p class="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wide">{{ __('Quản lý kho tài nguyên đề thi AI') }}</p>
+            <h3 class="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">{{ __('Quiz List') }}</h3>
+            <p class="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wide">{{ __('Manage AI Question Resource Hub') }}</p>
           </div>
         </div>
 
@@ -83,12 +83,12 @@
                   </div>
 
                   <div class="lg:col-span-2 flex flex-col">
-                    <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{{ __('Ngày tạo') }}</span>
+                    <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{{ __('Date Created') }}</span>
                     <span class="text-[11px] font-medium text-slate-500">{{ quiz.creation?.split(' ')[0] }}</span>
                   </div>
 
                   <div class="lg:col-span-2 flex flex-col">
-                    <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{{ __('Cấp độ') }}</span>
+                    <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{{ __('Level') }}</span>
                     <span class="text-[11px] font-medium text-slate-500">{{ quiz.bloom_level }}</span>
                   </div>
 
@@ -118,7 +118,7 @@
                 class="group flex items-center gap-3 px-10 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] hover:text-sky-500 hover:border-sky-400 transition-all active:scale-95 disabled:opacity-50"
               >
                 <icons.RefreshCcw :class="['h-3.5 w-3.5', quizzesResource.loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500']" />
-                {{ quizzesResource.loading ? __('Đang nạp...') : __('Xem thêm bộ đề') }}
+                {{ quizzesResource.loading ? __('Loading...') : __('View more question sets') }}
               </button>
             </div>
           </template>
@@ -126,13 +126,13 @@
           <!-- Empty State -->
           <div v-if="!quizzes.length" class="flex flex-col items-center justify-center py-24 bg-slate-50/50 dark:bg-slate-900/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
             <div class="h-20 w-20 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-sm">🏜️</div>
-            <h4 class="text-xl font-bold text-slate-800 dark:text-white mb-2 uppercase tracking-tight">{{ __('Kho lưu trữ trống') }}</h4>
-            <p class="text-sm text-slate-400 font-medium mb-8 text-center max-w-xs">{{ __('Bắt đầu tạo bài tập đầu tiên với sự trợ giúp của AI ngay hôm nay.') }}</p>
+            <h4 class="text-xl font-bold text-slate-800 dark:text-white mb-2 uppercase tracking-tight">{{ __('Empty archive') }}</h4>
+            <p class="text-sm text-slate-400 font-medium mb-8 text-center max-w-xs">{{ __('Start creating your first exercise with AI help today.') }}</p>
             <button 
               @click="router.push({ name: 'AIQuizForm' })" 
               class="px-12 py-4 rounded-xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-widest hover:shadow-[0_0_30px_rgba(56,189,248,0.5)] transition-all active:scale-95 shadow-lg shadow-sky-400/20"
             >
-              {{ __('Tạo ngay') }}
+              {{ __('Create now') }}
             </button>
           </div>
         </div>
@@ -185,7 +185,7 @@ const statsResource = createResource({
 })
 
 const deleteQuiz = (name) => {
-  if (window.confirm(__('Bạn có chắc chắn muốn xóa bộ đề này không?'))) {
+  if (window.confirm(__('Are you sure you want to delete this question set?'))) {
     quizzesResource.delete.submit(name).then(() => {
       quizzesResource.fetch()
       statsResource.fetch()

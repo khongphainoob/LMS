@@ -56,6 +56,7 @@ declare module 'vue' {
     CouponItems: typeof import('./src/components/Settings/Coupons/CouponItems.vue')['default']
     CouponList: typeof import('./src/components/Settings/Coupons/CouponList.vue')['default']
     Coupons: typeof import('./src/components/Settings/Coupons/Coupons.vue')['default']
+    CourseBatchSelector: typeof import('./src/components/ai/CourseBatchSelector.vue')['default']
     CourseCard: typeof import('./src/components/CourseCard.vue')['default']
     CourseCardOverlay: typeof import('./src/components/CourseCardOverlay.vue')['default']
     CourseInstructors: typeof import('./src/components/CourseInstructors.vue')['default']

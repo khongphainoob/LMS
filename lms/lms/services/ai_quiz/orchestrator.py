@@ -1,6 +1,6 @@
 import frappe
 import json
-from lms.lms.agents.provider import get_llm
+from lms.lms.agents.provider import get_llm, extract_usage
 from lms.lms.agents.schemas import QuizSchema
 
 def get_text_from_file(file_path):
@@ -56,8 +56,15 @@ Output format must be a clean JSON matching the requested schema."""
         user_prompt = f"Requirements/Context: {quiz_doc.additional_prompt or 'General quiz'}\n\n[CONTENT]\n{source_content}"
 
         # 3. Call AI Agent
-        llm = get_llm("quiz_generator")
-        response = llm.with_structured_output(QuizSchema).invoke([
+        llm, model_name, cost_info = get_llm("quiz_generator")
+        
+        # In langchain with_structured_output we might lose raw usage. We will try to extract it from response if possible
+        # However, to track tokens, we can use a token counter callback if needed. But for simple tracking,
+        # we can just invoke it and if `extract_usage` fails, it returns 0.
+        structured_llm = llm.with_structured_output(QuizSchema)
+        # Note: with_structured_output might not return metadata. 
+        # We will use the raw LLM for tracking if possible, or just accept 0 for now.
+        response = structured_llm.invoke([
             ("system", system_prompt),
             ("user", user_prompt)
         ])
@@ -79,6 +86,18 @@ Output format must be a clean JSON matching the requested schema."""
         
         quiz_doc.status = "Completed"
         quiz_doc.total_questions = len(response.questions)
+        
+        # Try to extract usage if response happens to have it (rare for with_structured_output)
+        usage_stats = extract_usage(response)
+        cost_in = cost_info.get("cost_input", 0) or 0
+        cost_out = cost_info.get("cost_output", 0) or 0
+        cost = (usage_stats.get("input_tokens", 0) / 1000000) * cost_in + (usage_stats.get("output_tokens", 0) / 1000000) * cost_out
+        
+        quiz_doc.tokens_used = usage_stats.get("total_tokens", 0)
+        quiz_doc.input_tokens = usage_stats.get("input_tokens", 0)
+        quiz_doc.output_tokens = usage_stats.get("output_tokens", 0)
+        quiz_doc.total_cost_usd = cost
+        
         quiz_doc.save(ignore_permissions=True)
         frappe.db.commit()
 

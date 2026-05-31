@@ -49,8 +49,13 @@
 				</p>
 
 				<!-- Earned Badge overlay/badge -->
-				<div v-if="badge.earned" class="absolute top-2 right-2 flex items-center justify-center w-5 h-5 bg-green-500 rounded-full text-white shadow-sm" title="Earned">
-					<Check class="w-3 h-3" stroke-width="3" />
+				<div v-if="badge.earned" class="absolute top-2 right-2">
+					<Badge theme="green" size="sm" class="shadow-sm">
+						<div class="flex items-center gap-1">
+							<Check class="w-3 h-3" stroke-width="3" />
+							<span>{{ __('Received') }}</span>
+						</div>
+					</Badge>
 				</div>
 				
 				<div v-if="badge.earned && badge.issued_on" class="mt-3 text-[10px] text-ink-gray-5 bg-surface-gray-2 px-2 py-0.5 rounded-full">
@@ -69,7 +74,7 @@
 
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
-import { createResource, Spinner } from 'frappe-ui'
+import { createResource, Spinner, Badge } from 'frappe-ui'
 import { Check } from 'lucide-vue-next'
 import dayjs from '@/utils/dayjs'
 

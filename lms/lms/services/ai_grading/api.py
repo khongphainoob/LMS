@@ -6,11 +6,12 @@ from frappe.utils import cint, get_url, now_datetime
 from frappe.utils.file_manager import save_file, safe_b64decode
 from frappe.core.doctype.file.utils import get_random_filename
 from binascii import Error as BinasciiError
+from lms.lms.services.ai_rate_limit import check_and_record_usage
 
 @frappe.whitelist()
 def get_rubric_templates():
 	"""Returns a list of available rubric templates."""
-	return frappe.get_all("LMS Rubric Template", fields=["name", "title", "description"])
+	return frappe.get_all("LMS Rubric Template", fields=["name", "title", "description", "is_active"])
 
 @frappe.whitelist()
 def get_rubric_stats():
@@ -67,19 +68,27 @@ def export_rubric(name):
 	for crit in rubric.criteria:
 		row_cells = table.add_row().cells
 		row_cells[0].text = crit.criterion_name
-		row_cells[1].text = crit.excellent_desc or ""
-		row_cells[2].text = crit.good_desc or ""
-		row_cells[3].text = crit.adequate_desc or ""
-		row_cells[4].text = crit.poor_desc or ""
+		row_cells[1].text = crit.level_excellent or ""
+		row_cells[2].text = crit.level_good or ""
+		row_cells[3].text = crit.level_adequate or ""
+		row_cells[4].text = crit.level_poor or ""
 		row_cells[5].text = str(crit.max_score)
 
 	file_stream = io.BytesIO()
 	doc.save(file_stream)
 	file_stream.seek(0)
 
-	frappe.local.response.filename = f"{rubric.title}.docx"
-	frappe.local.response.filecontent = file_stream.getvalue()
-	frappe.local.response.type = "download"
+	from frappe.utils.file_manager import save_file
+	file_doc = save_file(
+		f"Rubric_{name}.docx",
+		file_stream.getvalue(),
+		"LMS Rubric Template",
+		name,
+		is_private=0,
+		decode=False
+	)
+
+	return file_doc.file_url
 
 @frappe.whitelist()
 def get_ai_grading_sessions(grading_type=None, start=0, limit=20, search=None):
@@ -189,10 +198,9 @@ def get_ai_grading_submissions(session):
 	)
 
 	for submission in submissions:
-		submission.paper_images = _get_ai_grading_submission_paper_images(
-			submission.name,
-			submission.paper_image,
-		)
+		inputs = _get_ai_grading_inputs(submission.name, submission.paper_image)
+		submission.paper_images = inputs["images"]
+		submission.text_content = inputs["text_content"]
 
 	return submissions
 
@@ -203,6 +211,15 @@ def sync_ai_grading_submissions(session):
 	if not session_doc.reference_doc:
 		return {"status": "info", "message": "No reference document linked."}
 
+	valid_members = None
+	if session_doc.batch:
+		enrollments = frappe.get_all(
+			"LMS Enrollment",
+			filters={"enrollment_from_batch": session_doc.batch},
+			fields=["member"]
+		)
+		valid_members = {en.member for en in enrollments}
+
 	synced_count = 0
 	if session_doc.reference_doc_type == "LMS Assignment":
 		submissions = frappe.get_all(
@@ -211,6 +228,8 @@ def sync_ai_grading_submissions(session):
 			fields=["name", "member", "member_name"]
 		)
 		for sub in submissions:
+			if valid_members is not None and sub.member not in valid_members:
+				continue
 			if not frappe.db.exists("AI Grading Submission", {"session": session, "student": sub.member}):
 				new_sub = frappe.get_doc({
 					"doctype": "AI Grading Submission",
@@ -230,6 +249,8 @@ def sync_ai_grading_submissions(session):
 			fields=["name", "member", "member_name"]
 		)
 		for sub in submissions:
+			if valid_members is not None and sub.member not in valid_members:
+				continue
 			if not frappe.db.exists("AI Grading Submission", {"session": session, "student": sub.member}):
 				new_sub = frappe.get_doc({
 					"doctype": "AI Grading Submission",
@@ -251,11 +272,15 @@ def _is_ai_grading_image_file(file_url):
 	file_url = file_url.lower()
 	return file_url.endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"))
 
-def _get_ai_grading_submission_paper_images(submission_name, primary_image=None):
+def _get_ai_grading_inputs(submission_name, primary_image=None):
 	images = []
+	file_urls = []
+	text_content = ""
+
 	if primary_image:
 		images.append(primary_image)
 
+	# 1. Fetch attachments from AI Grading Submission directly
 	attached_files = frappe.get_all(
 		"File",
 		filters={
@@ -269,10 +294,76 @@ def _get_ai_grading_submission_paper_images(submission_name, primary_image=None)
 
 	for file_doc in attached_files:
 		file_url = getattr(file_doc, "file_url", None)
-		if file_url and _is_ai_grading_image_file(file_url) and file_url not in images:
-			images.append(file_url)
+		if file_url:
+			if _is_ai_grading_image_file(file_url) and file_url not in images:
+				images.append(file_url)
+			elif not _is_ai_grading_image_file(file_url) and file_url not in file_urls:
+				file_urls.append(file_url)
 
-	return images
+	# 2. Fetch inputs from linked LMS Assignment Submission if available
+	sub_doc = frappe.get_doc("AI Grading Submission", submission_name)
+	if sub_doc.lms_assignment_submission:
+		try:
+			lms_sub = frappe.get_doc("LMS Assignment Submission", sub_doc.lms_assignment_submission)
+			if getattr(lms_sub, "answer", None):
+				text_content += "ASSIGNMENT TEXT SUBMISSION:\n"
+				text_content += frappe.utils.strip_html(lms_sub.answer) + "\n\n"
+			
+			if getattr(lms_sub, "assignment_attachment", None):
+				url = lms_sub.assignment_attachment
+				if _is_ai_grading_image_file(url) and url not in images:
+					images.append(url)
+				elif not _is_ai_grading_image_file(url) and url not in file_urls:
+					file_urls.append(url)
+		except Exception:
+			pass
+
+	# 3. Fetch inputs from linked LMS Quiz Submission
+	if sub_doc.lms_quiz_submission:
+		try:
+			quiz_sub = frappe.get_doc("LMS Quiz Submission", sub_doc.lms_quiz_submission)
+			# Extract answers from the result child table
+			if getattr(quiz_sub, "result", None):
+				text_content += "QUIZ TEXT SUBMISSIONS:\n"
+				for idx, res in enumerate(quiz_sub.result):
+					q_text = frappe.utils.strip_html(res.question or "")
+					a_text = frappe.utils.strip_html(res.answer or "")
+					text_content += f"Question {idx+1}: {q_text}\n"
+					text_content += f"Answer: {a_text}\n\n"
+		except Exception as e:
+			frappe.log_error(f"Error fetching quiz submission: {str(e)}", "AI Grading")
+
+	# Extract text from files
+	if file_urls:
+		extracted = _extract_text_from_files(file_urls)
+		if extracted:
+			text_content += extracted + "\n"
+
+	return {"images": images, "text_content": text_content.strip()}
+
+def _extract_text_from_files(file_urls):
+	text = ""
+	for url in file_urls:
+		try:
+			file_doc = frappe.get_doc("File", {"file_url": url})
+			file_path = file_doc.get_full_path()
+			
+			if url.lower().endswith('.pdf'):
+				import fitz # PyMuPDF
+				with fitz.open(file_path) as doc:
+					for page in doc:
+						text += page.get_text() + "\n"
+			elif url.lower().endswith('.docx'):
+				import docx
+				doc = docx.Document(file_path)
+				for para in doc.paragraphs:
+					text += para.text + "\n"
+			elif url.lower().endswith('.txt'):
+				with open(file_path, 'r', encoding='utf-8') as f:
+					text += f.read() + "\n"
+		except Exception as e:
+			frappe.log_error(f"Error extracting text from {url}: {str(e)}", "AI Grading Text Extraction")
+	return text
 
 @frappe.whitelist()
 def search_ai_grading_students(query=None, limit=20):
@@ -532,11 +623,15 @@ def _extract_total_score(result: dict) -> float | None:
 def _should_flag_result(result: dict) -> bool:
 	if not isinstance(result, dict):
 		return False
-	conf = result.get("confidence")
+	conf = result.get("confidence", 1.0)
+	consistency = result.get("consistency_score", 1.0)
 	try:
-		return conf is not None and float(conf) < 0.8
+		# Auto-accept only if both are high
+		if float(conf) >= 0.85 and float(consistency) >= 0.9:
+			return False
+		return True
 	except Exception:
-		return False
+		return True
 
 
 @frappe.whitelist(methods=["POST"])
@@ -547,6 +642,7 @@ def start_ai_grading_sync(submission: str):
 	Frontend can poll `get_ai_grading_status`.
 	"""
 	_ensure_ai_grading_access_for_submission(submission, ptype="write")
+	check_and_record_usage(frappe.session.user, "AI Grading", increment=1)
 
 	# Best-effort: mark as grading immediately
 	_set_submission_status(
@@ -639,6 +735,13 @@ def _run_ai_grading_batch_job(session: str, requested_by: str | None = None) -> 
 	)
 	for submission_id in submissions:
 		try:
+			from lms.lms.services.ai_rate_limit import check_and_record_usage
+			try:
+				check_and_record_usage(requested_by, "AI Grading", increment=1)
+			except Exception as e:
+				frappe.log_error(frappe.get_traceback(), f"AI Grading Rate Limit Exceeded for {requested_by}")
+				break # Stop queuing further submissions if limit reached
+
 			# Mark as queued/grading so UI reflects progress quickly
 			_set_submission_status(submission_id, "Grading", {"grading_started_at": now_datetime(), "last_error": None})
 			frappe.cache().delete_value(_ai_grading_stop_key(submission_id))
@@ -653,8 +756,20 @@ def _run_ai_grading_batch_job(session: str, requested_by: str | None = None) -> 
 			frappe.log_error(frappe.get_traceback(), f"AI Grading enqueue failed: {submission_id}")
 
 
+try:
+	from langfuse.decorators import observe
+except ImportError:
+	def observe(*args, **kwargs):
+		def decorator(func):
+			return func
+		return decorator
+
+@observe(name="AI Grading Job")
 def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> None:
 	"""Background job: run grading pipeline and persist results to `AI Grading Submission`."""
+	from lms.lms.services.observability import init_langfuse_native_sdk
+	init_langfuse_native_sdk()
+	
 	from lms.lms.agents.grading.orchestrator import run_grading_session
 
 	try:
@@ -665,20 +780,20 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 			return
 
 		doc = frappe.get_doc("AI Grading Submission", submission)
-		paper_images = _get_ai_grading_submission_paper_images(doc.name, doc.paper_image)
-		if not paper_images:
+		inputs = _get_ai_grading_inputs(doc.name, doc.paper_image)
+		paper_images = inputs["images"]
+		text_content = inputs["text_content"]
+
+		if not paper_images and not text_content:
 			_set_submission_status(
 				submission,
 				"Failed",
 				{
 					"grading_completed_at": now_datetime(),
-					"last_error": _("No paper images found for this submission."),
+					"last_error": _("No paper images or text found for this submission."),
 				},
 			)
-			frappe.db.commit()
-			return
-
-		result = run_grading_session(session_id=submission, image_paths=paper_images)
+		result = run_grading_session(session_id=submission, image_paths=paper_images, text_content=text_content)
 		if frappe.cache().get_value(_ai_grading_stop_key(submission)):
 			return
 
@@ -694,18 +809,56 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 			frappe.db.commit()
 			return
 
-		final_status = "Flagged" if _should_flag_result(result) else "Done"
 		score = _extract_total_score(result)
+		
+		# Token & Cost Estimation
+		est_input_tokens = (len(paper_images) * 300 + len(text_content) // 4) * 2
+		est_output_tokens = 1500
+		
+		from lms.lms.agents.provider import get_llm
+		_, _, cost_info = get_llm("visual_analysis")
+		cost_in = cost_info.get("cost_input", 0) or 0.0003
+		cost_out = cost_info.get("cost_output", 0) or 0.0025
+		est_cost = (est_input_tokens / 1000000) * cost_in + (est_output_tokens / 1000000) * cost_out
+
+		# Evaluate HITL flagging
+		from lms.lms.services.hitl.flagging import should_flag_grading
+		from lms.lms.services.hitl.notification import notify_teacher
+		
+		session_doc = frappe.get_doc("AI Grading Session", doc.session)
+		rubric_doc = frappe.get_doc("AI Grading Rubric", session_doc.rubric)
+		max_score = rubric_doc.total_max_score or 10.0
+		
+		is_flagged, reason, priority = should_flag_grading(result, max_score)
+		final_status = "Flagged" if is_flagged else "Done"
+
 		extra = {
 			"grading_completed_at": now_datetime(),
 			"ai_feedback": json.dumps(result, ensure_ascii=False),
 			"last_error": None,
+			"tokens_used": est_input_tokens + est_output_tokens,
+			"input_tokens": est_input_tokens,
+			"output_tokens": est_output_tokens,
+			"total_cost_usd": est_cost
 		}
 		if score is not None:
 			extra["score"] = score
+		if is_flagged:
+			extra["flag_reason"] = reason
 
 		_set_submission_status(submission, final_status, extra)
 		frappe.db.commit()
+		
+		if is_flagged:
+			notify_teacher(
+				event_type="grading_flagged",
+				student=doc.student,
+				course=session_doc.course,
+				reference_doctype="AI Grading Submission",
+				reference_name=doc.name,
+				reason=reason,
+				priority=priority
+			)
 	except Exception:
 		frappe.log_error(frappe.get_traceback(), f"AI Grading job failed: {submission}")
 		try:
@@ -718,6 +871,12 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 				},
 			)
 			frappe.db.commit()
+		except Exception:
+			pass
+	finally:
+		try:
+			from langfuse import Langfuse
+			Langfuse().flush()
 		except Exception:
 			pass
 

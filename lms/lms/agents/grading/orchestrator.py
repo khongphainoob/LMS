@@ -13,12 +13,18 @@ from ..utils.filesystem import _read_filesystem, _write_to_filesystem
 
 logger = logging.getLogger(__name__)
 
-def run_grading_session(session_id: str, image_paths: list[str]) -> dict:
+def run_grading_session(session_id: str, image_paths: list[str], text_content: str = None) -> dict:
     try:
         logger.info(f"--- STARTING TIER 4 MULTI-EXPERT PIPELINE: {session_id} ---")
         
         session = GradingSession(session_id)
         session.image_paths = image_paths
+        
+        if text_content:
+            _write_to_filesystem(session_id, "student_text_submission.txt", text_content)
+            session.text_content = text_content
+        else:
+            session.text_content = ""
         
         # 1. Khởi tạo Context & Load tài liệu (Rubric)
         start_time = time.time()
@@ -81,14 +87,31 @@ def run_grading_session(session_id: str, image_paths: list[str]) -> dict:
             logger.info(f"--- GRADING ATTEMPT {attempt + 1}/{max_attempts} ---")
             context = session.to_manifest()
             
-            # Visual Analysis
-            logger.info("Phase 1: Visual Specialist is observing...")
-            start_time = time.time()
-            session.visual_reports = run_visual_analysis(context, image_paths, page_types)
-            session.log_step(f"Visual Analysis (Attempt {attempt+1})", "Success", time.time() - start_time)
+            if hasattr(session, 'text_content') and session.text_content:
+                context['text_content'] = session.text_content
+            
+            if image_paths and len(image_paths) > 0:
+                # Visual Analysis
+                logger.info("Phase 1: Visual Specialist is observing...")
+                start_time = time.time()
+                session.visual_reports = run_visual_analysis(context, image_paths, page_types)
+                session.log_step(f"Visual Analysis (Attempt {attempt+1})", "Success", time.time() - start_time)
+            else:
+                logger.info("Phase 1: Visual Specialist skipped (No images)")
+                session.visual_reports = []
+                # Inject text_content as a mock visual report so Logic/MCQ grader can parse it if needed
+                if hasattr(session, 'text_content') and session.text_content:
+                    session.visual_reports = [{
+                        "page_no": 1,
+                        "raw_ocr_text": session.text_content,
+                        "has_solution_text": True,
+                        "extracted_text": session.text_content
+                    }]
             
             # Update context for logic
             context = session.to_manifest()
+            if hasattr(session, 'text_content') and session.text_content:
+                context['text_content'] = session.text_content
             
             # Logic / MCQ Analysis
             if session.grading_type == "mcq_only":

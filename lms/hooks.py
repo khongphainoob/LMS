@@ -122,12 +122,9 @@ doc_events = {
 		"after_insert": "lms.lms.user.after_insert",
 	},
 	"LMS Document": {
-		"after_insert": "lms.lms.agents.chatbot.utils_rag.index_single_document",
-		"on_update": "lms.lms.agents.chatbot.utils_rag.index_single_document",
-	},
-	"Course Lesson": {
-		"after_insert": "lms.lms.agents.chatbot.utils_rag.index_single_document",
-		"on_update": "lms.lms.agents.chatbot.utils_rag.index_single_document",
+		"after_insert": "lms.lms.services.rag.hooks.on_document_save",
+		"on_update": "lms.lms.services.rag.hooks.on_document_save",
+		"on_trash": "lms.lms.services.rag.hooks.on_document_delete",
 	},
 }
 
@@ -291,3 +288,4 @@ add_to_apps_screen = [
 
 sqlite_search = ["lms.sqlite.LearningSearch"]
 auth_hooks = ["lms.auth.authenticate"]
+

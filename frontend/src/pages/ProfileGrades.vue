@@ -29,7 +29,7 @@ const avgScore = computed(() => {
 	<div class="mt-5">
 		<div class="flex justify-between items-end mb-4">
 			<div>
-				<h3 class="text-xl font-bold text-gray-900">{{ __('Bảng điểm & Năng lực (Grades)') }}</h3>
+				<h3 class="text-xl font-bold text-gray-900">{{ __('Grades & Competencies') }}</h3>
 				<p class="text-sm text-gray-500 mt-1">{{ __('Continuous assessment and competency tracking') }}</p>
 			</div>
 			<div class="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-md">
@@ -83,10 +83,10 @@ const avgScore = computed(() => {
 						</div>
 						<div class="flex items-center space-x-2">
 							<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800" v-if="item.score >= 8">
-								{{ __('Giỏi') }}
+								{{ __('Excellent') }}
 							</span>
 							<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800" v-else-if="item.score >= 5">
-								{{ __('Đạt') }}
+								{{ __('Passed') }}
 							</span>
 							<span class="font-bold text-gray-900 ml-2">{{ item.score }}/10</span>
 						</div>

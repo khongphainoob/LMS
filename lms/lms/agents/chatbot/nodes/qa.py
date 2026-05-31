@@ -9,15 +9,15 @@ from ..prompts.system import build_system_prompt
 def qa_node(state: ChatbotState) -> dict:
 	from lms.lms.agents.provider import get_llm, get_agent_config
 	from ..skills.student_skills import get_student_course_info, get_course_documents, read_course_document
+	from lms.lms.agents.tools.web_tools import search_web
 	
 	start_ms = int(time.time() * 1000)
 	
 	# Sử dụng model hỗ trợ gọi tool
-	llm = get_llm("chatbot", temperature=0)
-	model_name = get_agent_config("chatbot").get("model", "unknown")
+	llm, model_name, _ = get_llm("chatbot", temperature=0)
 	
 	# Bind tool
-	llm_with_tools = llm.bind_tools([get_student_course_info, get_course_documents, read_course_document])
+	llm_with_tools = llm.bind_tools([get_student_course_info, get_course_documents, read_course_document, search_web])
 
 	system_prompt = build_system_prompt(state)
 	print(f"--- [DEBUG] Full System Prompt Sent to AI ---\n{system_prompt}\n---")
@@ -49,7 +49,8 @@ def qa_node(state: ChatbotState) -> dict:
 		available_tools = {
 			"get_student_course_info": get_student_course_info,
 			"get_course_documents": get_course_documents,
-			"read_course_document": read_course_document
+			"read_course_document": read_course_document,
+			"search_web": search_web
 		}
 		
 		# Thêm lời gọi tool của AI vào lịch sử

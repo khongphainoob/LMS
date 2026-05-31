@@ -5,6 +5,12 @@ import { useSettings } from './stores/settings'
 import { getLmsBasePath } from './utils/basePath'
 
 const routes = [
+  {
+    path: '/ai-dashboard',
+    name: 'AIDashboard',
+    component: () => import('./pages/AI/Dashboard/AIDashboard.vue'),
+    meta: { title: 'AI Observability Dashboard' }
+  },
 	{
 		path: '/',
 		name: 'Home',
@@ -171,6 +177,28 @@ const routes = [
 		path: '/ai-integration/quiz-creator/:quizID',
 		name: 'AIQuizDetail',
 		component: () => import('@/pages/AI/Quiz/QuizDetail.vue'),
+		props: true,
+	},
+	{
+		path: '/ai-integration/exam-generator',
+		name: 'ExamDashboard',
+		component: () => import('@/pages/AI/Exam/ExamDashboard.vue'),
+	},
+	{
+		path: '/ai-integration/exam-generator/new',
+		name: 'ExamForm',
+		component: () => import('@/pages/AI/Exam/ExamForm.vue'),
+	},
+	{
+		path: '/ai-integration/exam-generator/:examID',
+		name: 'ExamDetail',
+		component: () => import('@/pages/AI/Exam/ExamDetail.vue'),
+		props: true,
+	},
+	{
+		path: '/ai-integration/exam-generator/:examID/preview',
+		name: 'ExamExportPreview',
+		component: () => import('@/pages/AI/Exam/ExamExportPreview.vue'),
 		props: true,
 	},
 	{
@@ -395,6 +423,45 @@ router.beforeEach(async (to, from, next) => {
 			return
 		}
 	}
+
+	await settings.promise
+	const aiRouteMap = {
+		'AIIntegration': 'ai_integration',
+		'AIGrading': 'ai_grading',
+		'AIGradingHelp': 'ai_grading',
+		'AIGradingRubric': 'ai_grading',
+		'AIGradingObjective': 'ai_grading',
+		'MCQGradingWorkspace': 'ai_grading',
+		'AIGradingEssay': 'ai_grading',
+		'AIGradingEssayConfig': 'ai_grading',
+		'AIGradingEssayWorkspaceLegacy': 'ai_grading',
+		'AIGradingEssayWorkspace': 'ai_grading',
+		'AIGradingAdmin': 'ai_grading',
+		'AIGradingSessionStatistics': 'ai_grading',
+		'AIGradingRubricDetail': 'ai_grading',
+		'GradingBook': 'grading_book',
+		'LessonPlanning': 'enable_lesson_planning',
+		'AIQuizDashboard': 'enable_quiz_creator',
+		'AIQuizForm': 'enable_quiz_creator',
+		'AIQuizDetail': 'enable_quiz_creator',
+		'ExamDashboard': 'enable_exam_generator',
+		'ExamForm': 'enable_exam_generator',
+		'ExamDetail': 'enable_exam_generator',
+		'ExamExportPreview': 'enable_exam_generator',
+		'Documents': 'enable_documents',
+		'StudentScoreDashboard': 'enable_score_insights',
+		'StudentAIHelper': 'enable_smart_chatbot',
+		'SocraticTutor': 'enable_socratic_tutor',
+		'SocraticTutorWorkspace': 'enable_socratic_tutor',
+	}
+
+	if (aiRouteMap[to.name]) {
+		const settingKey = aiRouteMap[to.name]
+		if (parseInt(settings.data?.[settingKey]) === 0) {
+			return next({ name: 'Home' })
+		}
+	}
+
 	return next()
 })
 

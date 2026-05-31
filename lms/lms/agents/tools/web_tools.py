@@ -2,8 +2,15 @@ import frappe
 import requests
 import json 
 import os
-def search_web(query: str):
-    """Performs a web search to find latest information."""
+from langchain_core.tools import tool
+
+@tool
+def search_web(query: str) -> str:
+    """
+    Tim kiem tren mang Internet (Web Search) de lay thong tin moi nhat.
+    Su dung tool nay khi ban can cap nhat kien thuc, tim kiem tin tuc hoac giai dap nhung cau hoi ma tai lieu noi bo khong co.
+    Tham so: query - Tu khoa can tim kiem bang tieng Viet hoac tieng Anh.
+    """
     # Fetch API key from Global LMS AI Settings
     api_key = frappe.db.get_single_value("LMS AI Settings", "tavily_api_key") or os.getenv("TAVILY_API_KEY")
     if not api_key:

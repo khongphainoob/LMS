@@ -8,6 +8,10 @@ from .session import (
 	save_message_to_history,
 	clear_session
 )
+from lms.lms.services.hitl.flagging import should_flag_chatbot
+from lms.lms.services.hitl.notification import notify_teacher
+from lms.lms.services.ai_rate_limit import check_and_record_usage
+
 # Tầng 0: FAQ quick‑response layer
 _FAQ = [
     (re.compile(r"^\s*(hi|hello|chào|xin chào)\s*$", re.I), "Chào bạn! Mình là trợ lý AI của LMS, sẵn sàng giúp bạn giải bài tập."),
@@ -20,9 +24,6 @@ def _try_faq(msg: str):
         if pattern.search(msg):
             return answer
     return None
-
-RATE_LIMIT_REQUESTS_PER_MINUTE = 5
-
 
 def _logger():
 	return frappe.logger("lms.chatbot")
@@ -39,19 +40,7 @@ def _ensure_chatbot_access(user: str) -> None:
 
 
 def _apply_rate_limit(user: str) -> None:
-	# Fixed-ish window via Redis key TTL. This is intentionally simple and safe.
-	key = f"chatbot:rate:{user}"
-	cache = frappe.cache()
-	current = cache.get_value(key) or 0
-	try:
-		current_int = int(current)
-	except Exception:
-		current_int = 0
-
-	if current_int >= RATE_LIMIT_REQUESTS_PER_MINUTE:
-		frappe.throw(_("Too many requests. Please wait a minute and try again."))
-
-	cache.set_value(key, str(current_int + 1), expires_in_sec=60)
+	check_and_record_usage(user, "Chatbot", increment=1)
 
 
 def _build_initial_state(message: str, student: str, lesson_name: str, session_key: str, **kwargs) -> dict:
@@ -122,18 +111,38 @@ def send_message(message: str = None, lesson_name: str = None, session_key: str 
 
 	# 3. Run Graph
 	try:
-		final_state = chatbot_graph.invoke(initial_state)
+		from lms.lms.services.observability import get_unified_config_dict, flush_langfuse
+		config = get_unified_config_dict(agent_name="chatbot_agent", session_id=session_key, tags=["Chatbot"])
+		final_state = chatbot_graph.invoke(initial_state, config)
+		flush_langfuse()
 		
 		response = final_state.get("response")
 		msg_type = final_state.get("message_type", "qa")
 		
 		# 4. Persistent Log (MariaDB) - Do this first to get session_name
 		session_name = _log_to_db(student, lesson_name, final_state)
+		
+		# 4.5 HITL Flagging evaluation
+		session_doc = frappe.get_doc("Chatbot Session", session_name)
+		is_flagged, reason, priority = should_flag_chatbot(final_state, session_doc)
+		if is_flagged:
+			session_doc.status = "Flagged"
+			session_doc.flag_reason = reason
+			session_doc.save(ignore_permissions=True)
+			notify_teacher(
+				event_type="Chatbot Flagged" if not final_state.get("is_blocked") else "Chatbot Blocked",
+				student=student,
+				course=session_doc.course,
+				reference_doctype="Chatbot Session",
+				reference_name=session_name,
+				reason=reason,
+				priority=priority
+			)
 
 		# 5. Save to history (Redis + DB)
 		if not final_state.get("is_blocked"):
 			hist = save_message_to_history(session_key, "user", message, session_name=session_name)
-			save_message_to_history(session_key, "assistant", response, session_name=session_name, history=hist)
+			save_message_to_history(session_key, "assistant", response, session_name=session_name, history=hist, extra_data=final_state)
 			
 		return {
 			"response": response,
@@ -214,17 +223,39 @@ def _run_chatbot_job(user: str, lesson_name: str, request_id: str, initial_state
 		frappe.set_user(user)
 		_ensure_chatbot_access(user)
 
-		final_state = chatbot_graph.invoke(initial_state)
+		from lms.lms.services.observability import get_unified_config_dict, flush_langfuse
+		config = get_unified_config_dict(agent_name="chatbot_agent", session_id=initial_state.get("session_key"), tags=["Chatbot", "Async"])
+
+		final_state = chatbot_graph.invoke(initial_state, config)
+		flush_langfuse()
+			
 		response = final_state.get("response")
 		msg_type = final_state.get("message_type", "qa")
 
 		# 4. Persistent Log (MariaDB) - Do this first to get session_name
 		session_name = _log_to_db(user, lesson_name, final_state)
+		
+		# 4.5 HITL Flagging evaluation
+		session_doc = frappe.get_doc("Chatbot Session", session_name)
+		is_flagged, reason, priority = should_flag_chatbot(final_state, session_doc)
+		if is_flagged:
+			session_doc.status = "Flagged"
+			session_doc.flag_reason = reason
+			session_doc.save(ignore_permissions=True)
+			notify_teacher(
+				event_type="Chatbot Flagged" if not final_state.get("is_blocked") else "Chatbot Blocked",
+				student=user,
+				course=session_doc.course,
+				reference_doctype="Chatbot Session",
+				reference_name=session_name,
+				reason=reason,
+				priority=priority
+			)
 
 		# 5. Save to history (Redis + DB)
 		if not final_state.get("is_blocked"):
 			hist = save_message_to_history(initial_state["session_key"], "user", initial_state.get("user_message"), session_name=session_name)
-			save_message_to_history(initial_state["session_key"], "assistant", response, session_name=session_name, history=hist)
+			save_message_to_history(initial_state["session_key"], "assistant", response, session_name=session_name, history=hist, extra_data=final_state)
 
 		_publish_chatbot_result(
 			user,
@@ -305,30 +336,16 @@ def _log_to_db(student, lesson_name, state):
 			frappe.db.set_value("Chatbot Session", session_name, {
 				"last_active": frappe.utils.now_datetime(),
 				"message_count": frappe.db.get_value("Chatbot Session", session_name, "message_count") + 2,
-				"total_tokens": frappe.db.get_value("Chatbot Session", session_name, "total_tokens") + state.get("tokens_used", 0)
+				"total_tokens": frappe.db.get_value("Chatbot Session", session_name, "total_tokens") + state.get("tokens_used", 0),
+				"input_tokens": frappe.db.get_value("Chatbot Session", session_name, "input_tokens") + state.get("input_tokens", 0),
+				"output_tokens": frappe.db.get_value("Chatbot Session", session_name, "output_tokens") + state.get("output_tokens", 0),
+				"total_cost_usd": frappe.db.get_value("Chatbot Session", session_name, "total_cost_usd") + state.get("total_cost_usd", 0)
 			})
 
 		return session_name
-	except Exception:
-		return None
-		
-		# Atomic counter update (parameterized, safe)
-		frappe.db.sql(
-			"""
-			UPDATE `tabChatbot Session`
-			SET total_tokens = IFNULL(total_tokens, 0) + %(tokens_used)s,
-				message_count = IFNULL(message_count, 0) + 1
-			WHERE name = %(session_name)s
-			""",
-			{
-				"tokens_used": state.get("tokens_used", 0),
-				"session_name": session_name,
-			},
-		)
-		
 	except Exception as e:
 		frappe.log_error(f"Chatbot DB Logging Error: {str(e)}", "Chatbot Logging")
-
+		return None
 
 @frappe.whitelist()
 def get_sessions():

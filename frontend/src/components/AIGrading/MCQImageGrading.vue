@@ -2,17 +2,17 @@
 	<div class="space-y-6">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<div class="flex flex-col gap-1">
-				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Tên bài chấm') }}</label>
-				<Input v-model="sessionName" :placeholder="__('Ví dụ: Kiểm tra giữa kỳ Toán')" />
+				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Grading Session Name') }}</label>
+				<Input v-model="sessionName" :placeholder="__('Example: Midterm Math Exam')" />
 			</div>
 			<div class="flex flex-col gap-1">
-				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Lớp') }}</label>
-				<Input v-model="className" :placeholder="__('Ví dụ: 12A1')" />
+				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Class') }}</label>
+				<Input v-model="className" :placeholder="__('Example: 12A1')" />
 			</div>
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Upload Đáp án (Word/PDF)') }}</label>
+			<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Upload Answer Key (Word/PDF)') }}</label>
 			<div
 				class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50/50 p-8 transition-all hover:border-blue-200 hover:bg-blue-50/20 cursor-pointer"
 				@click="triggerFile"
@@ -20,15 +20,15 @@
 				<div class="text-4xl mb-3">📄</div>
 				<div v-if="uploadedFile" class="text-sm font-bold text-blue-600">{{ uploadedFile.name }}</div>
 				<div v-else class="text-center">
-					<div class="text-sm font-medium text-gray-600">{{ __('Nhấn để tải file đáp án') }}</div>
-					<div class="text-[10px] text-gray-400 mt-1">{{ __('Hỗ trợ .doc, .docx, .pdf (Tối đa 10MB)') }}</div>
+					<div class="text-sm font-medium text-gray-600">{{ __('Click to upload answer file') }}</div>
+					<div class="text-[10px] text-gray-400 mt-1">{{ __('Supports .doc, .docx, .pdf (Max 10MB)') }}</div>
 				</div>
 			</div>
 			<input type="file" ref="fileInput" class="hidden" accept=".doc,.docx,.pdf" @change="handleFile" />
 		</div>
 
 		<div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-			<Button variant="outline" @click="$emit('cancel')">{{ __('Hủy') }}</Button>
+			<Button variant="outline" @click="$emit('cancel')">{{ __('Cancel') }}</Button>
 			<Button 
 				variant="solid" 
 				theme="blue" 
@@ -36,7 +36,7 @@
 				:disabled="!isReady"
 				@click="createSession"
 			>
-				{{ __('Tạo Phiên & Bắt đầu') }}
+				{{ __('Create Session & Start') }}
 			</Button>
 		</div>
 	</div>

@@ -66,6 +66,9 @@
 <script setup>
 import Quiz from '@/components/QuizBlock.vue'
 import MarkdownIt from 'markdown-it'
+import markdownItKatex from 'markdown-it-katex'
+import 'katex/dist/katex.min.css'
+import { onMounted } from 'vue'
 import { useScreenSize } from '@/utils/composables'
 
 const screenSize = useScreenSize()
@@ -73,6 +76,11 @@ const screenSize = useScreenSize()
 const markdown = new MarkdownIt({
 	html: true,
 	linkify: true,
+})
+markdown.use(markdownItKatex)
+
+onMounted(() => {
+	// Setup any onMounted logic here
 })
 
 const props = defineProps({

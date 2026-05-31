@@ -104,12 +104,21 @@
 						</div>
 						<div class="flex items-center gap-1">
 							<router-link 
+								v-if="rubric.is_active"
 								:to="{ name: 'AIGradingRubricDetail', params: { rubricName: rubric.name } }"
 								class="rounded-lg p-1.5 text-gray-400 hover:bg-violet-50 hover:text-violet-600 transition-colors"
 								v-tooltip="__('Open Details')"
 							>
 								<ExternalLink class="h-4 w-4" />
 							</router-link>
+							<button 
+								v-if="!rubric.is_active && rubric.description && rubric.description.includes('Lỗi')"
+								@click="handleRetry(rubric.name)"
+								class="rounded-lg p-1.5 text-orange-400 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+								v-tooltip="__('Retry Generation')"
+							>
+								<RefreshCw class="h-4 w-4" />
+							</button>
 							<button 
 								@click="openEditModal(rubric.name)"
 								class="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
@@ -338,9 +347,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, reactive } from 'vue'
 import { createResource, Dialog } from 'frappe-ui'
-import { FileText, Sparkles, Link2, Plus, X, Upload, Download, Edit3, Trash2, ExternalLink } from 'lucide-vue-next'
+import { FileText, Sparkles, Link2, Plus, X, Upload, Download, Edit3, Trash2, ExternalLink, RefreshCw } from 'lucide-vue-next'
 
 const rubrics = ref([])
 const loading = ref(true)
@@ -467,7 +476,7 @@ const statsResource = createResource({
 })
 
 const generateResource = createResource({
-	url: 'lms.lms.api.generate_rubric',
+	url: 'lms.lms.services.rubric_builder.api.generate_rubric',
 	makeParams: () => ({
 		assessment_description: genForm.assessment_description,
 		criteria_descriptions: genForm.criteria.filter(c => c.trim()),
@@ -480,7 +489,9 @@ const generateResource = createResource({
 	onSuccess: (data) => {
 		generating.value = false
 		showGenerateModal.value = false
-		saveGeneratedRubric(data)
+		frappe.show_alert({ message: __('Đã gửi yêu cầu tạo Rubric chạy ngầm. Vui lòng đợi vài phút và tải lại danh sách.'), indicator: 'green' })
+		rubricListResource.fetch()
+		statsResource.fetch()
 	},
 	onError: () => {
 		generating.value = false
@@ -499,22 +510,7 @@ const rubricDetailResource = createResource({
 	},
 })
 
-const saveRubricResource = createResource({
-	url: 'lms.lms.api.save_rubric_template',
-	onSuccess: (data) => {
-		frappe.show_alert({ message: __('Rubric saved successfully'), indicator: 'green' })
-		rubricListResource.fetch()
-		statsResource.fetch()
-		
-		// Tự động mở modal chi tiết để xem kết quả ngay
-		if (data && data.name) {
-			openEditModal(data.name)
-		}
-	},
-	onError: (err) => {
-		frappe.msgprint(__('Failed to save rubric: {0}', [err.message || err]))
-	}
-})
+
 
 const exportResource = createResource({
 	url: 'lms.lms.services.ai_grading.api.export_rubric',
@@ -530,17 +526,44 @@ const exportResource = createResource({
 })
 
 const deleteResource = createResource({
-	url: 'frappe.client.delete',
+	url: 'lms.lms.services.rubric_builder.api.delete_rubric',
 	onSuccess: () => {
 		frappe.show_alert({ message: __('Rubric deleted'), indicator: 'red' })
 		rubricListResource.fetch()
 		statsResource.fetch()
+	},
+	onError: (err) => {
+		frappe.msgprint(__('Lỗi khi xóa: {0}', [err.message || err]))
 	}
 })
 
 function handleDelete(name) {
 	if (confirm(__('Are you sure you want to delete this rubric?'))) {
-		deleteResource.submit({ doctype: 'LMS Rubric Template', name })
+		// Optimistic update: remove instantly from UI
+		const prevRubrics = [...rubrics.value]
+		rubrics.value = rubrics.value.filter(r => r.name !== name)
+		
+		deleteResource.submit({ name }).catch(() => {
+			// Revert if error
+			rubrics.value = prevRubrics
+		})
+	}
+}
+
+const retryResource = createResource({
+	url: 'lms.lms.services.rubric_builder.api.retry_generate_rubric',
+	onSuccess: () => {
+		frappe.show_alert({ message: __('Đã gửi yêu cầu tạo lại. Vui lòng đợi và tải lại trang sau.'), indicator: 'green' })
+		rubricListResource.fetch()
+	},
+	onError: (err) => {
+		frappe.msgprint(__('Lỗi khi thử lại: {0}', [err.message || err]))
+	}
+})
+
+function handleRetry(name) {
+	if (confirm(__('Xác nhận sinh lại Rubric này? Hệ thống sẽ đẩy lệnh chạy ngầm.'))) {
+		retryResource.submit({ name })
 	}
 }
 
@@ -554,16 +577,7 @@ function handleGenerate() {
 	generateResource.submit()
 }
 
-function saveGeneratedRubric(data) {
-	saveRubricResource.submit({
-		...data,
-		subject: genForm.subject,
-		level: genForm.level,
-		grading_scale: genForm.grading_scale,
-		max_score: genForm.max_score,
-		assessment_description: genForm.assessment_description,
-	})
-}
+
 
 function openEditModal(name) {
 	editLoading.value = true
@@ -577,9 +591,19 @@ function closeEditModal() {
 	editingRubric.value = null
 }
 
+let pollInterval;
+
 onMounted(async () => {
 	rubricListResource.fetch()
 	statsResource.fetch()
+	
+	// Tự động làm mới danh sách mỗi 10 giây để thấy Rubric mới tạo
+	pollInterval = setInterval(() => {
+		if (!document.hidden) {
+			rubricListResource.fetch()
+			statsResource.fetch()
+		}
+	}, 10000)
 	
 	// Load libraries in background for file processing
 	try {
@@ -594,5 +618,9 @@ onMounted(async () => {
 	} catch (e) {
 		console.error('Failed to load file processing libraries', e)
 	}
+})
+
+onUnmounted(() => {
+	if (pollInterval) clearInterval(pollInterval)
 })
 </script>

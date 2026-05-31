@@ -7,10 +7,10 @@
           <div class="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-inner group-hover:scale-110 transition-all">
             <icons.Target class="h-6 w-6" />
           </div>
-          <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ __('GPA TRUNG BÌNH') }}</span>
+          <span class="text-xs font-semibold text-slate-500">{{ __('Average GPA') }}</span>
         </div>
-        <div class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{{ averageScore }}</div>
-        <div class="text-[10px] font-black text-amber-600 mt-2 uppercase tracking-widest">{{ __('TRÊN THANG ĐIỂM 10') }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white">{{ averageScore }}</div>
+        <div class="text-xs font-medium text-amber-600 mt-2">{{ __('On a 10-point scale') }}</div>
       </div>
 
       <div class="group relative rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-xl shadow-slate-200/40 border border-slate-100 dark:border-slate-800 transition-all hover:-translate-y-1">
@@ -18,10 +18,10 @@
           <div class="h-12 w-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center shadow-inner group-hover:scale-110 transition-all">
             <icons.Award class="h-6 w-6" />
           </div>
-          <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ __('THÀNH TÍCH TỐT') }}</span>
+          <span class="text-xs font-semibold text-slate-500">{{ __('Good performance') }}</span>
         </div>
-        <div class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{{ highScores }}</div>
-        <div class="text-[10px] font-black text-teal-600 mt-2 uppercase tracking-widest">{{ __('BÀI LÀM ĐẠT ĐIỂM GIỎI') }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white">{{ highScores }}</div>
+        <div class="text-xs font-medium text-teal-600 mt-2">{{ __('Excellent work') }}</div>
       </div>
 
       <div class="group relative rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-xl shadow-slate-200/40 border border-slate-100 dark:border-slate-800 transition-all hover:-translate-y-1">
@@ -29,21 +29,21 @@
           <div class="h-12 w-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-inner group-hover:scale-110 transition-all">
             <icons.TrendingDown class="h-6 w-6" />
           </div>
-          <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ __('CẦN CẢI THIỆN') }}</span>
+          <span class="text-xs font-semibold text-slate-500">{{ __('Needs improvement') }}</span>
         </div>
-        <div class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{{ lowScores }}</div>
-        <div class="text-[10px] font-black text-rose-600 mt-2 uppercase tracking-widest">{{ __('BÀI LÀM DƯỚI TRUNG BÌNH') }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white">{{ lowScores }}</div>
+        <div class="text-xs font-medium text-rose-600 mt-2">{{ __('Below average') }}</div>
       </div>
 
-      <div class="group relative rounded-3xl bg-slate-900 p-8 shadow-2xl transition-all hover:-translate-y-1">
+      <div class="group relative rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-xl shadow-slate-200/40 border border-slate-100 dark:border-slate-800 transition-all hover:-translate-y-1">
         <div class="flex items-center justify-between mb-6">
-          <div class="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/20">
+          <div class="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner group-hover:scale-110 transition-all">
             <icons.Hash class="h-6 w-6" />
           </div>
-          <span class="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{{ __('TỔNG SỐ BÀI') }}</span>
+          <span class="text-xs font-semibold text-slate-500">{{ __('Total submissions') }}</span>
         </div>
-        <div class="text-4xl font-black text-white tracking-tighter">{{ totalResults }}</div>
-        <div class="text-[10px] font-black text-amber-400 mt-2 uppercase tracking-widest">{{ __('DỮ LIỆU ĐÃ CẬP NHẬT') }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white">{{ totalResults }}</div>
+        <div class="text-xs font-medium text-amber-600 mt-2">{{ __('Data updated') }}</div>
       </div>
     </div>
 
@@ -56,7 +56,7 @@
             <div class="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-amber-400">
               <icons.ListOrdered class="h-5 w-5" />
             </div>
-            <h3 class="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{{ __('Lịch sử Bài làm') }}</h3>
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ __('Submission History') }}</h3>
           </div>
         </div>
         
@@ -64,23 +64,23 @@
           <table class="w-full text-left">
             <thead>
               <tr class="bg-slate-50/50 dark:bg-slate-900/50">
-                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ __('Khóa học & Bài học') }}</th>
-                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-center">{{ __('Điểm số') }}</th>
-                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">{{ __('Thời gian') }}</th>
+                <th class="px-8 py-5 text-xs font-semibold text-slate-500">{{ __('Course & Lesson') }}</th>
+                <th class="px-8 py-5 text-xs font-semibold text-slate-500 text-center">{{ __('Points') }}</th>
+                <th class="px-8 py-5 text-xs font-semibold text-slate-500 text-right">{{ __('Time') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50 dark:divide-slate-900">
               <tr v-for="item in gradesResource.data" :key="item.id" class="group hover:bg-amber-50/30 dark:hover:bg-amber-900/10 transition-colors">
                 <td class="px-8 py-6">
-                  <div class="font-black text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors text-[15px]">{{ item.course }}</div>
-                  <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{{ item.name }}</div>
+                  <div class="font-semibold text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors text-sm">{{ item.course }}</div>
+                  <div class="text-xs font-medium text-slate-500 mt-1">{{ item.name }}</div>
                 </td>
                 <td class="px-8 py-6 text-center">
-                  <span class="inline-flex items-center justify-center px-5 py-2 rounded-xl text-xs font-black border-2 shadow-sm transition-all group-hover:scale-105" :class="scoreStyle(item.score)">
+                  <span class="inline-flex items-center justify-center px-4 py-1.5 rounded-xl text-xs font-semibold border shadow-sm transition-all group-hover:scale-105" :class="scoreStyle(item.score)">
                     {{ item.score }} / 10
                   </span>
                 </td>
-                <td class="px-8 py-6 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                <td class="px-8 py-6 text-right text-xs font-medium text-slate-500">
                   {{ formatDate(item.date) }}
                 </td>
               </tr>
@@ -100,12 +100,12 @@
               <div class="h-14 w-14 rounded-2xl bg-slate-900 text-amber-400 flex items-center justify-center shadow-xl transform transition-transform group-hover:rotate-12">
                 <icons.Sparkles class="h-7 w-7" />
               </div>
-              <h3 class="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{{ __('AI Phân tích') }}</h3>
+              <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ __('AI Analysis') }}</h3>
             </div>
 
             <div class="space-y-10">
               <div class="bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-6 border border-amber-100 dark:border-amber-900/30">
-                <p class="text-sm font-bold text-amber-900 dark:text-amber-200 leading-relaxed italic opacity-90">"{{ aiInsight.summary }}"</p>
+                <p class="text-sm font-medium text-amber-900 dark:text-amber-200 leading-relaxed italic opacity-90">"{{ aiInsight.summary }}"</p>
               </div>
 
               <div class="space-y-8">
@@ -114,8 +114,8 @@
                     <icons.Zap class="h-5 w-5 text-teal-600 dark:text-teal-400" />
                   </div>
                   <div>
-                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600 mb-1">{{ __('ĐIỂM MẠNH') }}</h4>
-                    <p class="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">{{ aiInsight.strength }}</p>
+                    <h4 class="text-xs font-semibold text-teal-600 mb-1">{{ __('Strengths') }}</h4>
+                    <p class="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed">{{ aiInsight.strength }}</p>
                   </div>
                 </div>
                 <div class="flex gap-5">
@@ -123,14 +123,14 @@
                     <icons.Target class="h-5 w-5 text-rose-600 dark:text-rose-400" />
                   </div>
                   <div>
-                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 mb-1">{{ __('ĐIỂM CẦN CẢI THIỆN') }}</h4>
-                    <p class="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">{{ aiInsight.improvement }}</p>
+                    <h4 class="text-xs font-semibold text-rose-600 mb-1">{{ __('Points to improve') }}</h4>
+                    <p class="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed">{{ aiInsight.improvement }}</p>
                   </div>
                 </div>
               </div>
 
-              <button class="w-full py-5 rounded-[1.5rem] bg-slate-900 text-amber-400 font-black text-xs uppercase tracking-widest shadow-2xl transition-all hover:scale-[1.02] active:scale-95">
-                {{ __('Xem lộ trình chi tiết') }}
+              <button class="w-full py-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-sm shadow-sm transition-all hover:border-slate-300 dark:hover:border-slate-600 active:scale-95">
+                {{ __('View detailed roadmap') }}
               </button>
             </div>
           </div>
@@ -168,16 +168,16 @@ const aiInsight = computed(() => {
   const avg = Number(averageScore.value || 0)
   if (!gradesResource.data?.length) {
     return {
-      summary: __('Chưa có dữ liệu điểm số.'),
-      strength: __('Hệ thống đã sẵn sàng.'),
-      improvement: __('Hãy bắt đầu bài kiểm tra.'),
+      summary: __('No grade data available.'),
+      strength: __('System is ready.'),
+      improvement: __("Let's start the quiz."),
     }
   }
   if (avg >= 8) return {
-    summary: __('Hiệu suất học tập xuất sắc.'), strength: __('Nắm vững kiến thức nền tảng.'), improvement: __('Duy trì độ sâu tư duy.'),
+    summary: __('Excellent learning performance.'), strength: __('Master foundational knowledge.'), improvement: __('Maintain depth of thought.'),
   }
   return {
-    summary: __('Cần nỗ lực cải thiện hiệu suất.'), strength: __('Đang có tiến bộ nhất định.'), improvement: __('Luyện tập thêm các dạng bài khó.'),
+    summary: __('Needs effort to improve performance.'), strength: __('Making certain progress.'), improvement: __('Practice more difficult question types.'),
   }
 })
 

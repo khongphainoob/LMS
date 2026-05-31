@@ -1,6 +1,6 @@
 {
  "actions": [],
- "creation": "2024-05-18 10:00:00.000000",
+ "creation": "2024-05-18 10:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -25,7 +25,13 @@
   "pix2text_section",
   "pix2text_enabled",
   "search_section",
-  "tavily_api_key"
+  "tavily_api_key",
+  "usd_to_vnd_exchange_rate",
+  "observability_section",
+  "enable_langfuse",
+  "langfuse_host",
+  "langfuse_public_key",
+  "langfuse_secret_key"
  ],
  "fields": [
   {
@@ -147,11 +153,47 @@
    "fieldname": "tavily_api_key",
    "fieldtype": "Password",
    "label": "Tavily API Key (for Web Search)"
+  },
+  {
+   "default": "25400",
+   "description": "Used to convert AI Token Costs (USD) into local currency (VND) for analytics.",
+   "fieldname": "usd_to_vnd_exchange_rate",
+   "fieldtype": "Float",
+   "label": "USD to VND Exchange Rate"
+  },
+  {
+   "fieldname": "observability_section",
+   "fieldtype": "Section Break",
+   "label": "AI Observability (Langfuse)"
+  },
+  {
+   "default": "1",
+   "description": "If enabled, AI requests will be traced.",
+   "fieldname": "enable_langfuse",
+   "fieldtype": "Check",
+   "label": "Enable Langfuse Tracing"
+  },
+  {
+   "default": "https://cloud.langfuse.com",
+   "description": "Leave as default for Langfuse Cloud, or enter your self-hosted URL.",
+   "fieldname": "langfuse_host",
+   "fieldtype": "Data",
+   "label": "Langfuse Host"
+  },
+  {
+   "fieldname": "langfuse_public_key",
+   "fieldtype": "Data",
+   "label": "Langfuse Public Key"
+  },
+  {
+   "fieldname": "langfuse_secret_key",
+   "fieldtype": "Password",
+   "label": "Langfuse Secret Key"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-05-08 10:28:21.000000",
+ "modified": "2026-05-29 11:43:13.217109",
  "modified_by": "Administrator",
  "module": "LMS",
  "name": "LMS AI Settings",
@@ -172,5 +214,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_changes": 1
 }

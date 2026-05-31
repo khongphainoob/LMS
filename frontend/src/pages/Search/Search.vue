@@ -6,15 +6,15 @@
         <div class="flex items-center gap-3">
           <icons.Search class="h-5 w-5 text-slate-900 dark:text-amber-500 stroke-[2.5px]" />
           <div>
-            <h1 class="text-base font-black tracking-tight text-slate-900 dark:text-white uppercase font-outfit leading-none">{{ __('Tìm kiếm') }}</h1>
-            <p class="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-amber-500/60 mt-1 leading-none">{{ __('Hệ thống tra cứu thông minh') }}</p>
+            <h1 class="text-lg font-semibold text-slate-900 dark:text-white leading-none">{{ __('Search') }}</h1>
+            <p class="text-xs font-medium text-slate-500 dark:text-amber-500/60 mt-1 leading-none">{{ __('Smart search system') }}</p>
           </div>
         </div>
 
         <!-- Purpose Badge (Right) -->
         <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-amber-500/5 border border-slate-100 dark:border-amber-500/10 rounded-full">
           <div class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></div>
-          <span class="text-[10px] font-bold text-slate-500 dark:text-amber-500/80 uppercase tracking-wider">{{ __('Tìm kiếm từ khóa nhanh') }}</span>
+          <span class="text-xs font-medium text-slate-500 dark:text-amber-500/80">{{ __('Quick keyword search') }}</span>
         </div>
       </div>
     </header>
@@ -27,8 +27,8 @@
           <input
             v-model="query"
             type="text"
-            class="w-full pl-12 pr-12 py-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-sm font-bold text-slate-900 dark:text-white focus:ring-0 focus:border-amber-500 dark:focus:border-amber-500 transition-all placeholder:text-slate-400 placeholder:font-medium"
-            :placeholder="__('Bạn muốn tìm gì hôm nay?')"
+            class="w-full pl-12 pr-12 py-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 text-base font-medium text-slate-900 dark:text-white focus:ring-0 focus:border-amber-500 dark:focus:border-amber-500 transition-all placeholder:text-slate-400"
+            :placeholder="__('What do you want to find today?')"
             @keydown.enter="submit"
           />
           <div class="absolute right-3 flex items-center">
@@ -61,12 +61,12 @@
             
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between mb-1">
-                <span class="text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400/80">
+                <span class="text-xs font-medium text-amber-600 dark:text-amber-400/80">
                   {{ getDocTypeTitle(result.doctype) }}
                 </span>
                 <icons.ArrowUpRight class="h-3 w-3 text-slate-300 group-hover:text-amber-500 transition-all" />
               </div>
-              <h3 class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors leading-snug" v-html="result.title"></h3>
+              <h3 class="text-base font-medium text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors leading-snug" v-html="result.title"></h3>
               <div class="text-[11px] text-slate-400 dark:text-slate-500 line-clamp-1 mt-1 font-medium italic" v-html="result.content"></div>
             </div>
           </div>
@@ -75,13 +75,13 @@
         <!-- Minimal Empty State -->
         <div v-if="!query && !search.loading" class="py-16 text-center">
            <icons.Compass class="h-10 w-10 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
-           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-             {{ __('Nhập từ khóa để bắt đầu') }}
+           <p class="text-sm font-medium text-slate-500">
+             {{ __('Enter keyword to start') }}
            </p>
         </div>
 
         <div v-if="query && !searchResults.length && !search.loading" class="py-16 text-center">
-           <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ __('Không có kết quả') }}</p>
+           <p class="text-sm font-medium text-slate-500">{{ __('No results') }}</p>
         </div>
       </div>
     </main>
@@ -146,15 +146,15 @@ const clearSearch = () => {
 
 const getDocTypeTitle = (doctype: string) => {
   const titles = {
-    'LMS Course': __('Khóa học'),
-    'LMS Batch': __('Lớp học'),
-    'LMS Lesson': __('Bài học')
+    'LMS Course': __('Course'),
+    'LMS Batch': __('Classroom'),
+    'LMS Lesson': __('Lesson')
   }
   return titles[doctype] || doctype
 }
 
 usePageMeta(() => ({ 
-  title: __('Tìm kiếm'), 
+  title: __('Search'), 
   icon: brand.favicon 
 }))
 </script>

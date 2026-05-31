@@ -1,0 +1,220 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-20 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "topic",
+  "subject",
+  "grade_level",
+  "duration_minutes",
+  "teacher",
+  "status",
+  "column_break_1",
+  "output_format",
+  "target_course",
+  "linked_lesson",
+  "reference_file",
+  "thread_id",
+  "review_section",
+  "review_draft",
+  "review_feedback",
+  "reviewed_at",
+  "reviewed_by",
+  "output_section",
+  "generated_content",
+  "generated_file",
+  "curriculum_standards_matched",
+  "diagram_method",
+  "custom_requirements"
+ ],
+ "fields": [
+  {
+   "fieldname": "topic",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Topic",
+   "reqd": 1
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Subject",
+   "reqd": 1
+  },
+  {
+   "fieldname": "grade_level",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Grade Level"
+  },
+  {
+   "default": "45",
+   "fieldname": "duration_minutes",
+   "fieldtype": "Int",
+   "label": "Duration (Minutes)"
+  },
+  {
+   "fieldname": "teacher",
+   "fieldtype": "Link",
+   "label": "Teacher",
+   "options": "User"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nRetrieving\nPlanning\nWriting\nReview\nIllustrating\nAssessing\nReviewing\nFormatting\nCompleted\nFailed"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "lms_native",
+   "fieldname": "output_format",
+   "fieldtype": "Select",
+   "label": "Output Format",
+   "options": "markdown\ndocx\nlatex\nlms_native"
+  },
+  {
+   "fieldname": "target_course",
+   "fieldtype": "Link",
+   "label": "Target Course",
+   "options": "LMS Course"
+  },
+  {
+   "fieldname": "linked_lesson",
+   "fieldtype": "Link",
+   "label": "Linked Lesson",
+   "options": "Course Lesson",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_file",
+   "fieldtype": "Attach",
+   "label": "Reference File"
+  },
+  {
+   "fieldname": "thread_id",
+   "fieldtype": "Data",
+   "label": "Thread ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "review_section",
+   "fieldtype": "Section Break",
+   "label": "Review (HITL)"
+  },
+  {
+   "fieldname": "review_draft",
+   "fieldtype": "Long Text",
+   "label": "Review Draft",
+   "read_only": 1
+  },
+  {
+   "fieldname": "review_feedback",
+   "fieldtype": "Small Text",
+   "label": "Review Feedback"
+  },
+  {
+   "fieldname": "reviewed_at",
+   "fieldtype": "Datetime",
+   "label": "Reviewed At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reviewed_by",
+   "fieldtype": "Link",
+   "label": "Reviewed By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "output_section",
+   "fieldtype": "Section Break",
+   "label": "Generated Output"
+  },
+  {
+   "fieldname": "generated_content",
+   "fieldtype": "Long Text",
+   "label": "Generated Content (Markdown)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "generated_file",
+   "fieldtype": "Attach",
+   "label": "Generated File (.docx/.tex)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "curriculum_standards_matched",
+   "fieldtype": "Small Text",
+   "label": "Curriculum Standards Matched",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diagram_method",
+   "fieldtype": "Data",
+   "label": "Diagram Method",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_requirements",
+   "fieldtype": "Small Text",
+   "label": "Custom Requirements"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-20 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "AI Lesson Plan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Academic User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Instructor",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

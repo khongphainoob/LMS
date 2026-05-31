@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "autoname": "field:title",
+ "creation": "2026-05-17 07:56:40.774718",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "game_type",
+  "delivery_mode",
+  "scoring_model",
+  "max_score",
+  "configuration",
+  "is_active",
+  "version"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "game_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Game Type",
+   "options": "memory_match\ntimed_quiz\nspin_wheel\nword_scramble\ndrag_drop",
+   "reqd": 1
+  },
+  {
+   "fieldname": "delivery_mode",
+   "fieldtype": "Select",
+   "label": "Delivery Mode",
+   "options": "embedded\npopup\nfullscreen",
+   "reqd": 1
+  },
+  {
+   "fieldname": "scoring_model",
+   "fieldtype": "Select",
+   "label": "Scoring Model",
+   "options": "best\nsum\navg",
+   "reqd": 1
+  },
+  {
+   "fieldname": "max_score",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Max Score",
+   "reqd": 1
+  },
+  {
+   "fieldname": "configuration",
+   "fieldtype": "JSON",
+   "label": "Configuration"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "version",
+   "fieldtype": "Int",
+   "label": "Version"
+  }
+ ],
+ "links": [],
+ "modified": "2026-05-31 11:47:41.791559",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "LMS Game",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "Moderator",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Course Creator"
+  },
+  {
+   "read": 1,
+   "role": "LMS Student"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

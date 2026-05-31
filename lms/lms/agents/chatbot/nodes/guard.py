@@ -28,7 +28,7 @@ def guard_node(state: ChatbotState) -> dict:
     # Dữ liệu đã được nạp sẵn từ context_node
     student_display_name = state.get("student_display_name") or "học sinh"
     
-    llm = get_llm("chatbot", temperature=0)
+    llm, model_name, _ = get_llm("chatbot", temperature=0)
 
     messages = [
         SystemMessage(content=GUARD_SYSTEM),

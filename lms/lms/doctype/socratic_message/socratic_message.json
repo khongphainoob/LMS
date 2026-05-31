@@ -37,7 +37,7 @@
     {
       "fieldname": "message_type",
       "fieldtype": "Select",
-      "options": "qa\nquiz\nhint\nblocked\nsocratic_hint",
+      "options": "qa\nquiz\nhint\nblocked\nsocratic_hint\nanalysis",
       "label": "Type",
       "in_list_view": 1
     },

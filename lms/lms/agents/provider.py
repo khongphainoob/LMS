@@ -43,7 +43,7 @@ def get_agent_config(agent_name: str, **kwargs) -> dict:
 
     # Default Failsafes
     provider = "openrouter" 
-    model = "google/gemini-1.5-flash" 
+    model = "google/gemini-2.5-flash" 
     api_key = None
     base_url = None
     temperature = 0.0
@@ -170,54 +170,172 @@ def get_llm(agent_name: str, **kwargs):
     if provider in ("google", "gemini"):
         from langchain_google_genai import ChatGoogleGenerativeAI
         clean_model = config["model"].replace("google/", "")
-        return ChatGoogleGenerativeAI(
+        model = ChatGoogleGenerativeAI(
             model=clean_model,
             google_api_key=api_key,
             temperature=config["temperature"],
             max_tokens=config["max_tokens"],
         )
+        return model, config["model"], config
     elif provider == "openai":
         from langchain_openai import ChatOpenAI
-        return ChatOpenAI(
+        model = ChatOpenAI(
             model=config["model"],
             openai_api_key=api_key,
             openai_api_base=config.get("base_url"),
             temperature=config["temperature"],
             max_tokens=config["max_tokens"],
         )
+        return wrap_with_circuit_breaker(model, agent_name, provider), config["model"], config
     elif provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
         clean_model = config["model"].replace("anthropic/", "")
-        return ChatAnthropic(
+        model = ChatAnthropic(
             model=clean_model,
             anthropic_api_key=api_key,
             temperature=config["temperature"],
             max_tokens=config["max_tokens"],
         )
+        return model, config["model"], config
     elif provider == "openrouter":
         from langchain_openai import ChatOpenAI
-        return ChatOpenAI(
+        model = ChatOpenAI(
             model=config["model"],
             openai_api_key=api_key,
             openai_api_base=config.get("base_url") or "https://openrouter.ai/api/v1",
             temperature=config["temperature"],
             max_tokens=config["max_tokens"],
         )
+        return wrap_with_circuit_breaker(model, agent_name, provider), config["model"], config
     elif provider == "ollama":
         from langchain_openai import ChatOpenAI
-        return ChatOpenAI(
+        model = ChatOpenAI(
             model=config["model"],
             openai_api_key="ollama",
             openai_api_base=config.get("base_url") or "http://localhost:11434/v1",
             temperature=config["temperature"],
             max_tokens=config["max_tokens"],
         )
+        return wrap_with_circuit_breaker(model, agent_name, provider), config["model"], config
     else:
         from langchain_openai import ChatOpenAI
-        return ChatOpenAI(
+        model = ChatOpenAI(
             model=config["model"],
             openai_api_key=api_key,
             openai_api_base=config.get("base_url") or "https://openrouter.ai/api/v1",
             temperature=config["temperature"],
             max_tokens=config["max_tokens"],
         )
+        return wrap_with_circuit_breaker(model, agent_name, provider), config["model"], config
+
+import time
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import BaseMessage
+from typing import List, Any
+
+class CircuitBreakerChatModel(BaseChatModel):
+    wrapped_model: BaseChatModel
+    agent_name: str
+    provider_name: str
+
+    def _generate(self, messages: List[BaseMessage], stop: List[str] | None = None, run_manager: Any | None = None, **kwargs: Any):
+        import frappe
+        cache = frappe.cache()
+        error_key = f"ai_circuit_breaker_errors_{self.provider_name}"
+        cooldown_key = f"ai_circuit_breaker_cooldown_{self.provider_name}"
+        
+        # Check if in cooldown
+        if cache.get_value(cooldown_key):
+            logger.warning(f"Circuit Breaker OPEN for {self.provider_name}. Using fallback.")
+            # In a real scenario, we'd instantiate the fallback model here.
+            # For now, we will raise an error to let the orchestrator's retry logic handle it
+            # OR we can try to get the default model
+            fallback_model = get_llm("fallback_default")
+            if hasattr(fallback_model, 'wrapped_model'):
+                return fallback_model.wrapped_model._generate(messages, stop, run_manager, **kwargs)
+            return fallback_model._generate(messages, stop, run_manager, **kwargs)
+            
+        try:
+            result = self.wrapped_model._generate(messages, stop, run_manager, **kwargs)
+            # Reset errors on success
+            cache.delete_value(error_key)
+            return result
+        except Exception as e:
+            # Increment error count
+            errors = frappe.cache().get_value(error_key) or 0
+            errors += 1
+            frappe.cache().set_value(error_key, errors)
+            
+            logger.error(f"Provider {self.provider_name} failed. Error count: {errors}/3. Exception: {str(e)}")
+            
+            if errors >= 3:
+                logger.critical(f"Circuit Breaker TRIPPED for {self.provider_name}. Cooldown for 120s.")
+                frappe.cache().set_value(cooldown_key, True, expires_in_sec=120)
+                frappe.publish_realtime('ai_service_alert', {"message": f"Provider {self.provider_name} is down. Switched to fallback.", "level": "error"})
+                
+            raise e
+
+    @property
+    def _llm_type(self) -> str:
+        return "circuit_breaker_wrapper"
+        
+
+    async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
+        # We should ideally implement async circuit breaking, but for now we delegate directly
+        # or use the synchronous thread-pool fallback provided by BaseChatModel.
+        # Since wrapped_model might have optimized async, let's delegate to it.
+        # However, to keep it safe and track errors, we wrap it.
+        import frappe
+        cache = frappe.cache()
+        error_key = f"ai_circuit_breaker_errors_{self.provider_name}"
+        cooldown_key = f"ai_circuit_breaker_cooldown_{self.provider_name}"
+        if cache.get_value(cooldown_key):
+            fallback_model = get_llm("fallback_default")
+            if hasattr(fallback_model, 'wrapped_model'):
+                return await fallback_model.wrapped_model._agenerate(messages, stop, run_manager, **kwargs)
+            return await fallback_model._agenerate(messages, stop, run_manager, **kwargs)
+        try:
+            result = await self.wrapped_model._agenerate(messages, stop, run_manager, **kwargs)
+            cache.delete_value(error_key)
+            return result
+        except Exception as e:
+            errors = frappe.cache().get_value(error_key) or 0
+            errors += 1
+            frappe.cache().set_value(error_key, errors)
+            if errors >= 3:
+                frappe.cache().set_value(cooldown_key, True, expires_in_sec=120)
+                frappe.publish_realtime('ai_service_alert', {"message": f"Provider {self.provider_name} is down. Switched to fallback.", "level": "error"})
+            raise e
+
+    def _stream(self, messages, stop=None, run_manager=None, **kwargs):
+        return self.wrapped_model._stream(messages, stop, run_manager, **kwargs)
+
+    async def _astream(self, messages, stop=None, run_manager=None, **kwargs):
+        return self.wrapped_model._astream(messages, stop, run_manager, **kwargs)
+
+    def with_structured_output(self, schema, **kwargs):
+        return self.wrapped_model.with_structured_output(schema, **kwargs)
+        
+    def bind_tools(self, tools, **kwargs):
+        return self.wrapped_model.bind_tools(tools, **kwargs)
+
+def wrap_with_circuit_breaker(model, agent_name, provider_name):
+    return CircuitBreakerChatModel(wrapped_model=model, agent_name=agent_name, provider_name=provider_name)
+
+def extract_usage(response):
+    """Extract token usage from LangChain ChatModel response."""
+    usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+    try:
+        if hasattr(response, "response_metadata") and "token_usage" in response.response_metadata:
+            tu = response.response_metadata["token_usage"]
+            usage["input_tokens"] = tu.get("prompt_tokens", 0)
+            usage["output_tokens"] = tu.get("completion_tokens", 0)
+            usage["total_tokens"] = tu.get("total_tokens", 0)
+        elif hasattr(response, "usage_metadata") and response.usage_metadata:
+            um = response.usage_metadata
+            usage["input_tokens"] = um.get("input_tokens", 0)
+            usage["output_tokens"] = um.get("output_tokens", 0)
+            usage["total_tokens"] = um.get("total_tokens", 0)
+    except Exception:
+        pass
+    return usage

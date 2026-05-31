@@ -164,21 +164,32 @@
 					</div>
 
 					<div class="flex-1 overflow-y-auto p-6 custom-scrollbar scroll-smooth">
-						<div v-if="paperImages.length" class="mx-auto max-w-5xl rounded-xl bg-white p-4 shadow-md border border-gray-100 relative">
-							<div class="absolute top-6 right-6 z-10">
-								<div
-									v-if="hasMultiplePaperImages"
-									class="flex items-center gap-3 rounded-lg border border-gray-100 bg-white/90 p-1.5 text-[10px] text-gray-500 shadow-lg backdrop-blur-md"
-								>
-									<button class="h-6 w-6 rounded flex items-center justify-center hover:bg-gray-100 transition-all" @click="prevPaperPage"><icons.ChevronLeft class="h-3 w-3" /></button>
-									<span class="font-bold font-mono">{{ paperPageIndex + 1 }} / {{ paperImages.length }}</span>
-									<button class="h-6 w-6 rounded flex items-center justify-center hover:bg-gray-100 transition-all" @click="nextPaperPage"><icons.ChevronRight class="h-3 w-3" /></button>
+						<div v-if="paperImages.length || currentSub?.text_content" class="mx-auto max-w-5xl space-y-6">
+							<!-- Image Viewer -->
+							<div v-if="paperImages.length" class="rounded-xl bg-white p-4 shadow-md border border-gray-100 relative">
+								<div class="absolute top-6 right-6 z-10">
+									<div
+										v-if="hasMultiplePaperImages"
+										class="flex items-center gap-3 rounded-lg border border-gray-100 bg-white/90 p-1.5 text-[10px] text-gray-500 shadow-lg backdrop-blur-md"
+									>
+										<button class="h-6 w-6 rounded flex items-center justify-center hover:bg-gray-100 transition-all" @click="prevPaperPage"><icons.ChevronLeft class="h-3 w-3" /></button>
+										<span class="font-bold font-mono">{{ paperPageIndex + 1 }} / {{ paperImages.length }}</span>
+										<button class="h-6 w-6 rounded flex items-center justify-center hover:bg-gray-100 transition-all" @click="nextPaperPage"><icons.ChevronRight class="h-3 w-3" /></button>
+									</div>
+								</div>
+								<img
+									:src="currentPaperImage"
+									class="max-h-[1000px] w-full rounded-lg object-contain border border-gray-50"
+								/>
+							</div>
+
+							<!-- Text Viewer -->
+							<div v-if="currentSub?.text_content" class="rounded-xl bg-white p-6 shadow-md border border-gray-100">
+								<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-50 pb-2">{{ __('Student Submission Document / Text') }}</div>
+								<div class="text-sm text-gray-800 whitespace-pre-wrap font-serif leading-relaxed">
+									{{ currentSub.text_content }}
 								</div>
 							</div>
-							<img
-								:src="currentPaperImage"
-								class="max-h-[1000px] w-full rounded-lg object-contain border border-gray-50"
-							/>
 						</div>
 						
 						<!-- AI Feedback View -->
@@ -669,6 +680,7 @@ const submissions = computed(() => (submissionsResource.data || []).map(s => ({
 	score: s.score,
 	status: (s.status || '').toLowerCase() || 'pending',
 	paper_images: s.paper_images || [s.paper_image],
+	text_content: s.text_content,
 	ai_feedback: s.ai_feedback,
 })))
 

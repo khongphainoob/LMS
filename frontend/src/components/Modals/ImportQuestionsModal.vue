@@ -85,15 +85,28 @@ const processImport = (close: () => void) => {
         quiz_name: props.quizName,
         file_url: fileUrl.value
     })
-    .then((count: number) => {
+    .then((response: any) => {
+        // frappe-ui call() may return raw value or wrapped {message: value}
+        const count = typeof response === 'number' ? response
+            : (response?.message ?? response ?? 0)
         toast.success(__('Imported {0} questions successfully', [count]))
         emit('success')
         close()
         resetFile()
     })
     .catch((err: any) => {
-        toast.error(__(err.messages?.[0] || 'Import failed'))
-        console.error(err)
+        let msg = 'Import failed'
+        if (typeof err === 'string') {
+            msg = err
+        } else if (err?.messages?.length) {
+            msg = err.messages[0]
+        } else if (err?.message && typeof err.message === 'string') {
+            msg = err.message
+        } else if (err?.exc) {
+            msg = String(err.exc).split('\n').pop() || 'Import failed'
+        }
+        toast.error(__(msg))
+        console.error('Import error:', err)
     })
     .finally(() => {
         importing.value = false

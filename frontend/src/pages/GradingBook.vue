@@ -43,7 +43,7 @@
 		<!-- Tab 1: Gradebook Overview -->
 		<div v-show="currentTab === 'overview'" class="bg-white shadow rounded-lg border border-gray-100 p-6">
 			<div class="flex justify-between items-center mb-4">
-				<h3 class="text-lg font-semibold text-gray-800">{{ __('Gradebook Overview (Bảng điểm)') }}</h3>
+				<h3 class="text-lg font-semibold text-gray-800">{{ __('Gradebook Overview') }}</h3>
 				<div class="flex gap-2">
 					<button class="px-3 py-1.5 text-sm font-medium text-white bg-[#2d6a4f] rounded-md hover:bg-[#1f4a37] transition">{{ __('Export CSV') }}</button>
 				</div>
@@ -81,7 +81,7 @@
 
 		<!-- Tab 2: Needs Grading -->
 		<div v-show="currentTab === 'pending'" class="bg-white shadow rounded-lg border border-gray-100 p-6">
-			<h3 class="text-lg font-semibold text-gray-800 mb-4">{{ __('Needs Grading (Cần chấm / Chờ duyệt mức AI)') }}</h3>
+			<h3 class="text-lg font-semibold text-gray-800 mb-4">{{ __('Needs Grading') }}</h3>
 			<ul class="divide-y divide-gray-200">
 				<li class="py-4 flex items-center justify-between">
 					<div class="flex items-center">
@@ -109,7 +109,7 @@
 		<!-- Tab 3: Learning Outcomes -->
 		<div v-show="currentTab === 'outcomes'" class="bg-white shadow rounded-lg border border-gray-100 p-6">
 			<div class="flex justify-between items-center mb-6">
-				<h3 class="text-lg font-semibold text-gray-800">{{ __('Class Competency Matrix (Ma trận Năng lực Lớp học)') }}</h3>
+				<h3 class="text-lg font-semibold text-gray-800">{{ __('Class Competency Matrix') }}</h3>
 			</div>
 			
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -129,7 +129,7 @@
 						></div>
 					</div>
 					<div class="flex justify-between text-xs text-gray-500">
-						<span>{{ outcome.percentage >= 50 ? __('Đạt') : __('Chưa đạt') }}</span>
+						<span>{{ outcome.percentage >= 50 ? __('Passed') : __('Not Passed') }}</span>
 						<span class="font-semibold" :class="outcome.percentage >= 80 ? 'text-emerald-600' : outcome.percentage >= 50 ? 'text-amber-600' : 'text-rose-600'">
 							{{ outcome.percentage }}%
 						</span>

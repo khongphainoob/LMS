@@ -6,6 +6,9 @@ def create_quiz_request(title, bloom_level, language, prompt=None, file_url=None
     """
     Creates a new AI Quiz record and enqueues the generation process.
     """
+    from lms.lms.services.ai_rate_limit import check_and_record_usage
+    check_and_record_usage(frappe.session.user, "Quiz Gen", increment=1)
+    
     quiz_doc = frappe.get_doc({
         "doctype": "AI Quiz",
         "title": title,
@@ -48,6 +51,9 @@ def upload_source_file():
     Hardened custom upload handler with extension and size validation.
     """
     try:
+        from lms.lms.services.ai_rate_limit import check_and_record_usage
+        check_and_record_usage(frappe.session.user, "Document Upload", increment=1)
+
         # 1. Get File from Request
         if "file" not in frappe.request.files:
             if not frappe.request.files:
@@ -128,3 +134,58 @@ def save_quiz_changes(quiz_id, questions):
     quiz_doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"status": "success"}
+
+@frappe.whitelist()
+def sync_to_lms(quiz_id):
+    """
+    Syncs an AI Quiz to a real LMS Quiz with LMS Questions.
+    """
+    ai_quiz = frappe.get_doc("AI Quiz", quiz_id)
+    
+    if not ai_quiz.questions:
+        frappe.throw("Không có câu hỏi nào để đồng bộ.")
+        
+    # 1. Create LMS Quiz
+    lms_quiz = frappe.get_doc({
+        "doctype": "LMS Quiz",
+        "title": ai_quiz.title,
+        "passing_percentage": 50,
+        "duration": 30
+    })
+    lms_quiz.insert(ignore_permissions=True)
+    
+    from frappe.utils import cint
+    
+    # 2. Add Questions
+    for q in ai_quiz.questions:
+        question_doc = frappe.new_doc("LMS Question")
+        question_doc.question = str(q.question)
+        
+        type_map = {
+            "choices": "Choices",
+            "user input": "User Input",
+            "open ended": "Open Ended"
+        }
+        question_doc.type = type_map.get((q.type or "Choices").lower(), "Choices")
+        
+        for n in range(1, 5):
+            question_doc.set(f"option_{n}", q.get(f"option_{n}"))
+            question_doc.set(f"is_correct_{n}", cint(q.get(f"is_correct_{n}")))
+            if n == 1:
+                question_doc.set(f"explanation_{n}", q.get("explanation"))
+            question_doc.set(f"possibility_{n}", q.get(f"possibility_{n}"))
+            
+        question_doc.save(ignore_permissions=True)
+        
+        child_doc = frappe.get_doc({
+            "doctype": "LMS Quiz Question",
+            "parent": lms_quiz.name,
+            "parentfield": "questions",
+            "parenttype": "LMS Quiz",
+            "question": question_doc.name,
+            "marks": q.points or 1
+        })
+        child_doc.insert(ignore_permissions=True)
+        
+    frappe.db.commit()
+    return {"status": "success", "lms_quiz_id": lms_quiz.name}

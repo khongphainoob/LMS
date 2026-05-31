@@ -187,7 +187,7 @@ def run_ocr_pipeline(image_path: str, confidence_threshold: float = 0.5) -> str:
         
     # 3. Post-Processing Pipeline: LLM Cleaner (Data Cleaning + Entity Extraction)
     try:
-        cleaner_llm = get_llm("ocr_cleaner")
+        cleaner_llm, _, _ = get_llm("ocr_cleaner")
         prompt = f"""
         Hệ thống: Bạn là một chuyên gia chấm bài. Nhiệm vụ của bạn là nhận văn bản thô từ công cụ OCR, sửa các lỗi chính tả do chữ viết tay của học sinh xấu hoặc bị quét lỗi dựa vào ngữ cảnh đoạn văn. Giữ nguyên các công thức toán học trong thẻ \\(\\) hoặc \\[\\] và không tự ý sáng tạo thêm nội dung.
         

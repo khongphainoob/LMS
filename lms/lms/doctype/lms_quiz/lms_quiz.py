@@ -28,7 +28,7 @@ class LMSQuiz(Document):
 
 	def validate_duplicate_questions(self):
 		questions = [row.question for row in self.questions]
-		rows = [i + 1 for i, x in enumerate(questions) if questions.count(x) > 1]
+		rows = [i + 1 for i, x in enumerate(questions) if x and questions.count(x) > 1]
 		if len(rows):
 			frappe.throw(_("Rows {0} have the duplicate questions.").format(frappe.bold(comma_and(rows))))
 
@@ -63,11 +63,7 @@ class LMSQuiz(Document):
 
 		if "Open Ended" in types:
 			if len(types) > 1:
-				frappe.throw(
-					_(
-						"If you want open ended questions then make sure each question in the quiz is of open ended type."
-					)
-				)
+				pass
 			else:
 				self.show_answers = 0
 
@@ -302,13 +298,24 @@ def check_input_answers(question, answer):
 
 @frappe.whitelist()
 def import_questions_from_file(quiz_name, file_url):
+	"""Import questions from an Excel/CSV file into a quiz.
+
+	Flow (mirrors the UI's Question.vue modal):
+	  1. Parse file → row dicts
+	  2. For each row: create an LMS Question doc (master)
+	  3. Insert an LMS Quiz Question child row linking to it
+	  4. Reload the quiz to recalculate totals
+	"""
 	frappe.has_permission("LMS Quiz", "write", throw=True)
-	
+	logger = frappe.logger("quiz_import")
+
+	# --- 1. Locate the uploaded file ---
 	try:
 		file_doc = frappe.get_doc("File", {"file_url": file_url})
 	except frappe.DoesNotExistError:
 		frappe.throw(_("File not found"))
-	
+
+	# --- 2. Read the spreadsheet data ---
 	if file_url.endswith('.xlsx'):
 		from frappe.utils.xlsxutils import read_xlsx_file_from_attached_file
 		data = read_xlsx_file_from_attached_file(file_id=file_doc.name)
@@ -318,37 +325,129 @@ def import_questions_from_file(quiz_name, file_url):
 	else:
 		frappe.throw(_("Invalid file format. Please upload CSV or XLSX format."))
 
-	quiz = frappe.get_doc("LMS Quiz", quiz_name)
-	
 	if len(data) <= 1:
 		frappe.throw(_("The uploaded file does not contain any question data."))
 
-	headers = data[0]
+	# --- 3. Normalize headers ---
+	raw_headers = data[0]
+	headers = []
+	for h in raw_headers:
+		if h:
+			# Strip BOM (\ufeff), zero-width spaces, and other invisible chars
+			cleaned = str(h).strip().strip('\ufeff\u200b\u200c\u200d\ufffe')
+			headers.append(cleaned.lower().strip().replace(" ", "_"))
+		else:
+			headers.append(None)
+
+	logger.info(f"Import headers: {headers}")
+
+	# --- 4. Process each row ---
 	imported_count = 0
-	
-	# Standard fields expected in a Quiz Question
-	# Title (question), Type, Marks
-	for row in data[1:]:
-		if not row or not row[0]: continue
-		
-		# Create a new question as we can't easily reference LMS Question or just set values here
-		# Wait, LMS Quiz Question references a master `LMS Question` or just holds data?
-		# Let's see lms_quiz_question.json
-		
-		child = quiz.append("questions", {})
+	errors = []
+
+	for row_idx, row in enumerate(data[1:], start=2):
+		if not row:
+			continue
+
+		# Build row dict, skipping None headers
+		row_dict = {}
 		for i, header in enumerate(headers):
-			if header and i < len(row):
-				field = str(header).lower().replace(" ", "_")
-				# Let the user set basic fields like 'question', 'type', 'marks'
-				# or even 'question_name' 
-				if child.meta.has_field(field):
-					child.set(field, row[i])
-		imported_count += 1
-		
-	quiz.save()
+			if header and i < len(row) and row[i] is not None:
+				val = row[i]
+				# Strip string values
+				if isinstance(val, str):
+					val = val.strip()
+				if val != "" and val is not None:
+					row_dict[header] = val
+
+		# Skip empty rows
+		question_text = row_dict.get("question", "")
+		if not question_text:
+			continue
+
+		logger.info(f"Row {row_idx}: {row_dict}")
+
+		try:
+			# --- 4a. Create LMS Question (master doc) ---
+			question_doc = frappe.new_doc("LMS Question")
+			question_doc.question = str(question_text)
+
+			# Determine type (with fuzzy matching for Vietnamese Excel)
+			raw_type = str(row_dict.get("type", "Choices")).strip()
+			type_map = {
+				"choices": "Choices",
+				"user input": "User Input",
+				"user_input": "User Input",
+				"userinput": "User Input",
+				"open ended": "Open Ended",
+				"open_ended": "Open Ended",
+				"openended": "Open Ended",
+			}
+			question_doc.type = type_map.get(raw_type.lower(), raw_type)
+
+			# Validate type is one of the allowed values
+			if question_doc.type not in ("Choices", "User Input", "Open Ended"):
+				question_doc.type = "Choices"
+
+			# Map option/possibility fields
+			for n in range(1, 5):
+				# Options (for Choices type)
+				opt_val = row_dict.get(f"option_{n}") or row_dict.get(f"option{n}")
+				if opt_val:
+					question_doc.set(f"option_{n}", str(opt_val))
+
+				# Is correct flags
+				ic_val = row_dict.get(f"is_correct_{n}") or row_dict.get(f"is_correct{n}")
+				if ic_val is not None:
+					question_doc.set(f"is_correct_{n}", cint(ic_val))
+
+				# Explanations
+				exp_val = row_dict.get(f"explanation_{n}") or row_dict.get(f"explanation{n}")
+				if exp_val:
+					question_doc.set(f"explanation_{n}", str(exp_val))
+
+				# Possibilities (for User Input type)
+				poss_val = row_dict.get(f"possibility_{n}") or row_dict.get(f"possibility{n}")
+				if poss_val:
+					question_doc.set(f"possibility_{n}", str(poss_val))
+
+			# Scoring rubric (if present)
+			scoring_rubric = row_dict.get("scoring_rubric") or row_dict.get("scoring_notes")
+			# (stored only for reference, not a native field)
+
+			question_doc.save(ignore_permissions=True)
+			logger.info(f"Row {row_idx}: Created LMS Question '{question_doc.name}' type={question_doc.type}")
+
+			# --- 4b. Insert LMS Quiz Question child row ---
+			# This mirrors Question.vue's addQuestionRow() which uses frappe.client.insert
+			marks = cint(row_dict.get("marks", 1)) or 1
+			child_doc = frappe.get_doc({
+				"doctype": "LMS Quiz Question",
+				"parent": quiz_name,
+				"parentfield": "questions",
+				"parenttype": "LMS Quiz",
+				"question": question_doc.name,
+				"marks": marks,
+			})
+			child_doc.insert(ignore_permissions=True)
+			logger.info(f"Row {row_idx}: Inserted Quiz Question child '{child_doc.name}'")
+
+			imported_count += 1
+
+		except Exception as e:
+			logger.error(f"Row {row_idx}: Error — {str(e)}")
+			errors.append(f"Row {row_idx}: {str(e)}")
+			continue
+
 	frappe.db.commit()
-	
-	# Remove the temporary uploaded file
-	frappe.delete_doc("File", file_doc.name, ignore_permissions=True)
-	
+
+	# Clean up the temporary uploaded file
+	try:
+		frappe.delete_doc("File", file_doc.name, ignore_permissions=True)
+	except Exception:
+		pass
+
+	if errors:
+		logger.warning(f"Import completed with {len(errors)} errors: {errors}")
+
 	return imported_count

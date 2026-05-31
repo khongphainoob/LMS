@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Onest:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import 'frappe-ui/style.css';
 @import './styles/codemirror.css';
+@import 'katex/dist/katex.min.css';
 
 @tailwind base;
 @tailwind components;
@@ -65,4 +66,22 @@
   [role='button']:not(:disabled) {
     @apply transition-transform duration-200 ease-in-out active:scale-[0.97];
   }
+}
+
+/* Fix Tailwind reset breaking KaTeX borders */
+.katex * {
+  border-color: currentColor;
+}
+.katex .frac-line {
+  border-bottom-width: 0.04em !important;
+}
+.katex .sqrt-line {
+  border-top-width: 0.04em !important;
+}
+.katex .sout {
+  border-bottom-width: 0.11em !important;
+}
+.katex-display {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
 }

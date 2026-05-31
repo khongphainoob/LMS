@@ -2,18 +2,18 @@
 	<div class="space-y-6">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<div class="flex flex-col gap-1">
-				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Tên bài chấm') }}</label>
-				<Input v-model="sessionName" :placeholder="__('Ví dụ: Kiểm tra 15p Toán')" />
+				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Grading Session Name') }}</label>
+				<Input v-model="sessionName" :placeholder="__('Example: 15-min Math Test')" />
 			</div>
 			<div class="flex flex-col gap-1">
-				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Lớp') }}</label>
-				<Input v-model="className" :placeholder="__('Ví dụ: 12A1')" />
+				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Class') }}</label>
+				<Input v-model="className" :placeholder="__('Example: 12A1')" />
 			</div>
 		</div>
 
 		<!-- New Template Image Upload -->
 		<div class="flex flex-col gap-1">
-			<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Ảnh Form chấm mẫu (Tùy chọn)') }}</label>
+			<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Sample Grading Form Image (Optional)') }}</label>
 			<div
 				class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/50 p-4 transition-all hover:border-blue-200 hover:bg-blue-50/20 cursor-pointer"
 				@click="triggerTemplateFile"
@@ -21,7 +21,7 @@
 				<div class="text-2xl mb-1">🖼️</div>
 				<div v-if="templateFile" class="text-xs font-bold text-blue-600">{{ templateFile.name }}</div>
 				<div v-else class="text-center">
-					<div class="text-[10px] font-medium text-gray-500">{{ __('Tải lên ảnh mẫu tờ bài làm (để AI nhận diện tốt hơn)') }}</div>
+					<div class="text-[10px] font-medium text-gray-500">{{ __('Upload sample answer sheet image (for better AI recognition)') }}</div>
 				</div>
 			</div>
 			<input type="file" ref="templateInput" class="hidden" accept="image/*" @change="handleTemplateFile" />
@@ -29,8 +29,8 @@
 
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Danh sách Đáp án') }}</label>
-				<Button size="sm" variant="outline" @click="addQuestion">+ {{ __('Thêm câu') }}</Button>
+				<label class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Answer List') }}</label>
+				<Button size="sm" variant="outline" @click="addQuestion">+ {{ __('Add Question') }}</Button>
 			</div>
 			
 			<div class="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
@@ -38,12 +38,12 @@
 					<span class="text-xs font-bold text-gray-400 w-8">#{{ idx + 1 }}</span>
 					<div class="flex-1 grid grid-cols-3 gap-2">
 						<select v-model="q.type" class="text-xs border-gray-200 rounded-lg bg-white p-1.5 focus:ring-blue-500">
-							<option value="single">{{ __('Một đáp án') }}</option>
-							<option value="multi">{{ __('Nhiều đáp án') }}</option>
-							<option value="true_false">{{ __('Đúng/Sai') }}</option>
+							<option value="single">{{ __('Single Answer') }}</option>
+							<option value="multi">{{ __('Multiple Answers') }}</option>
+							<option value="true_false">{{ __('True/False') }}</option>
 						</select>
-						<Input v-model="q.ans" :placeholder="__('Đáp án')" class="text-xs" />
-						<Input v-model="q.score" type="number" step="0.1" :placeholder="__('Điểm')" class="text-xs" />
+						<Input v-model="q.ans" :placeholder="__('Answer')" class="text-xs" />
+						<Input v-model="q.score" type="number" step="0.1" :placeholder="__('Score')" class="text-xs" />
 					</div>
 					<button class="text-rose-400 hover:text-rose-600" @click="removeQuestion(idx)">✕</button>
 				</div>
@@ -51,7 +51,7 @@
 		</div>
 
 		<div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-			<Button variant="outline" @click="$emit('cancel')">{{ __('Hủy') }}</Button>
+			<Button variant="outline" @click="$emit('cancel')">{{ __('Cancel') }}</Button>
 			<Button 
 				variant="solid" 
 				theme="blue" 
@@ -59,7 +59,7 @@
 				:disabled="!isReady"
 				@click="createSession"
 			>
-				{{ __('Tạo Phiên & Bắt đầu') }}
+				{{ __('Create Session & Start') }}
 			</Button>
 		</div>
 	</div>

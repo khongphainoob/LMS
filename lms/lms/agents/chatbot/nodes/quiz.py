@@ -9,8 +9,7 @@ def quiz_node(state: ChatbotState) -> dict:
     from lms.lms.agents.provider import get_llm, get_agent_config
     start_ms = int(time.time() * 1000)
     
-    llm = get_llm("chatbot", temperature=0.7)
-    model_name = get_agent_config("chatbot").get("model", "unknown")
+    llm, model_name, _ = get_llm("chatbot", temperature=0.7)
 
     lesson_title = state.get("lesson_title", "bài học này")
     lesson_content = state.get("lesson_content", "")[:30000]

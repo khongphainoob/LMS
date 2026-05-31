@@ -16,10 +16,10 @@ def reasoner_node(state):
     Nhiệm vụ của bạn là phân tích câu hỏi của người dùng và quyết định chiến lược trả lời tốt nhất.
     
     Các công cụ bạn có sẵn (giả định):
-    1. get_course_details: Lấy thông tin tổng quan, mô tả và đề cương (syllabus) của khóa học.
-    2. get_course_material: Lấy nội dung chi tiết bài học từ khóa học.
-    3. search_documents: Tìm kiếm trong kho tài liệu PDF/Doc của hệ thống (RAG).
-    4. search_web: Tìm kiếm thông tin mới nhất trên mạng.
+    1. get_student_course_info: Tra cứu thông tin học sinh và tiến độ học tập trong khóa học.
+    2. get_course_documents: Tìm kiếm trong kho tài liệu PDF/Doc của hệ thống (RAG) bằng từ khóa.
+    3. read_course_document: Đọc nội dung chi tiết của một tài liệu bằng ID.
+    4. search_web: Tìm kiếm thông tin mới nhất trên mạng internet.
     
     Thông tin hiện tại:
     - Khóa học: {state.get('course', 'Không xác định')}
@@ -34,11 +34,11 @@ def reasoner_node(state):
     Trả về kết quả dưới dạng JSON:
     {{
         "thought": "chuỗi suy nghĩ của bạn",
-        "tool_to_use": "get_course_details" | "get_course_material" | "search_documents" | "search_web" | "none",
-        "tool_input": "tham số cho công cụ (nếu có). Lưu ý: Nếu dùng get_course_material mà không có bài học cụ thể, hãy để là none.",
+        "tool_to_use": "get_student_course_info" | "get_course_documents" | "read_course_document" | "search_web" | "none",
+        "tool_input": "tham số cho công cụ (nếu có, VD: từ khóa tìm kiếm)",
         "confidence": 0.0-1.0
     }}
-    Lưu ý quan trọng: Chỉ dùng get_course_material khi bạn biết chắc chắn tên bài học hoặc đang ở trong ngữ cảnh bài học cụ thể.
+    Lưu ý quan trọng: Chỉ dùng get_course_documents khi người dùng hỏi về kiến thức, lý thuyết, tài liệu.
     """
     
     response = model.invoke(prompt)

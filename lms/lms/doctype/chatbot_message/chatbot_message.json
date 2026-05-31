@@ -1,91 +1,120 @@
 {
-  "name": "Chatbot Message",
-  "module": "LMS",
-  "doctype": "DocType",
-  "field_order": [
-    "session",
-    "role",
-    "message_type",
-    "column_break_4",
-    "timestamp",
-    "tokens_used",
-    "latency_ms",
-    "model_used",
-    "section_break_9",
-    "content"
-  ],
-  "fields": [
-    {
-      "fieldname": "session",
-      "fieldtype": "Link",
-      "options": "Chatbot Session",
-      "reqd": 1,
-      "label": "Session",
-      "in_list_view": 1
-    },
-    {
-      "fieldname": "role",
-      "fieldtype": "Select",
-      "options": "user\nassistant\nsystem",
-      "reqd": 1,
-      "label": "Role",
-      "in_list_view": 1
-    },
-    {
-      "fieldname": "message_type",
-      "fieldtype": "Select",
-      "options": "qa\nquiz\nhint\nblocked",
-      "label": "Type",
-      "in_list_view": 1
-    },
-    {
-      "fieldname": "column_break_4",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "timestamp",
-      "fieldtype": "Datetime",
-      "label": "Timestamp",
-      "default": "Now"
-    },
-    {
-      "fieldname": "tokens_used",
-      "fieldtype": "Int",
-      "default": 0,
-      "label": "Tokens Used"
-    },
-    {
-      "fieldname": "latency_ms",
-      "fieldtype": "Int",
-      "default": 0,
-      "label": "Latency (ms)"
-    },
-    {
-      "fieldname": "model_used",
-      "fieldtype": "Data",
-      "label": "Model Used"
-    },
-    {
-      "fieldname": "section_break_9",
-      "fieldtype": "Section Break"
-    },
-    {
-      "fieldname": "content",
-      "fieldtype": "Long Text",
-      "reqd": 1,
-      "label": "Content"
-    }
-  ],
-  "permissions": [
-    {
-      "role": "Student",
-      "read": 1
-    },
-    {
-      "role": "System Manager",
-      "read": 1,
-      "write": 1,
-      "delete": 1
-    }
-  ]
+ "actions": [],
+ "creation": "2026-05-02 13:19:17.414438",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "session",
+  "role",
+  "message_type",
+  "column_break_4",
+  "timestamp",
+  "tokens_used",
+  "latency_ms",
+  "model_used",
+  "section_break_9",
+  "content",
+  "input_tokens",
+  "output_tokens",
+  "total_cost_usd"
+ ],
+ "fields": [
+  {
+   "fieldname": "session",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Session",
+   "options": "Chatbot Session",
+   "reqd": 1
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Role",
+   "options": "user\nassistant\nsystem\nteacher",
+   "reqd": 1
+  },
+  {
+   "fieldname": "message_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "qa\nquiz\nhint\nblocked"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Now",
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "label": "Timestamp"
+  },
+  {
+   "default": "0",
+   "fieldname": "tokens_used",
+   "fieldtype": "Int",
+   "label": "Tokens Used"
+  },
+  {
+   "default": "0",
+   "fieldname": "latency_ms",
+   "fieldtype": "Int",
+   "label": "Latency (ms)"
+  },
+  {
+   "fieldname": "model_used",
+   "fieldtype": "Data",
+   "label": "Model Used"
+  },
+  {
+   "fieldname": "section_break_9",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "content",
+   "fieldtype": "Long Text",
+   "label": "Content",
+   "reqd": 1
+  },
+  {
+   "fieldname": "input_tokens",
+   "fieldtype": "Int",
+   "label": "Input Tokens"
+  },
+  {
+   "fieldname": "output_tokens",
+   "fieldtype": "Int",
+   "label": "Output Tokens"
+  },
+  {
+   "fieldname": "total_cost_usd",
+   "fieldtype": "Float",
+   "label": "Total Cost (USD)"
+  }
+ ],
+ "links": [],
+ "modified": "2026-05-28 19:31:29.754256",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "Chatbot Message",
+ "owner": "Guest",
+ "permissions": [
+  {
+   "read": 1,
+   "role": "Student"
+  },
+  {
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
 }

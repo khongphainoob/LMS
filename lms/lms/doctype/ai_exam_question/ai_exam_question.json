@@ -1,0 +1,81 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-31 07:01:11.406329",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "question_number",
+  "question_type",
+  "question_text",
+  "options",
+  "correct_answer",
+  "solution",
+  "score",
+  "media_assets"
+ ],
+ "fields": [
+  {
+   "fieldname": "question_number",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Question Number"
+  },
+  {
+   "fieldname": "question_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Multiple Choice\nShort Answer\nEssay"
+  },
+  {
+   "fieldname": "question_text",
+   "fieldtype": "Text Editor",
+   "in_list_view": 1,
+   "label": "Question Text"
+  },
+  {
+   "depends_on": "eval:doc.question_type=='Multiple Choice'",
+   "fieldname": "options",
+   "fieldtype": "Code",
+   "label": "Options (JSON)"
+  },
+  {
+   "fieldname": "correct_answer",
+   "fieldtype": "Data",
+   "label": "Correct Answer"
+  },
+  {
+   "fieldname": "solution",
+   "fieldtype": "Text Editor",
+   "label": "Solution/Explanation"
+  },
+  {
+   "default": "1.0",
+   "fieldname": "score",
+   "fieldtype": "Float",
+   "label": "Score"
+  },
+  {
+   "fieldname": "media_assets",
+   "fieldtype": "Code",
+   "label": "Media Assets (Base64)"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-31 11:47:40.493323",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "AI Exam Question",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

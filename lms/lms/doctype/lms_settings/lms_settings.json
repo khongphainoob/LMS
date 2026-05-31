@@ -43,10 +43,7 @@
   "certified_members",
   "certifications",
   "programming_exercises",
-  "ai_integration",
-  "ai_grading",
   "game_center",
-  "grading_book",
   "column_break_exdz",
   "jobs",
   "statistics",
@@ -79,8 +76,19 @@
   "meta_keywords",
   "contact_us_tab",
   "contact_us_email",
+  "ai_features_tab",
   "column_break_gcgv",
-  "contact_us_url"
+  "ai_integration",
+  "contact_us_url",
+  "ai_grading",
+  "grading_book",
+  "enable_quiz_creator",
+  "enable_exam_generator",
+  "enable_documents",
+  "column_break_ai_1",
+  "enable_score_insights",
+  "enable_smart_chatbot",
+  "enable_socratic_tutor"
  ],
  "fields": [
   {
@@ -430,24 +438,12 @@
    "fieldtype": "Check",
    "label": "AI Integration"
   },
-    {
-     "default": "1",
-     "fieldname": "ai_grading",
-     "fieldtype": "Check",
-     "label": "AI Grading"
-    },
-    {
-     "default": "1",
-     "fieldname": "game_center",
-     "fieldtype": "Check",
-     "label": "Game Center"
-    },
-    {
-     "default": "1",
-     "fieldname": "grading_book",
-     "fieldtype": "Check",
-     "label": "Grading Book"
-    },
+  {
+   "default": "1",
+   "fieldname": "game_center",
+   "fieldtype": "Check",
+   "label": "Game Center"
+  },
   {
    "fieldname": "contact_us_tab",
    "fieldtype": "Tab Break",
@@ -499,14 +495,77 @@
   {
    "fieldname": "column_break_dtns",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ai_features_tab",
+   "fieldtype": "Tab Break",
+   "label": "AI Features"
+  },
+  {
+   "default": "1",
+   "fieldname": "ai_grading",
+   "fieldtype": "Check",
+   "label": "AI Grading"
+  },
+  {
+   "default": "1",
+   "fieldname": "grading_book",
+   "fieldtype": "Check",
+   "label": "Grading Book"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_lesson_planning",
+   "fieldtype": "Check",
+   "label": "Lesson Planning"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_quiz_creator",
+   "fieldtype": "Check",
+   "label": "Quiz Creator"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_exam_generator",
+   "fieldtype": "Check",
+   "label": "Exam Generator"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_documents",
+   "fieldtype": "Check",
+   "label": "Documents AI"
+  },
+  {
+   "fieldname": "column_break_ai_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_score_insights",
+   "fieldtype": "Check",
+   "label": "Score Insights"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_smart_chatbot",
+   "fieldtype": "Check",
+   "label": "Smart Chatbot"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_socratic_tutor",
+   "fieldtype": "Check",
+   "label": "Socratic AI Tutor"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-01 19:36:54.443390",
- "modified_by": "sayali@frappe.io",
+ "modified": "2026-05-26 15:50:13.767090",
+ "modified_by": "Administrator",
  "module": "LMS",
  "name": "LMS Settings",
  "owner": "Administrator",

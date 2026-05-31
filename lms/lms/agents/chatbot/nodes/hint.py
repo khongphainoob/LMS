@@ -11,8 +11,7 @@ def hint_node(state: ChatbotState) -> dict:
     from lms.lms.agents.provider import get_llm, get_agent_config
     start_ms = int(time.time() * 1000)
     
-    llm = get_llm("chatbot", temperature=0.2)
-    model_name = get_agent_config("chatbot").get("model", "unknown")
+    llm, model_name, _ = get_llm("chatbot", temperature=0.2)
 
     base_prompt = build_system_prompt(state)
     hint_instruction = """

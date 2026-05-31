@@ -55,7 +55,7 @@ def save_message_to_history(session_key: str, role: str, content: str, message_t
     except Exception as e:
         frappe.log_error(str(e), "Socratic Save State Error")
 
-def clear_session(session_key: str) -> None:
+def clear_session(session_key: str, delete_parent: bool = False) -> None:
     """Clear session from Redis and Database."""
     cache_key = f"socratic_history:{session_key}"
     frappe.cache().delete_value(cache_key)
@@ -63,4 +63,7 @@ def clear_session(session_key: str) -> None:
     session_name = frappe.db.get_value("Socratic Session", {"session_key": session_key}, "name")
     if session_name:
         frappe.db.delete("Socratic Message", {"session": session_name})
-        frappe.delete_doc("Socratic Session", session_name, ignore_permissions=True)
+        if delete_parent:
+            frappe.delete_doc("Socratic Session", session_name, ignore_permissions=True)
+        else:
+            frappe.db.sql("UPDATE `tabSocratic Session` SET message_count = 0 WHERE name = %s", session_name)

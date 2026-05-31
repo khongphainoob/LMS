@@ -49,6 +49,42 @@ from lms.lms.utils import (
 
 
 @frappe.whitelist()
+def get_quiz_details(quiz, doctype=None):
+	"""Get quiz details for the quiz test page (Quiz.vue).
+
+	Returns the full quiz document including child questions table.
+	The 'doctype' parameter is accepted but not used (sent by frontend for legacy reasons).
+	"""
+	if not frappe.db.exists("LMS Quiz", quiz):
+		frappe.throw(_("Quiz {0} not found").format(quiz))
+
+	quiz_doc = frappe.get_doc("LMS Quiz", quiz)
+
+	return {
+		"name": quiz_doc.name,
+		"title": quiz_doc.title,
+		"duration": quiz_doc.duration or 0,
+		"passing_percentage": quiz_doc.passing_percentage or 0,
+		"max_attempts": quiz_doc.max_attempts or 0,
+		"show_answers": quiz_doc.show_answers,
+		"show_submission_history": quiz_doc.show_submission_history,
+		"shuffle_questions": quiz_doc.shuffle_questions,
+		"limit_questions_to": quiz_doc.limit_questions_to or 0,
+		"enable_negative_marking": quiz_doc.enable_negative_marking,
+		"marks_to_cut": quiz_doc.marks_to_cut or 0,
+		"questions": [
+			{
+				"name": q.name,
+				"question": q.question,
+				"marks": q.marks or 1,
+			}
+			for q in (quiz_doc.questions or [])
+		],
+		"total_marks": quiz_doc.total_marks or 0,
+	}
+
+
+@frappe.whitelist()
 def get_user_info():
 	if frappe.session.user == "Guest":
 		return None
@@ -1404,6 +1440,15 @@ def get_lms_settings():
 		"contact_us_url",
 		"livecode_url",
 		"disable_pwa",
+		"ai_integration",
+		"ai_grading",
+		"grading_book",
+		"enable_lesson_planning",
+		"enable_quiz_creator",
+		"enable_documents",
+		"enable_score_insights",
+		"enable_smart_chatbot",
+		"enable_socratic_tutor",
 	]
 
 	settings = frappe._dict()
@@ -2720,3 +2765,58 @@ def get_documents(course=None, category=None, start=0, limit=20, search=None):
 		page_length=limit
 	)
 	return documents
+
+
+@frappe.whitelist()
+def create_document(title, scope="Course", batch=None, course=None, category=None, description=None, file=None):
+	"""Create a new LMS Document and attach the uploaded file."""
+	if not file:
+		frappe.throw(_("File is required"))
+
+	import mimetypes
+	import base64
+	from frappe.utils.file_manager import save_file
+
+	# file is a data URI: "data:application/pdf;base64,JVBERi0xLjQKJ..."
+	if "," in file:
+		header, encoded = file.split(",", 1)
+		mime_type = header.split(";")[0].split(":")[1]
+		ext = mimetypes.guess_extension(mime_type) or ""
+	else:
+		encoded = file
+		ext = ""
+
+	file_content = base64.b64decode(encoded)
+	
+	safe_title = frappe.scrub(title)
+	if not safe_title:
+		safe_title = frappe.generate_hash(length=10)
+	file_name = f"{safe_title}{ext}"
+
+	# 1. Create LMS Document record
+	doc = frappe.get_doc({
+		"doctype": "LMS Document",
+		"title": title,
+		"scope": scope,
+		"course": course,
+		"category": category,
+		"description": description,
+		"status": "Active"
+	})
+	doc.insert(ignore_permissions=True, ignore_mandatory=True)
+
+	# 2. Save the file and attach to LMS Document
+	frappe_file = save_file(
+		fname=file_name,
+		content=file_content,
+		dt="LMS Document",
+		dn=doc.name,
+		decode=False,
+		is_private=0
+	)
+	
+	# 3. Update the document with file URL
+	doc.db_set("file", frappe_file.file_url)
+	
+	return doc.name
+

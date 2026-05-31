@@ -168,7 +168,7 @@
                       <icons.ImagePlus class="h-6 w-6" />
                     </div>
                     <span class="text-sm font-bold text-slate-900">
-                      {{ attachedImagesInModal.length ? `${attachedImagesInModal.length} ảnh đã chọn` : __('Upload a photo of your work') }}
+                      {{ attachedImagesInModal.length ? `${attachedImagesInModal.length} ` + __('images selected') : __('Upload a photo of your work') }}
                     </span>
                   </button>
                   <!-- Preview thumbnails -->
@@ -194,16 +194,8 @@
               </div>
               <div class="space-y-6">
                 <div class="space-y-4">
-                  <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                      {{ __('Related Classes') }}
-                    </label>
-                    <select v-model="newSessionForm.course" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold outline-none focus:border-amber-400 focus:bg-white transition-all">
-                      <option :value="null">{{ __('General Q&A') }}</option>
-                      <option v-for="c in courses" :key="c.name" :value="c.name">{{ c.title }}</option>
-                    </select>
-                  </div>
-                  <div v-if="newSessionForm.course">
+                  <CourseBatchSelector v-model="courseBatchModel" :context="aiContext" />
+                  <div v-if="courseBatchModel.course">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
                       {{ __('Specific Lessons') }}
                     </label>
@@ -237,6 +229,7 @@ import { usePageMeta, createResource, Dialog } from 'frappe-ui'
 import { sessionStore } from '@/stores/session'
 import dayjs from '@/utils/dayjs'
 import * as icons from 'lucide-vue-next'
+import CourseBatchSelector from '@/components/ai/CourseBatchSelector.vue'
 
 const router = useRouter()
 const { brand } = sessionStore()
@@ -254,9 +247,10 @@ const attachedImagesInModal = ref([]) // [{file:File, preview:string}]
 const attachedRubricInModal = ref(null)
 
 const newSessionForm = reactive({
-  course: null,
   lesson: null
 })
+
+const courseBatchModel = ref({ mode: 'course', batch: null, course: null })
 
 const searchQuery = ref('')
 const sessionLimit = ref(5)
@@ -289,12 +283,12 @@ function loadMoreSessions() {
 }
 
 const coursesResource = createResource({
-  url: 'lms.lms.services.socratic.api.get_student_context',
+  url: 'lms.lms.services.course_batch_resolver.get_selection_context',
   auto: true
 })
 
-const courses = computed(() => {
-  return coursesResource.data?.courses || []
+const aiContext = computed(() => {
+  return coursesResource.data || { courses: [], batches: [] }
 })
 
 const lessonsResource = createResource({
@@ -303,7 +297,7 @@ const lessonsResource = createResource({
   auto: false
 })
 
-watch(() => newSessionForm.course, (newCourse) => {
+watch(() => courseBatchModel.value.course, (newCourse) => {
   newSessionForm.lesson = null
   if (newCourse) {
     lessonsResource.params.filters = { course: newCourse }
@@ -385,9 +379,12 @@ async function startSession() {
         'X-Frappe-CSRF-Token': csrfToken
       },
       body: JSON.stringify({
-        course: newSessionForm.course || '',
+        selection_mode: courseBatchModel.value.mode,
+        course: courseBatchModel.value.course || '',
+        batch: courseBatchModel.value.batch || '',
         lesson: newSessionForm.lesson || '',
         image_url: uploadedImageUrls.length ? uploadedImageUrls[0] : '',
+        image_urls: uploadedImageUrls.length ? JSON.stringify(uploadedImageUrls) : '',
         rubric_url: uploadedRubricUrl || ''
       })
     })
@@ -396,7 +393,8 @@ async function startSession() {
       showNewSessionModal.value = false
       attachedImagesInModal.value = []
       attachedRubricInModal.value = null
-      newSessionForm.course = null
+      courseBatchModel.value.course = null
+      courseBatchModel.value.batch = null
       newSessionForm.lesson = null
       sessionsResource.fetch()
       router.push({ 

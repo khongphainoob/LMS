@@ -93,7 +93,7 @@
 							📝 {{ __('Form Dot Mode') }}
 						</div>
 						<p class="text-sm text-blue-700 leading-relaxed">
-							{{ __('Nếu bạn không có file đáp án sẵn, hãy nhập thủ công đáp án cho từng câu (A, B, C...). Bạn nên tải lên thêm một "Ảnh mẫu tờ bài làm" để AI nhận diện vị trí các ô khoanh tốt hơn.') }}
+							{{ __('If you don\'t have an answer file, enter answers manually (A, B, C...). You should upload a "Sample Answer Sheet Image" for better AI recognition.') }}
 						</p>
 					</div>
 				</div>

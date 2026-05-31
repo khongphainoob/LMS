@@ -12,8 +12,8 @@
           </button>
           <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
           <div>
-            <h1 class="text-lg font-black text-slate-900 dark:text-white uppercase leading-none tracking-tight">{{ __('Score Dashboard') }}</h1>
-            <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mt-1">{{ __('Analysis of learning performance') }}</p>
+            <h1 class="text-lg font-bold text-slate-900 dark:text-white leading-none">{{ __('Score Dashboard') }}</h1>
+            <p class="text-xs font-medium text-slate-500 dark:text-amber-500/80 mt-1">{{ __('Analysis of learning performance') }}</p>
           </div>
         </div>
       </div>
@@ -23,11 +23,11 @@
       <!-- Selector Box -->
       <section class="max-w-md mx-auto">
         <div class="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-           <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-4 ml-2">{{ __('Your class') }}</label>
+           <label class="text-sm font-medium text-slate-600 block mb-2 ml-1">{{ __('Your class') }}</label>
            <div class="relative">
              <select
                 v-model="selectedBatch"
-                class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500 transition-all appearance-none"
+                class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-teal-500 transition-all appearance-none"
               >
                 <option :value="null">{{ __('Select specific class') }}</option>
                 <option v-for="batch in batches" :key="batch.name" :value="batch.name">
@@ -45,11 +45,11 @@
       </div>
       
       <div v-else class="py-32 text-center flex flex-col items-center">
-        <div class="h-20 w-20 rounded-[2rem] bg-slate-900 text-amber-400 flex items-center justify-center mb-6 shadow-2xl">
+        <div class="h-16 w-16 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-400 flex items-center justify-center mb-6 shadow-sm">
           <icons.BarChart3 class="h-10 w-10" />
         </div>
-        <h2 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{{ __('ANALYSIS REPORT ON') }}</h2>
-        <p class="text-[11px] font-black text-amber-600 uppercase tracking-widest mt-3">
+        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Analysis Report On') }}</h2>
+        <p class="text-sm font-medium text-slate-500 mt-2">
           {{ __('Please select class to see results') }}
         </p>
       </div>
