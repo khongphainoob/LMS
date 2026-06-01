@@ -101,8 +101,46 @@ Output format must be a clean JSON matching the requested schema."""
         quiz_doc.save(ignore_permissions=True)
         frappe.db.commit()
 
+        # Notify creator: Quiz generated successfully
+        try:
+            from lms.lms.services.hitl.notification import notify_user_direct
+            from lms.lms.utils import get_lms_route
+            notify_user_direct(
+                for_user=quiz_doc.owner,
+                subject=f"✅ Quiz tạo xong: {quiz_doc.title}",
+                email_content=(
+                    f"Quiz <b>{quiz_doc.title}</b> đã được AI sinh thành công.<br>"
+                    f"Tổng số câu hỏi: <b>{quiz_doc.total_questions}</b>."
+                ),
+                document_type="AI Quiz",
+                document_name=quiz_id,
+                link=get_lms_route("ai-quiz"),
+            )
+        except Exception:
+            pass
+
     except Exception as e:
         frappe.log_error(f"Quiz Generation Failed: {str(e)}", "AI Quiz Orchestrator")
         if frappe.db.exists("AI Quiz", quiz_id):
             frappe.db.set_value("AI Quiz", quiz_id, "status", "Failed")
             frappe.db.commit()
+
+        # Notify creator: Quiz generation failed
+        try:
+            from lms.lms.services.hitl.notification import notify_user_direct
+            from lms.lms.utils import get_lms_route
+            owner = frappe.db.get_value("AI Quiz", quiz_id, "owner")
+            if owner:
+                notify_user_direct(
+                    for_user=owner,
+                    subject=f"❌ Quiz sinh thất bại",
+                    email_content=(
+                        f"Quiz <b>{quiz_id}</b> bị lỗi khi sinh AI.<br>"
+                        f"<b>Lỗi:</b> {str(e)}"
+                    ),
+                    document_type="AI Quiz",
+                    document_name=quiz_id,
+                    link=get_lms_route("ai-quiz"),
+                )
+        except Exception:
+            pass

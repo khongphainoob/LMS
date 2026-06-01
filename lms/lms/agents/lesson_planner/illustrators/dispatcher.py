@@ -16,11 +16,13 @@ def route_illustrator(state: LessonPlanState) -> str:
         # we'll use mermaid_agent but we need to tell it to skip. Wait, let's just 
         # add a 'skip_illustrator' edge or route directly to 'assessment'
         return "assessment"
-    # 1. Math/Physics -> Matplotlib (Precise code-driven diagrams) OR TikZ
+    # 1. If LaTeX, ALWAYS route to TikZ because Mermaid/Matplotlib images are harder to embed natively without extra steps.
+    if output_format == "latex":
+        return "tikz_agent"
+        
+    # 2. Math/Physics -> Matplotlib (Precise code-driven diagrams)
     MATPLOTLIB_SUBJECTS = ["toán", "vật lý", "math", "physics", "thống kê", "algebra", "geometry"]
     if any(s in subject for s in MATPLOTLIB_SUBJECTS):
-        if output_format == "latex":
-            return "tikz_agent"
         return "matplotlib_agent"
         
     # 2. Biology/Geography/History -> AI Image Generation

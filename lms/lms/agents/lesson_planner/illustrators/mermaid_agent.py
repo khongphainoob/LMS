@@ -14,11 +14,17 @@ def mermaid_node(state: LessonPlanState) -> dict:
 
     content = state.get("lesson_content") or ""
     topic = state.get("topic") or ""
-
+    illustration_plan = state.get("illustration_plan") or ""
+    
     human_prompt = f"""Hãy tạo sơ đồ Mermaid.js cho bài học sau:
 CHỦ ĐỀ: {topic}
 
-NỘI DUNG CHI TIẾT GIÁO ÁN:
+KẾ HOẠCH HÌNH VẼ ĐỀ XUẤT (TỪ ĐẠO DIỄN HÌNH ẢNH):
+---
+{illustration_plan}
+---
+
+NỘI DUNG CHI TIẾT GIÁO ÁN THAM KHẢO:
 ---
 {content[:5000]}
 ---

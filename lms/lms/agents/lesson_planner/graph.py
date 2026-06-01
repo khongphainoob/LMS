@@ -14,6 +14,7 @@ from lms.lms.agents.lesson_planner.illustrators.matplotlib_agent import matplotl
 from lms.lms.agents.lesson_planner.illustrators.image_gen_agent import image_gen_node
 from lms.lms.agents.lesson_planner.illustrators.tikz_agent import tikz_node
 
+from lms.lms.agents.lesson_planner.nodes.illustration_planner import illustration_planner_node
 from lms.lms.agents.lesson_planner.nodes.assessment import assessment_node
 from lms.lms.agents.lesson_planner.nodes.formatter import formatter_node
 from lms.lms.doctype.agent_log.agent_log import AgentLog
@@ -26,7 +27,7 @@ def route_after_review(state):
     review_status = state.get("review_status") or "approved"
     if review_status == "revised":
         return "writer"
-    return "illus_dispatcher"
+    return "illustration_planner"
 
 
 def build_lesson_planner_graph():
@@ -38,6 +39,7 @@ def build_lesson_planner_graph():
     graph.add_node("writer", log_wrapper("writer", writer_node))
     graph.add_node("human_review", log_wrapper("human_review", human_review_node))
     
+    graph.add_node("illustration_planner", log_wrapper("illustration_planner", illustration_planner_node))
     graph.add_node("illus_dispatcher", log_wrapper("illus_dispatcher", illus_dispatch))
     graph.add_node("mermaid_agent", log_wrapper("mermaid_agent", mermaid_node))
     graph.add_node("matplotlib_agent", log_wrapper("matplotlib_agent", matplotlib_node))
@@ -55,9 +57,11 @@ def build_lesson_planner_graph():
     
     # HITL conditional edge
     graph.add_conditional_edges("human_review", route_after_review, {
-        "illus_dispatcher": "illus_dispatcher",
+        "illustration_planner": "illustration_planner",
         "writer": "writer"
     })
+    
+    graph.add_edge("illustration_planner", "illus_dispatcher")
     
     # Illustrator dispatch conditional edge
     graph.add_conditional_edges("illus_dispatcher", route_illustrator, {

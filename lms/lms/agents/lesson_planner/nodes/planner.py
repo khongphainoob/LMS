@@ -19,23 +19,47 @@ def planner_node(state: LessonPlanState) -> dict:
     topic = state.get("topic")
     subject = state.get("subject")
     grade_level = state.get("grade_level")
-    duration = state.get("duration_minutes") or 45
-    retrieved = state.get("retrieved_curriculum") or ""
-    custom_requirements = state.get("custom_requirements") or "None"
+    duration_minutes = state.get("duration_minutes") or 45
+    reference_content = state.get("retrieved_curriculum") or ""
+    custom_requirements = state.get("custom_requirements")
+    template_style = state.get("template_style", "international")
 
-    human_prompt = f"""Hãy lập khung giáo án theo thông tin sau:
+    human_prompt = f"""Bạn là một chuyên gia thiết kế giáo án.
+Nhiệm vụ của bạn là lập dàn ý chi tiết cho bài giảng dựa trên các thông tin sau.
+
+THÔNG TIN CHUNG:
 - Môn học: {subject}
-- Khối/lớp: {grade_level}
-- Thời lượng: {duration} phút
+- Lớp: {grade_level}
 - Chủ đề: {topic}
-- Yêu cầu riêng biệt: {custom_requirements}
+- Thời lượng: {duration_minutes} phút
+- Yêu cầu đặc biệt: {custom_requirements if custom_requirements else "Không có"}
 
-### CHUẨN KIẾN THỨC KỸ NĂNG VÀ NGỮ CẢNH RAG:
----
-{retrieved[:10000]}
----
+{f"TÀI LIỆU THAM KHẢO:\n{reference_content[:10000]}\n" if reference_content else ""}"""
 
-Tạo khung giáo án JSON ngay lập tức."""
+    if state.get("custom_format_text"):
+        human_prompt += f"""\n\nBẠN PHẢI TUÂN THỦ TUYỆT ĐỐI CẤU TRÚC GIÁO ÁN ĐƯỢC YÊU CẦU DƯỚI ĐÂY:\n--- CẤU TRÚC MẪU ---\n{state.get("custom_format_text")}\n----------------\n"""
+    elif template_style == "cv5512":
+        human_prompt += """\n\nCấu trúc giáo án bắt buộc phải tuân thủ tuyệt đối chuẩn Công văn 5512/BGDĐT-GDTrH:
+I. MỤC TIÊU BÀI DẠY
+   1. Kiến thức
+   2. Năng lực
+   3. Phẩm chất
+II. THIẾT BỊ DẠY HỌC VÀ HỌC LIỆU
+III. TIẾN TRÌNH DẠY HỌC
+   * LƯU Ý QUAN TRỌNG: MỖI hoạt động dưới đây bắt buộc phải có đủ 4 phần: a) Mục tiêu; b) Nội dung; c) Sản phẩm; d) Tổ chức thực hiện.
+   1. Hoạt động 1: Khởi động / Xác định vấn đề
+   2. Hoạt động 2: Hình thành kiến thức mới / Giải quyết vấn đề
+   3. Hoạt động 3: Luyện tập
+   4. Hoạt động 4: Vận dụng"""
+    else:
+        human_prompt += """\n\nCấu trúc giáo án bắt buộc theo chuẩn Quốc tế (5E hoặc Rosenshine):
+1. Engage / Khởi động
+2. Explore / Khám phá
+3. Explain / Giải thích
+4. Elaborate / Áp dụng thực hành
+5. Evaluate / Đánh giá"""
+
+    human_prompt += "\n\nHãy sinh ra dàn ý dưới dạng JSON, trong đó trả về một object có các key là các phần chính của giáo án, value là mảng các hoạt động chi tiết trong phần đó. CHỈ TRẢ VỀ JSON HỢP LỆ, KHÔNG BỌC TRONG ```json."
 
     try:
         response = llm.invoke([
@@ -67,7 +91,7 @@ Tạo khung giáo án JSON ngay lập tức."""
                 "skills": [f"Vận dụng kiến thức {topic} để làm bài tập"],
                 "attitude": ["Tích cực thảo luận và phát biểu xây dựng bài"]
             },
-            "duration_minutes": duration,
+            "duration_minutes": duration_minutes,
             "standards": state.get("curriculum_standards") or ["GD.GEN.MA-00"],
             "materials": ["SGK", "Phấn/Bảng hoặc máy chiếu"],
             "sections": [

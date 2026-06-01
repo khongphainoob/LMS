@@ -21,10 +21,17 @@ def matplotlib_node(state: LessonPlanState) -> dict:
     teacher_id = state.get("teacher")
     plan_doc_name = state.get("plan_doc_name")
 
+    illustration_plan = state.get("illustration_plan") or ""
+
     human_prompt = f"""Hãy viết code Python vẽ biểu đồ hoặc đồ thị hàm số khoa học minh họa cho bài sau:
 CHỦ ĐỀ: {topic}
 
-NỘI DUNG GIÁO ÁN:
+KẾ HOẠCH HÌNH VẼ ĐỀ XUẤT (TỪ ĐẠO DIỄN HÌNH ẢNH):
+---
+{illustration_plan}
+---
+
+NỘI DUNG GIÁO ÁN THAM KHẢO:
 ---
 {content[:3000]}
 ---

@@ -16,7 +16,7 @@
 						class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
 					>
 						<Download class="h-4 w-4" />
-						{{ __('Export Word') }}
+						{{ __('Export Word (LaTeX)') }}
 					</button>
 					<button 
 						class="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 transition-colors"

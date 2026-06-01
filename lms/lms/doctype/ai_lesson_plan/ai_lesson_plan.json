@@ -20,6 +20,8 @@
   "review_section",
   "review_draft",
   "review_feedback",
+  "review_started_at",
+  "review_notified",
   "reviewed_at",
   "reviewed_by",
   "output_section",
@@ -167,6 +169,21 @@
    "fieldname": "custom_requirements",
    "fieldtype": "Small Text",
    "label": "Custom Requirements"
+  },
+  {
+   "fieldname": "review_started_at",
+   "fieldtype": "Datetime",
+   "label": "Review Started At",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "review_notified",
+   "fieldtype": "Check",
+   "label": "Review Reminder Sent",
+   "read_only": 1,
+   "hidden": 1
   }
  ],
  "index_web_pages_for_search": 1,

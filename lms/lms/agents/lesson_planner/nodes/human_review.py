@@ -41,12 +41,26 @@ def human_review_node(state: LessonPlanState) -> dict:
             })
             frappe.db.commit()
             
+            # Publish a persistent Notification so the bell icon rings
+            from lms.lms.services.hitl.notification import notify_user_direct
+            from lms.lms.utils import get_lms_route
+            
+            topic = state.get("topic", plan_doc_name)
+            notify_user_direct(
+                for_user=teacher_id,
+                subject=f"⏳ Cần duyệt Giáo án: {topic}",
+                email_content=f"AI đã soạn thảo xong bản nháp cho giáo án <b>{topic}</b>. Vui lòng xem xét và phê duyệt để tiếp tục quá trình sinh bài giảng (Lần {review_count}/3).",
+                document_type="AI Lesson Plan",
+                document_name=plan_doc_name,
+                link=get_lms_route("lesson-planning"),
+            )
+            
             # Publish a realtime message to notify the frontend
             frappe.publish_realtime("lesson_plan_review", {
                 "plan_name": plan_doc_name,
                 "status": "Review",
                 "message": f"Nội dung bài giảng nháp đã sẵn sàng để bạn duyệt. (Lần {review_count}/3)"
-            })
+            }, user=teacher_id)
             
     except Exception as e:
         frappe.log_error(f"Error in HITL Node: {e}", "AI Lesson Planner HITL Node")

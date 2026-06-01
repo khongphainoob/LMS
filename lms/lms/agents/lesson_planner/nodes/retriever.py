@@ -26,11 +26,11 @@ def retriever_node(state: LessonPlanState) -> dict:
         # Check if we have pre-configured lessons or chapters in LMS that match this topic
         matched_lessons = frappe.get_all("Course Lesson", 
             filters={"course": ["like", f"%{subject}%"], "title": ["like", f"%{topic}%"]}, 
-            fields=["title", "description"], 
+            fields=["title", "body"], 
             limit=3
         )
         if matched_lessons:
-            lesson_context = "\n".join([f"- Bài học liên quan: {l.title} (Mô tả: {l.description})" for l in matched_lessons])
+            lesson_context = "\n".join([f"- Bài học liên quan: {l.title}\n  Nội dung: {l.body[:500]}..." for l in matched_lessons if l.body])
             retrieved_chunks.append(f"CÁC BÀI HỌC CÓ SẴN TRONG HỆ THỐNG:\n{lesson_context}")
     except Exception as e:
         frappe.log_error(title="AI Lesson Planner Retriever Error", message=str(e))

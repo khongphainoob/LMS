@@ -94,16 +94,18 @@ def _find_balanced_structures(text: str, opener: str, closer: str) -> list[str]:
     return candidates
 
 
-def extract_and_validate(text: str, model: Type[T], expected_type: str = "object") -> Optional[T]:
+def extract_and_validate(text: str, model: Optional[Type[T]] = None, expected_type: str = "object") -> Optional[Union[T, dict, list]]:
     """
-    Extract JSON from text and validate against a Pydantic model.
+    Extract JSON from text and optionally validate against a Pydantic model.
     """
-    from pydantic import ValidationError
-
     raw = extract_json(text, expected_type)
     if raw is None:
         return None
 
+    if model is None:
+        return raw
+
+    from pydantic import ValidationError
     try:
         return model.model_validate(raw)
     except ValidationError as e:

@@ -28,11 +28,20 @@
 
     <main class="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-8">
       
-      <!-- Processing State -->
-      <div v-if="examResource.data?.status === 'Processing'" class="flex flex-col items-center justify-center py-32">
-        <Spinner class="w-12 h-12 text-emerald-500 mb-6" />
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">{{ __('AI is generating your exam...') }}</h2>
-        <p class="text-slate-500">{{ __('This may take a few minutes depending on the length of the source material.') }}</p>
+      <!-- Processing State (also shown immediately after approving blueprint) -->
+      <div v-if="examResource.data?.status === 'Processing' || isGenerating" class="flex flex-col items-center justify-center py-32">
+        <div class="relative mb-8">
+          <div class="w-20 h-20 rounded-full border-4 border-emerald-100 dark:border-emerald-900/40"></div>
+          <div class="absolute inset-0 w-20 h-20 rounded-full border-4 border-transparent border-t-emerald-500 animate-spin"></div>
+          <div class="absolute inset-0 flex items-center justify-center text-2xl">🤖</div>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-3">{{ isGenerating ? __('Đang sinh câu hỏi...') : __('AI is generating your exam...') }}</h2>
+        <p class="text-slate-500 text-center max-w-md">{{ isGenerating ? __('AI đang viết từng phần thi theo khung đề bạn đã duyệt. Quá trình này mất vài phút, bạn có thể rời khỏi trang và quay lại sau.') : __('This may take a few minutes depending on the length of the source material.') }}</p>
+        <div v-if="isGenerating" class="mt-6 flex gap-2">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style="animation-delay:0ms"></span>
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style="animation-delay:150ms"></span>
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style="animation-delay:300ms"></span>
+        </div>
       </div>
 
       <!-- Failed State -->
@@ -43,7 +52,7 @@
       </div>
 
       <!-- Review State -->
-      <div v-else-if="examResource.data?.status === 'Waiting for Review'" class="max-w-4xl mx-auto py-12">
+      <div v-else-if="examResource.data?.status === 'Waiting for Review' && !isGenerating" class="max-w-4xl mx-auto py-12">
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
           <div class="p-8">
             <h2 class="text-2xl font-bold mb-2">{{ __('Review Exam Blueprint') }}</h2>
@@ -65,17 +74,22 @@
                 </div>
                 
                 <div class="space-y-6">
-                  <div v-for="(sec, idx) in blueprintResource.data.sections" :key="idx">
-                    <h4 class="font-bold text-slate-800 dark:text-slate-200 mb-2">{{ sec.section_title }}</h4>
+                  <div v-for="(sec, idx) in blueprintResource.data.sections_blueprint" :key="idx">
+                    <h4 class="font-bold text-slate-800 dark:text-slate-200 mb-2">{{ sec.section_name || sec.section_title }}</h4>
                     <p class="text-sm italic text-slate-500 mb-3">{{ sec.instructions }}</p>
                     
-                    <div class="grid gap-2">
-                      <div v-for="(q, qidx) in sec.questions" :key="qidx" class="flex justify-between items-center bg-white dark:bg-slate-900 px-4 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-700">
-                        <span class="text-slate-700 dark:text-slate-300">{{ q.topic }} ({{ q.difficulty }})</span>
-                        <div class="flex gap-3 text-slate-500 text-xs">
-                          <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{{ q.question_type }}</span>
-                          <span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded">{{ q.score }} pts</span>
-                        </div>
+                    <div class="flex flex-wrap gap-4 bg-white dark:bg-slate-900 px-4 py-3 rounded-lg text-sm border border-slate-200 dark:border-slate-700">
+                      <div class="flex items-center gap-2">
+                        <span class="text-slate-500">Số lượng:</span>
+                        <span class="font-medium text-slate-800 dark:text-slate-200">{{ sec.num_questions }} câu</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-slate-500">Loại câu hỏi:</span>
+                        <span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded text-xs">{{ sec.section_type || sec.question_type }}</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-slate-500">Chủ đề:</span>
+                        <span class="text-slate-700 dark:text-slate-300">{{ sec.topics || 'N/A' }}</span>
                       </div>
                     </div>
                   </div>
@@ -148,8 +162,8 @@
             <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{{ __('Sections') }}</h4>
             <div class="space-y-2">
               <div v-for="sec in getSections()" :key="sec.name" class="flex justify-between text-sm">
-                <span class="text-slate-700 dark:text-slate-300">{{ sec.section_name }}</span>
-                <span class="text-slate-400">{{ getQuestionsForSection(sec).length }} {{ __('Q') }}</span>
+                <span class="text-slate-700 dark:text-slate-300">{{ sec.section_title }}</span>
+                <span class="text-slate-400">{{ sec.num_questions }} {{ __('Q') }}</span>
               </div>
             </div>
           </div>
@@ -162,7 +176,7 @@
             <div class="absolute -top-32 -left-32 h-64 w-64 rounded-full bg-blue-500/10 blur-[80px]"></div>
             <div class="absolute -bottom-32 -right-32 h-64 w-64 rounded-full bg-indigo-500/10 blur-[80px]"></div>
             
-            <div class="relative z-10">
+            <div id="exam-content-area" class="relative z-10">
             
             <!-- Exam Paper Header Mock -->
             <div class="text-center mb-12 pb-8 border-b-2 border-slate-900 dark:border-white">
@@ -171,9 +185,9 @@
             </div>
 
             <!-- Sections & Questions -->
-              <div v-for="(section, secIdx) in examResource.data?.sections" :key="section.section_name" class="mb-8">
-                <h2 class="text-xl font-bold mb-2">{{ nfc(section.section_name) }}</h2>
-                <p class="text-gray-600 dark:text-gray-400 mb-4 italic">{{ nfc(section.instructions) }}</p>
+              <div v-for="(section, secIdx) in examResource.data?.sections" :key="section.section_title" class="mb-8">
+                <h2 class="text-xl font-bold mb-2">{{ nfc(section.section_title) }}</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4 italic">{{ nfc(section.section_instructions) }}</p>
                 
                 <div class="space-y-6">
                   <div v-for="q in getQuestionsForSection(section, secIdx)" :key="q.name" class="relative group">
@@ -191,6 +205,13 @@
                       <div v-if="q.question_type === 'Multiple Choice' && q.options" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
                         <div v-for="(opt, idx) in parseJSON(q.options)" :key="idx" class="flex gap-2 markdown-content">
                           <span class="font-bold">{{ String.fromCharCode(65 + idx) }}.</span>
+                          <span v-html="renderMarkdown(cleanOptionText(opt))"></span>
+                        </div>
+                      </div>
+
+                      <div v-else-if="q.question_type === 'True/False' && q.options" class="grid grid-cols-1 gap-3 pl-4">
+                        <div v-for="(opt, idx) in parseJSON(q.options)" :key="idx" class="flex gap-2 markdown-content items-start">
+                          <span class="font-bold">{{ String.fromCharCode(97 + idx) }})</span>
                           <span v-html="renderMarkdown(cleanOptionText(opt))"></span>
                         </div>
                       </div>
@@ -216,11 +237,15 @@
 </template>
 
 <script setup>
-import { inject, onMounted, onUpdated, ref, watch } from 'vue'
+import { inject, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { createResource, Button, Badge, Spinner, call } from 'frappe-ui'
 import MarkdownIt from 'markdown-it'
 import 'katex/dist/katex.min.css'
+
+const router = useRouter()
+const route = useRoute()
+const socket = inject('$socket')
 
 const md = new MarkdownIt({ html: true, breaks: true })
 
@@ -240,9 +265,16 @@ const cleanOptionText = (opt) => {
   return text
 }
 
+let mathRenderTimer = null
 const renderMath = () => {
-  if (window.renderMathInElement) {
-    window.renderMathInElement(document.body, {
+  // Debounce to avoid hammering KaTeX on rapid re-renders
+  if (mathRenderTimer) clearTimeout(mathRenderTimer)
+  mathRenderTimer = setTimeout(() => {
+    if (!window.renderMathInElement) return
+    // Scope to exam content ONLY — not document.body — to avoid sidebar lag
+    const el = document.getElementById('exam-content-area')
+    if (!el) return
+    window.renderMathInElement(el, {
       delimiters: [
         {left: '$$', right: '$$', display: true},
         {left: '$', right: '$', display: false},
@@ -251,20 +283,32 @@ const renderMath = () => {
       ],
       throwOnError: false
     })
+  }, 200)
+}
+
+const handleExamUpdate = (data) => {
+  if (data.name === route.params.examID) {
+    examResource.reload()
   }
 }
 
 onMounted(() => {
-  setTimeout(renderMath, 100)
+  renderMath()
+  if (socket) {
+    socket.on('ai_exam_update', handleExamUpdate)
+  }
+})
+
+onUnmounted(() => {
+  if (socket) {
+    socket.off('ai_exam_update', handleExamUpdate)
+  }
+  if (mathRenderTimer) clearTimeout(mathRenderTimer)
 })
 
 onUpdated(() => {
   renderMath()
 })
-
-const router = useRouter()
-const route = useRoute()
-const socket = inject('$socket')
 
 const examResource = createResource({
   url: 'frappe.client.get',
@@ -280,6 +324,7 @@ const examResource = createResource({
 const feedbackText = ref('')
 const regenerating = ref(false)
 const approving = ref(false)
+const isGenerating = ref(false)
 
 const blueprintResource = createResource({
   url: 'lms.lms.services.ai_exam.api.get_exam_blueprint',
@@ -293,24 +338,21 @@ const blueprintResource = createResource({
   }
 })
 
-// Polling for Processing status
-let pollInterval = null
-watch(() => examResource.data?.status, (newStatus) => {
-  if (newStatus === 'Processing') {
-    if (!pollInterval) {
-      pollInterval = setInterval(() => {
-        examResource.reload()
-      }, 5000)
+// Notification and State handling on Status change
+watch(() => examResource.data?.status, (newStatus, oldStatus) => {
+  if (newStatus === 'Waiting for Review') {
+    if (oldStatus === 'Processing') {
+      frappe?.show_alert?.({ message: 'AI đã phân tích xong. Vui lòng duyệt khung đề!', indicator: 'orange' }) || alert('AI đã phân tích xong. Vui lòng duyệt khung đề!')
     }
-  } else {
-    if (pollInterval) {
-      clearInterval(pollInterval)
-      pollInterval = null
+    isGenerating.value = false  // Reset if somehow we land back here
+    blueprintResource.reload()
+  } else if (newStatus === 'Completed') {
+    isGenerating.value = false
+    if (oldStatus === 'Processing') {
+      frappe?.show_alert?.({ message: 'Quá trình sinh đề thi đã hoàn tất!', indicator: 'green' }) || alert('Quá trình sinh đề thi đã hoàn tất!')
     }
-    // Load blueprint if waiting for review
-    if (newStatus === 'Waiting for Review') {
-      blueprintResource.reload()
-    }
+  } else if (newStatus === 'Failed') {
+    isGenerating.value = false
   }
 }, { immediate: true })
 
@@ -335,15 +377,17 @@ const requestRegeneration = async () => {
 
 const approveBlueprint = async () => {
   approving.value = true
+  isGenerating.value = true  // Immediately switch UI
   try {
     const res = await call('lms.lms.services.ai_exam.api.approve_blueprint', {
       exam_name: route.params.examID
     })
-    if (res.success) {
-      examResource.reload()
-    } else {
-      frappe.msgprint('Failed to approve blueprint')
+    if (!res.success) {
+      isGenerating.value = false  // Revert if API failed
+      frappe?.show_alert?.({ message: 'Không thể duyệt blueprint, vui lòng thử lại.', indicator: 'red' })
     }
+  } catch (e) {
+    isGenerating.value = false
   } finally {
     approving.value = false
   }
@@ -364,9 +408,14 @@ const getSections = () => {
   return examResource.data?.sections || []
 }
 
-const getQuestionsForSection = (section) => {
+const getQuestionsForSection = (section, secIdx) => {
   if (!examResource.data?.questions) return []
-  return examResource.data.questions.filter(q => q.section_idx === section.idx)
+  let startIndex = 0
+  for (let i = 0; i < secIdx; i++) {
+    startIndex += examResource.data.sections[i].num_questions || 0
+  }
+  const endIndex = startIndex + (section.num_questions || 0)
+  return examResource.data.questions.slice(startIndex, endIndex)
 }
 
 const parseJSON = (str) => {

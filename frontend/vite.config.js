@@ -55,6 +55,9 @@ export default defineConfig(async ({ mode }) => {
 				'@': path.resolve(__dirname, 'src'),
 			},
 		},
+		build: {
+			target: 'esnext'
+		},
 		optimizeDeps: {
 			include: [
 				'feather-icons',

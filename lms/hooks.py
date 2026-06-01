@@ -134,7 +134,11 @@ scheduler_events = {
 	"cron": {
 		"*/15 * * * *": [
 			"lms.lms.gamification.tasks.recalculate_leaderboard",
-		]
+		],
+		"*/3 * * * *": [
+			"lms.lms.services.lesson_planner.api.send_review_reminder_and_auto_approve",
+			"lms.lms.services.ai_exam.api.send_exam_review_reminder_and_auto_approve",
+		],
 	},
 	"all": [
 		"lms.sqlite.build_index_in_background",

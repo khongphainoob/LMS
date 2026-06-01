@@ -12,6 +12,9 @@ def create_exam_request(
     duration_minutes: int,
     difficulty_distribution: str,
     language: str,
+    exam_format: str = "MOET 2025",
+    custom_format_template: str = "",
+    section_configs_json: str = "[]",
     teacher_instructions: str = "",
     file_url: str = None
 ):
@@ -31,6 +34,9 @@ def create_exam_request(
             "duration_minutes": duration_minutes,
             "difficulty_distribution": difficulty_distribution,
             "language": language,
+            "exam_format": exam_format,
+            "custom_format_template": custom_format_template,
+            "section_configs_json": section_configs_json,
             "teacher_instructions": teacher_instructions,
             "source_file": file_url
         })
@@ -98,6 +104,92 @@ def export_docx(exam_name: str):
     except Exception as e:
         frappe.log_error(f"DOCX Export Error: {str(e)}", "AI Exam Export")
         return {"success": False, "error": str(e)}
+
+
+def send_exam_review_reminder_and_auto_approve():
+    """
+    Scheduled job (every 3 minutes):
+    - Gửi Notification nhắc giáo viên duyệt Blueprint (tối đa 3 lần, mỗi lần cách 3 phút).
+    - Sau 3 lần nhắc mà vẫn chưa duyệt (tức 9 phút), tự động approve Blueprint.
+    """
+    now = frappe.utils.now_datetime()
+    # 3 phút/lần nhắc x 3 lần = 9 phút -> auto approve
+    notify_interval_minutes = 3
+    max_notifications = 3
+    auto_approve_minutes = notify_interval_minutes * max_notifications  # = 9
+
+    auto_approve_threshold = frappe.utils.add_to_date(now, minutes=-auto_approve_minutes)
+
+    stuck_exams = frappe.get_all(
+        "AI Exam",
+        filters={"status": "Waiting for Review", "review_started_at": ["is", "set"]},
+        fields=["name", "title", "owner_user", "review_started_at", "review_notified"],
+    )
+
+    for exam in stuck_exams:
+        started_at = exam.review_started_at
+        notified = int(exam.review_notified or 0)
+        if not started_at:
+            continue
+
+        # --- Auto-approve sau 9 phút ---
+        if started_at <= auto_approve_threshold:
+            frappe.logger().info(f"[AI Exam] Auto-approving {exam.name} after {auto_approve_minutes}-minute timeout.")
+            frappe.enqueue(
+                "lms.lms.agents.exam.orchestrator.process_phase_2",
+                exam_name=exam.name,
+                queue="long",
+                timeout=3000,
+            )
+            # Gửi thông báo cuối "đã tự approve"
+            if exam.owner_user:
+                from frappe.desk.doctype.notification_log.notification_log import make_notification_logs
+                from lms.lms.utils import get_lms_route
+                notification = frappe._dict({
+                    "subject": f"✅ Đề thi đã được duyệt tự động: {exam.title}",
+                    "email_content": (
+                        f"Khung đề thi <b>{exam.title}</b> đã quá thời hạn chờ duyệt ({auto_approve_minutes} phút). "
+                        f"Hệ thống đã <b>tự động duyệt</b> và bắt đầu sinh câu hỏi."
+                    ),
+                    "for_user": exam.owner_user,
+                    "from_user": "Administrator",
+                    "type": "Alert",
+                    "document_type": "AI Exam",
+                    "document_name": exam.name,
+                    "link": get_lms_route("exam-generator"),
+                })
+                make_notification_logs(notification, [exam.owner_user])
+                frappe.db.commit()
+            continue
+
+        # --- Gửi nhắc định kỳ (tối đa 3 lần) ---
+        if notified >= max_notifications:
+            continue
+
+        next_notify_time = frappe.utils.add_to_date(started_at, minutes=notify_interval_minutes * notified)
+        if now >= next_notify_time and exam.owner_user:
+            remaining_minutes = auto_approve_minutes - (notify_interval_minutes * (notified + 1))
+            frappe.logger().info(f"[AI Exam] Sending reminder #{notified + 1} for {exam.name} to {exam.owner_user}.")
+            from frappe.desk.doctype.notification_log.notification_log import make_notification_logs
+            from lms.lms.utils import get_lms_route
+            notification = frappe._dict({
+                "subject": f"📋 Khung đề thi cần duyệt: {exam.title}",
+                "email_content": (
+                    f"Khung đề thi <b>{exam.title}</b> đang chờ bạn phê duyệt "
+                    f"(Lần nhắc thứ {notified + 1}/{max_notifications}).<br><br>"
+                    f"Nếu không có phản hồi trong <b>{remaining_minutes} phút</b> nữa, "
+                    f"hệ thống sẽ <b>tự động duyệt</b> bản nháp và sinh câu hỏi."
+                ),
+                "for_user": exam.owner_user,
+                "from_user": "Administrator",
+                "type": "Alert",
+                "document_type": "AI Exam",
+                "document_name": exam.name,
+                "link": get_lms_route("exam-generator"),
+            })
+            make_notification_logs(notification, [exam.owner_user])
+            frappe.db.set_value("AI Exam", exam.name, "review_notified", notified + 1)
+            frappe.db.commit()
 
 @frappe.whitelist()
 def retry_exam_generation(exam_name: str):

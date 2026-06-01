@@ -23,12 +23,42 @@ def create_docx_from_markdown(content: str, topic: str, is_draft: bool = False) 
     font.name = 'Times New Roman'
     font.size = Pt(13)
     
-    # Header Logo (Placeholder for now)
+    # Clean up standard header
     header = section.header
     header_para = header.paragraphs[0]
-    header_para.text = "SỞ GIÁO DỤC VÀ ĐÀO TẠO...\nTRƯỜNG..."
-    header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    header_para.text = ""
     
+    # Add formal CV5512 Header table at the top of the document
+    header_table = doc.add_table(rows=1, cols=2)
+    header_table.autofit = True
+    
+    cell_left = header_table.rows[0].cells[0]
+    p_left = cell_left.paragraphs[0]
+    p_left.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run_l1 = p_left.add_run("TRƯỜNG: ....................................\n")
+    run_l1.bold = True
+    run_l2 = p_left.add_run("TỔ: ...........................................")
+    run_l2.bold = True
+    
+    cell_right = header_table.rows[0].cells[1]
+    p_right = cell_right.paragraphs[0]
+    p_right.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run_r1 = p_right.add_run("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\n")
+    run_r1.bold = True
+    run_r2 = p_right.add_run("Độc lập - Tự do - Hạnh phúc")
+    run_r2.bold = True
+    run_r2.underline = True
+    
+    doc.add_paragraph("") # Spacing
+    
+    # Formal Title
+    title_para = doc.add_paragraph()
+    title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    title_run = title_para.add_run("KẾ HOẠCH BÀI DẠY")
+    title_run.bold = True
+    title_run.font.size = Pt(16)
+    
+    doc.add_paragraph("") # Spacing    
     # Watermark for draft
     if is_draft:
         # Since true watermarks require complex OXML, we will just add a centered red text at the top
@@ -39,7 +69,7 @@ def create_docx_from_markdown(content: str, topic: str, is_draft: bool = False) 
         draft_run.bold = True
         draft_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     # Parse markdown body
-    lines = content.split('\\n')
+    lines = content.split('\n')
     i = 0
     while i < len(lines):
         line = lines[i].strip()

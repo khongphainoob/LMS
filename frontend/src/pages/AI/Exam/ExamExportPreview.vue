@@ -25,18 +25,18 @@
         <!-- Header -->
         <div class="flex justify-between border-b-2 border-black pb-4 mb-6">
           <div class="text-center w-1/2 border-r border-black pr-4">
-            <div class="font-bold uppercase">{{ examResource.data?.school_name || 'TRƯỜNG.........................' }}</div>
+            <div class="font-bold">{{ (examResource.data?.school_name || 'TRƯỜNG.........................').toUpperCase() }}</div>
             <div class="font-bold">{{ examResource.data?.department || 'TỔ..............................' }}</div>
           </div>
           <div class="text-center w-1/2 pl-4">
-            <div class="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+            <div class="font-bold">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
             <div class="font-bold">Độc lập - Tự do - Hạnh phúc</div>
           </div>
         </div>
 
         <!-- Title -->
         <div class="text-center mb-8">
-          <h1 class="text-2xl font-bold uppercase mb-2">{{ nfc(examResource.data?.title) }}</h1>
+          <h1 class="text-2xl font-bold mb-2">{{ nfc(examResource.data?.title).toUpperCase() }}</h1>
           <div class="font-bold">Môn: {{ nfc(examResource.data?.subject) }} - Lớp: {{ nfc(examResource.data?.grade_level) }}</div>
           <div>Thời gian làm bài: {{ examResource.data?.duration_minutes }} phút (Không kể thời gian phát đề)</div>
         </div>
@@ -49,12 +49,12 @@
 
         <!-- Content -->
         <div v-for="(section, secIdx) in examResource.data?.sections" :key="section.section_title" class="mb-6">
-          <div class="font-bold uppercase mb-2">{{ nfc(section.section_title) }}</div>
+          <div class="font-bold mb-2">{{ nfc(section.section_title).toUpperCase() }}</div>
           <div class="italic mb-4">{{ nfc(section.section_instructions) }}</div>
           
           <div v-for="q in getQuestionsForSection(section, secIdx)" :key="q.question_number" class="mb-4">
             <div class="flex">
-              <span class="font-bold mr-2 whitespace-nowrap">Câu {{ q.question_number }} ({{ q.score }} điểm):</span>
+              <span class="font-bold mr-2 whitespace-nowrap">Câu {{ q.question_number }} ({{ q.points || 0.25 }} điểm):</span>
               <div>
                 <div class="markdown-content mb-3" v-html="renderMarkdown(q.question_text)"></div>
                 
@@ -64,9 +64,16 @@
                 </div>
                 
                 <div v-if="q.question_type === 'Multiple Choice' && q.options" class="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-2">
-                  <div v-for="(opt, idx) in parseJSON(q.options)" :key="idx" class="markdown-content flex gap-1">
+                  <div v-for="(opt, idx) in parseJSON(q.options)" :key="idx" class="markdown-content flex gap-1 items-start">
                     <span class="font-bold">{{ String.fromCharCode(65 + idx) }}.</span>
-                    <span v-html="renderMarkdown(opt)"></span>
+                    <span v-html="renderMarkdown(cleanOptionText(opt))"></span>
+                  </div>
+                </div>
+
+                <div v-else-if="q.question_type === 'True/False' && q.options" class="grid grid-cols-1 gap-2 mt-2 ml-4">
+                  <div v-for="(opt, idx) in parseJSON(q.options)" :key="idx" class="markdown-content flex gap-2 items-start">
+                    <span class="font-bold">{{ String.fromCharCode(97 + idx) }})</span>
+                    <span v-html="renderMarkdown(cleanOptionText(opt))"></span>
                   </div>
                 </div>
 
@@ -105,9 +112,22 @@ const renderMarkdown = (text) => {
   return md.render(nfc(text))
 }
 
+const cleanOptionText = (opt) => {
+  let text = opt.text || opt || ''
+  if (typeof text === 'string') {
+    text = text.replace(/^[A-Z][\.\:\)]\s*/i, '')
+  }
+  return text
+}
+
+let mathRenderTimer = null
 const renderMath = () => {
-  if (window.renderMathInElement) {
-    window.renderMathInElement(document.body, {
+  if (mathRenderTimer) clearTimeout(mathRenderTimer)
+  mathRenderTimer = setTimeout(() => {
+    if (!window.renderMathInElement) return
+    const el = document.getElementById('print-area')
+    if (!el) return
+    window.renderMathInElement(el, {
       delimiters: [
         {left: '$$', right: '$$', display: true},
         {left: '$', right: '$', display: false},
@@ -116,11 +136,11 @@ const renderMath = () => {
       ],
       throwOnError: false
     })
-  }
+  }, 200)
 }
 
 onMounted(() => {
-  setTimeout(renderMath, 100)
+  renderMath()
 })
 
 onUpdated(() => {

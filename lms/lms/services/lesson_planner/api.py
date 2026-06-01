@@ -102,6 +102,11 @@ def run_lesson_planner_orchestrator(plan_name, resume_payload=None):
         if plan_doc.reference_file:
             reference_text = extract_text_from_file(plan_doc.reference_file)
             
+        # Extract custom format template text if uploaded
+        custom_format_text = ""
+        if hasattr(plan_doc, "custom_format_file") and getattr(plan_doc, "custom_format_file"):
+            custom_format_text = extract_text_from_file(plan_doc.custom_format_file)
+            
         current_state = graph.get_state(config)
         is_retry = bool(current_state and current_state.next)
         
@@ -121,6 +126,7 @@ def run_lesson_planner_orchestrator(plan_name, resume_payload=None):
                 "duration_minutes": plan_doc.duration_minutes or 45,
                 "reference_content": reference_text,
                 "custom_requirements": plan_doc.custom_requirements,
+                "custom_format_text": custom_format_text,
                 "output_format": plan_doc.output_format or "lms_native",
                 "template_style": plan_doc.template_style or "cv5512",
                 "target_course": plan_doc.target_course,
@@ -136,7 +142,11 @@ def run_lesson_planner_orchestrator(plan_name, resume_payload=None):
             # Update DocType status based on next node
             next_node = current_state.next[0] if current_state.next else "Processing"
             if next_node == "human_review":
-                frappe.db.set_value("AI Lesson Plan", plan_name, "status", "Review")
+                frappe.db.set_value("AI Lesson Plan", plan_name, {
+                    "status": "Review",
+                    "review_started_at": frappe.utils.now_datetime(),
+                    "review_notified": 0,
+                })
             else:
                 frappe.db.set_value("AI Lesson Plan", plan_name, "status", "Retrieving")
             frappe.db.commit()
@@ -337,3 +347,90 @@ def upload_reference_file():
         if not isinstance(e, frappe.ValidationError):
             frappe.log_error(frappe.get_traceback(), "Lesson Planner Upload Error")
         raise e
+
+
+def send_review_reminder_and_auto_approve():
+    """
+    Scheduled job (every 3 minutes):
+    - Sau 3 phút chưa duyệt → gửi Frappe Notification nhắc giáo viên.
+    - Sau 15 phút vẫn chưa duyệt → tự động approve draft as-is.
+    """
+    now = frappe.utils.now_datetime()
+    notify_threshold = frappe.utils.add_to_date(now, minutes=-3)
+    auto_approve_threshold = frappe.utils.add_to_date(now, minutes=-15)
+
+    stuck_plans = frappe.get_all(
+        "AI Lesson Plan",
+        filters={"status": "Review", "review_started_at": ["is", "set"]},
+        fields=["name", "teacher", "topic", "review_started_at", "review_notified", "review_draft"],
+    )
+
+    for plan in stuck_plans:
+        started_at = plan.review_started_at
+        if not started_at:
+            continue
+
+        # --- Auto-approve after 15 minutes ---
+        if started_at <= auto_approve_threshold:
+            logger.info(f"Auto-approving plan {plan.name} after 15-minute timeout.")
+            payload = {
+                "action": "approve",
+                "edited_content": plan.review_draft,
+                "feedback": None,
+            }
+            frappe.db.set_value("AI Lesson Plan", plan.name, {
+                "status": "Illustrating",
+                "reviewed_at": now,
+                "reviewed_by": "System (Auto-approved after timeout)",
+            })
+            frappe.db.commit()
+            frappe.enqueue(
+                run_lesson_planner_orchestrator,
+                plan_name=plan.name,
+                resume_payload=payload,
+                queue="long",
+                timeout=600,
+            )
+            continue
+
+        # --- Send reminder notification after 3 minutes (only once) ---
+        if started_at <= notify_threshold and not plan.review_notified:
+            logger.info(f"Sending review reminder for plan {plan.name} to {plan.teacher}.")
+            from frappe.desk.doctype.notification_log.notification_log import make_notification_logs
+            from lms.lms.utils import get_lms_route
+
+            # Build direct link to the lesson planner page
+            lesson_planner_link = get_lms_route("lesson-planning")
+
+            notification = frappe._dict({
+                "subject": f"📋 Giáo án cần duyệt: {plan.topic}",
+                "email_content": (
+                    f"Giáo án <b>{plan.topic}</b> đang chờ bạn phê duyệt.<br>"
+                    f"Nếu không có phản hồi trong <b>15 phút</b>, hệ thống sẽ tự động duyệt bản nháp."
+                ),
+                "for_user": plan.teacher,
+                "from_user": "Administrator",
+                "type": "Alert",
+                "document_type": "AI Lesson Plan",
+                "document_name": plan.name,
+                "link": lesson_planner_link,
+            })
+            make_notification_logs(notification, [plan.teacher])
+            frappe.db.set_value("AI Lesson Plan", plan.name, "review_notified", 1)
+            frappe.db.commit()
+
+
+@frappe.whitelist()
+def mark_review_abandoned(plan_name):
+    """
+    Called by frontend navigator.sendBeacon when user navigates away
+    during Review state. Best-effort — scheduled job is the true safety net.
+    """
+    plan = frappe.get_doc("AI Lesson Plan", plan_name)
+    if plan.status == "Review" and plan.teacher == frappe.session.user:
+        # Don't change status to 'Abandoned' — just log it.
+        # The scheduled job will auto-approve after 15 min anyway.
+        # We reset review_started_at so the 3-min timer restarts when they come back.
+        frappe.db.set_value("AI Lesson Plan", plan_name, "review_notified", 0)
+        frappe.db.commit()
+    return {"status": "ok"}

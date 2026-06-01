@@ -47,10 +47,10 @@ def convert_md_to_latex(md_text: str, topic: str = "Bài giảng") -> str:
         # Code blocks
         if line.startswith("```"):
             if in_code_block:
-                latex.append(r"\\end{verbatim}")
+                latex.append(r"\end{verbatim}")
                 in_code_block = False
             else:
-                latex.append(r"\\begin{verbatim}")
+                latex.append(r"\begin{verbatim}")
                 in_code_block = True
             i += 1
             continue
@@ -65,21 +65,21 @@ def convert_md_to_latex(md_text: str, topic: str = "Bài giảng") -> str:
             level = len(line) - len(line.lstrip("#"))
             text = _escape_latex(line.lstrip("#").strip())
             if level == 1:
-                latex.append(r"\\section{" + text + "}")
+                latex.append(r"\section{" + text + "}")
             elif level == 2:
-                latex.append(r"\\subsection{" + text + "}")
+                latex.append(r"\subsection{" + text + "}")
             else:
-                latex.append(r"\\subsubsection{" + text + "}")
+                latex.append(r"\subsubsection{" + text + "}")
             
         # Lists
         elif line.startswith("- ") or line.startswith("* "):
-            latex.append(r"\\begin{itemize}")
-            latex.append(r"  \\item " + _escape_latex(line[2:]))
+            latex.append(r"\begin{itemize}")
+            latex.append(r"  \item " + _escape_latex(line[2:]))
             # consume list items
             while i + 1 < len(lines) and (lines[i+1].strip().startswith("- ") or lines[i+1].strip().startswith("* ")):
                 i += 1
-                latex.append(r"  \\item " + _escape_latex(lines[i+1].strip()[2:]))
-            latex.append(r"\\end{itemize}")
+                latex.append(r"  \item " + _escape_latex(lines[i+1].strip()[2:]))
+            latex.append(r"\end{itemize}")
             
         # Images
         elif line.startswith("!["):
@@ -87,9 +87,9 @@ def convert_md_to_latex(md_text: str, topic: str = "Bài giảng") -> str:
             match = re.match(r"!\[(.*?)\]\((.*?)\)", line)
             if match:
                 alt_text, img_url = match.groups()
-                latex.append(r"\\begin{figure}[h!]")
-                latex.append(r"  \\centering")
-                latex.append(r"  \\includegraphics[width=0.8\\textwidth]{" + img_url + "}")
+                latex.append(r"\begin{figure}[h!]")
+                latex.append(r"  \centering")
+                latex.append(r"  \includegraphics[width=0.8\textwidth]{" + img_url + "}")
             if alt_text:
                 latex.append(r"  \caption{" + _escape_latex(alt_text) + "}")
             latex.append(r"\end{figure}")

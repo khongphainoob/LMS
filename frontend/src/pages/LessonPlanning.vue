@@ -202,6 +202,23 @@
 								<option value="custom">{{ __("Custom (Tự do)") }}</option>
 							</select>
 						</div>
+						<div v-if="genForm.template_style === 'custom'">
+							<label class="mb-1.5 block text-sm font-semibold text-slate-300">{{ __('Custom Format Template') }}</label>
+							<div class="flex items-center gap-3">
+								<input type="file" ref="formatFileInput" @change="uploadFormatFile" class="hidden" accept=".pdf,.docx,.txt" />
+								<button 
+									type="button" 
+									class="inline-flex items-center gap-2 rounded-xl border border-indigo-700/50 bg-indigo-900/30 px-4 py-2.5 text-sm font-medium text-indigo-300 hover:bg-indigo-800/50 transition-colors"
+									@click="$refs.formatFileInput.click()"
+									:disabled="uploadingFormat"
+								>
+									<Upload class="h-4 w-4" /> {{ uploadingFormat ? __('Uploading...') : __('Upload Template (.pdf, .docx, .txt)') }}
+								</button>
+								<span v-if="genForm.custom_format_file" class="text-xs text-indigo-400 font-semibold truncate max-w-xs">
+									✓ {{ __("Template uploaded:") }} {{ genForm.custom_format_file.split('/').pop() }}
+								</span>
+							</div>
+						</div>
 						<div v-if="genForm.output_format === 'lms_native'">
 							<label class="mb-1.5 block text-sm font-semibold text-slate-300">{{ __('Target Course (LMS Course)') }} *</label>
 							<select v-model="genForm.target_course" class="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none">
@@ -388,16 +405,13 @@ import { createResource, Breadcrumbs, Dialog, usePageMeta } from 'frappe-ui'
 import { CalendarCheck, Sparkles, Plus, CheckCircle, Upload, BookOpen, RefreshCw, Zap, Clock, Edit, FileText, Check, Loader2, Trash2 } from 'lucide-vue-next'
 import { sessionStore } from '@/stores/session'
 import MarkdownIt from 'markdown-it'
-import markdownItKatex from 'markdown-it-katex'
-import 'katex/dist/katex.min.css'
+import mathjax3 from 'markdown-it-mathjax3'
 
 const md = new MarkdownIt({
 	html: true,
 	linkify: true
 })
-md.use(markdownItKatex)
-
-md.use(markdownItKatex)
+md.use(mathjax3)
 
 function renderMarkdown(content) {
 	if (!content) return ''
@@ -413,23 +427,38 @@ onMounted(() => {
 	if (socket) {
 		socket.on('lesson_plan_review', (payload) => {
 			console.log("Receive HITL notification:", payload)
-			loadPlans() // Tự động làm mới danh sách giáo án
+			loadPlans()
 			alert(`🔔 ${__("Draft prepared:")} ${payload.plan_name}\n\n${payload.message}`)
 		})
 	}
+	// Notify server when user leaves during Review state
+	window.addEventListener('beforeunload', handlePageLeave)
 })
 
 onUnmounted(() => {
 	if (socket) {
 		socket.off('lesson_plan_review')
 	}
+	window.removeEventListener('beforeunload', handlePageLeave)
 })
+
+// Notify server (best-effort) when user leaves during Review state
+// The scheduled job (every 3 min) is the true safety net
+const handlePageLeave = () => {
+	const reviewPlan = plans.value?.find(p => p.status === 'Review')
+	if (!reviewPlan) return
+	const data = new FormData()
+	data.append('cmd', 'lms.lms.services.lesson_planner.api.mark_review_abandoned')
+	data.append('plan_name', reviewPlan.name)
+	navigator.sendBeacon('/api/method/lms.lms.services.lesson_planner.api.mark_review_abandoned', data)
+}
 
 const plans = ref([])
 const courses = ref([])
 const loading = ref(true)
 const generating = ref(false)
 const uploading = ref(false)
+const uploadingFormat = ref(false)
 const resuming = ref(false)
 const showGenerateModal = ref(false)
 const showViewModal = ref(false)
@@ -438,6 +467,7 @@ const viewLoading = ref(false)
 const filterStatus = ref('')
 const reviewFeedback = ref('')
 const fileInput = ref(null)
+const formatFileInput = ref(null)
 
 const stats = reactive({ total: 0, completed: 0, review_pending: 0, hours_saved: '0h' })
 
@@ -489,7 +519,7 @@ const steps = [
 
 const genForm = reactive({
 	topic: '', subject: '', grade_level: '', duration_minutes: 45,
-	output_format: 'lms_native', template_style: 'cv5512', target_course: '', reference_file: '', custom_requirements: ''
+	output_format: 'lms_native', template_style: 'cv5512', target_course: '', reference_file: '', custom_requirements: '', custom_format_file: ''
 })
 
 usePageMeta(() => ({ title: `AI Lesson Planner v2 - ${brand.value}` }))
@@ -598,6 +628,34 @@ async function uploadFile(event) {
 	}
 }
 
+async function uploadFormatFile(event) {
+	const file = event.target.files[0]
+	if (!file) return
+	
+	const formData = new FormData()
+	formData.append('file', file)
+	
+	uploadingFormat.value = true
+	try {
+		const token = window.csrf_token || (window.frappe && window.frappe.csrf_token)
+		const res = await fetch('/api/method/lms.lms.services.lesson_planner.api.upload_reference_file', {
+			method: 'POST',
+			headers: {
+				'X-Frappe-CSRF-Token': token
+			},
+			body: formData
+		})
+		const data = await res.json()
+		if (data.message && data.message.file_url) {
+			genForm.custom_format_file = data.message.file_url
+		}
+	} catch (e) {
+		console.error(e)
+	} finally {
+		uploadingFormat.value = false
+	}
+}
+
 // 5. Creating Lesson Plan Resource
 const createPlanResource = createResource({
 	url: 'lms.lms.services.lesson_planner.api.create_lesson_plan',
@@ -624,7 +682,8 @@ function handleGenerate() {
 		custom_requirements: genForm.custom_requirements || undefined,
 		output_format: genForm.output_format,
 		template_style: genForm.template_style,
-		target_course: genForm.target_course || undefined
+		target_course: genForm.target_course || undefined,
+		custom_format_file: genForm.custom_format_file || undefined
 	})
 }
 

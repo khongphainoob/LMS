@@ -11,6 +11,7 @@ class LessonPlanState(TypedDict):
     duration_minutes: int                # Thời lượng tiết dạy (default 45)
     reference_content: Optional[str]     # Nội dung tham khảo (file upload raw text)
     custom_requirements: Optional[str]   # Yêu cầu riêng của GV
+    custom_format_text: Optional[str]
     output_format: Literal["markdown", "docx", "latex", "lms_native"]
     target_course: Optional[str]         # LMS Course name (cho lms_native)
     
@@ -21,9 +22,12 @@ class LessonPlanState(TypedDict):
     # ===== INTERNAL =====
     lesson_outline: Optional[dict]       # Khung giáo án JSON từ Planner
     lesson_content: Optional[str]        # Nội dung Markdown từ Writer
-    diagrams: List[str]                  # List URL/code hình đã sinh
-    diagram_method: Optional[str]        # mermaid / matplotlib / image_gen
     assessment_items: Optional[List[dict]] # Câu hỏi đánh giá
+    
+    # Visuals & Diagrams
+    diagram_method: Optional[str]
+    diagrams: Optional[List[str]]
+    illustration_plan: Optional[str]
     
     # ===== HITL =====
     review_status: Optional[str]         # "pending" / "approved" / "revised"

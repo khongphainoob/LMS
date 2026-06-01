@@ -132,58 +132,88 @@ class RubricBuilderService(BaseService):
         }
 
     def export_rubric(self, name: str) -> str:
-        """Exports a rubric to a Word document and returns the file URL."""
-        from docx import Document
-        from docx.shared import Pt, Inches
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
-        import io
+        """Exports a rubric to a Word document using Pandoc (with MathJax) and returns the file URL."""
+        import os
+        import tempfile
+        import pypandoc
+        from frappe.utils.file_manager import save_file
 
         doc_data = self.get_rubric_detail(name)
-        document = Document()
         
-        # Title
-        title_p = document.add_heading(doc_data.get("title", "Rubric"), 0)
-        title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # 1. Generate Markdown content (Professional Educational Report Format)
+        title = doc_data.get('title', 'Rubric')
+        scale = doc_data.get('grading_scale', '10-point')
+        max_score = doc_data.get('max_score', 0)
+        desc = doc_data.get('description', '')
+
+        md_text = f"**BỘ GIÁO DỤC VÀ ĐÀO TẠO / SỞ GD&ĐT**  \n"
+        md_text += f"**TRƯỜNG / ĐƠN VỊ: .......................................**  \n\n"
+        md_text += f"# ĐÁP ÁN VÀ HƯỚNG DẪN CHẤM CHÍNH THỨC\n\n"
+        md_text += f"### **Môn / Bài thi:** {title}\n\n"
         
-        # Description
-        if doc_data.get("description"):
-            document.add_paragraph(doc_data.get("description"))
+        md_text += f"> **Thông tin chung:**\n"
+        md_text += f"> - **Thang điểm:** {scale}\n"
+        md_text += f"> - **Tổng điểm tối đa:** {max_score}\n"
+        
+        if desc:
+            md_text += f"> - **Ghi chú/Mô tả:** {desc}\n"
             
-        # Meta info
-        meta = document.add_paragraph()
-        meta.add_run(f"Scale: {doc_data.get('grading_scale', 'N/A')} | ").bold = True
-        meta.add_run(f"Max Score: {doc_data.get('max_score', 0)}").bold = True
+        md_text += "\n---\n\n"
         
-        document.add_paragraph("-" * 50)
-        
-        # Table
-        table = document.add_table(rows=1, cols=5)
-        table.style = 'Table Grid'
-        hdr_cells = table.rows[0].cells
-        hdr_cells[0].text = 'Criterion'
-        hdr_cells[1].text = 'Excellent'
-        hdr_cells[2].text = 'Good'
-        hdr_cells[3].text = 'Adequate'
-        hdr_cells[4].text = 'Poor'
+        # Table Header (Standard Vietnamese Exam Rubric Format)
+        md_text += "| Tiêu chí / Câu hỏi | Hướng dẫn chấm (Nội dung / Ý chi tiết) | Điểm |\n"
+        md_text += "|:---|:---|:---:|\n"
         
         for crit in doc_data.get("criteria", []):
-            row_cells = table.add_row().cells
-            row_cells[0].text = f"{crit.get('criterion_name')}\n({crit.get('max_score')} pts)"
-            row_cells[1].text = crit.get('level_excellent', '')
-            row_cells[2].text = crit.get('level_good', '')
-            row_cells[3].text = crit.get('level_adequate', '')
-            row_cells[4].text = crit.get('level_poor', '')
+            name_cell = str(crit.get('criterion_name', '')).replace('\n', ' ')
+            max_score = crit.get('max_score', 0)
             
-        # Save to private file
+            # Build the content cell intelligently
+            content_parts = []
+            desc = str(crit.get('description', '')).strip()
+            if desc:
+                content_parts.append(desc.replace('\n', '<br>'))
+                
+            exc = str(crit.get('level_excellent', '')).strip()
+            good = str(crit.get('level_good', '')).strip()
+            adeq = str(crit.get('level_adequate', '')).strip()
+            poor = str(crit.get('level_poor', '')).strip()
+            
+            # If it's a simple exam answer key (only one level populated)
+            if exc and not good and not adeq and not poor:
+                content_parts.append(exc.replace('\n', '<br>'))
+            else:
+                # If it's a full proficiency rubric
+                if exc: content_parts.append(f"**Xuất sắc:** {exc.replace(chr(10), '<br>')}")
+                if good: content_parts.append(f"**Khá/Giỏi:** {good.replace(chr(10), '<br>')}")
+                if adeq: content_parts.append(f"**Đạt:** {adeq.replace(chr(10), '<br>')}")
+                if poor: content_parts.append(f"**Chưa đạt:** {poor.replace(chr(10), '<br>')}")
+                
+            content_cell = "<br><br>".join(content_parts) if content_parts else "N/A"
+            
+            md_text += f"| **{name_cell}** | {content_cell} | **{max_score}** |\n"
+            
+        md_text += "\n"
+
+        # 2. Convert using pypandoc
+        with tempfile.NamedTemporaryFile(suffix=".md", delete=False) as temp_md:
+            temp_md.write(md_text.encode('utf-8'))
+            md_path = temp_md.name
+            
+        docx_path = md_path.replace(".md", ".docx")
+        try:
+            pypandoc.convert_file(md_path, 'docx', outputfile=docx_path, extra_args=["--mathjax"])
+            with open(docx_path, 'rb') as f:
+                docx_bytes = f.read()
+        finally:
+            if os.path.exists(md_path): os.remove(md_path)
+            if os.path.exists(docx_path): os.remove(docx_path)
+            
+        # 3. Save to Frappe Files
         file_name = f"Rubric_{name}.docx"
-        out = io.BytesIO()
-        document.save(out)
-        out.seek(0)
-        
-        from frappe.utils.file_manager import save_file
         file_doc = save_file(
             file_name,
-            out.getvalue(),
+            docx_bytes,
             "LMS Rubric Template",
             name,
             is_private=1,

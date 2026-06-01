@@ -1,6 +1,7 @@
 import frappe
 import json
 import pypandoc
+import re
 
 def generate_docx(exam_name: str) -> str:
     exam = frappe.get_doc("AI Exam", exam_name)
@@ -34,15 +35,23 @@ def generate_docx(exam_name: str) -> str:
         q_index += num_questions
         
         for q in section_questions:
-            md_lines.append(f"**Câu {q.question_number} ({q.score} điểm):** {q.question_text}")
+            points = q.points if q.points is not None else 0.25
+            md_lines.append(f"**Câu {q.question_number} ({points} điểm):** {q.question_text}")
             
-            if q.options and q.question_type == "Multiple Choice":
+            if q.options:
                 try:
                     options = json.loads(q.options)
                     for i, opt in enumerate(options):
-                        label = chr(65 + i) # A, B, C, D
-                        md_lines.append(f"- **{label}**. {opt}")
-                except:
+                        text = opt.get("text", str(opt)) if isinstance(opt, dict) else str(opt)
+                        text = re.sub(r'^[A-Za-z][\.\:\)]\s*', '', text)
+                        
+                        if q.question_type == "True/False":
+                            label = chr(97 + i) # a, b, c, d
+                            md_lines.append(f"{label}) {text}")
+                        else:
+                            label = chr(65 + i) # A, B, C, D
+                            md_lines.append(f"**{label}.** {text}")
+                except Exception:
                     pass
                     
             md_lines.append(f"\n**Đáp án:** {q.correct_answer}")

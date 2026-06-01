@@ -37,58 +37,9 @@ def get_rubric_detail(name):
 
 @frappe.whitelist()
 def export_rubric(name):
-	"""Exports a rubric template to a Word document."""
-	from docx import Document
-	from docx.shared import Inches, Pt
-	from docx.enum.text import WD_ALIGN_PARAGRAPH
-	import io
-
-	rubric = frappe.get_doc("LMS Rubric Template", name)
-	doc = Document()
-
-	# Title
-	title = doc.add_heading(rubric.title, 0)
-	title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-	# Description
-	if rubric.description:
-		doc.add_paragraph(rubric.description)
-
-	# Table
-	table = doc.add_table(rows=1, cols=6)
-	table.style = 'Table Grid'
-	hdr_cells = table.rows[0].cells
-	hdr_cells[0].text = _('Criterion')
-	hdr_cells[1].text = _('Excellent')
-	hdr_cells[2].text = _('Good')
-	hdr_cells[3].text = _('Adequate')
-	hdr_cells[4].text = _('Poor')
-	hdr_cells[5].text = _('Max Score')
-
-	for crit in rubric.criteria:
-		row_cells = table.add_row().cells
-		row_cells[0].text = crit.criterion_name
-		row_cells[1].text = crit.level_excellent or ""
-		row_cells[2].text = crit.level_good or ""
-		row_cells[3].text = crit.level_adequate or ""
-		row_cells[4].text = crit.level_poor or ""
-		row_cells[5].text = str(crit.max_score)
-
-	file_stream = io.BytesIO()
-	doc.save(file_stream)
-	file_stream.seek(0)
-
-	from frappe.utils.file_manager import save_file
-	file_doc = save_file(
-		f"Rubric_{name}.docx",
-		file_stream.getvalue(),
-		"LMS Rubric Template",
-		name,
-		is_private=0,
-		decode=False
-	)
-
-	return file_doc.file_url
+	"""Exports a rubric template to a Word document with MathJax support."""
+	from lms.lms.services.rubric_builder.rubric_builder_service import RubricBuilderService
+	return RubricBuilderService().export_rubric(name)
 
 @frappe.whitelist()
 def get_ai_grading_sessions(grading_type=None, start=0, limit=20, search=None):
@@ -754,6 +705,27 @@ def _run_ai_grading_batch_job(session: str, requested_by: str | None = None) -> 
 			)
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), f"AI Grading enqueue failed: {submission_id}")
+
+	# Notify teacher: batch dispatched
+	if requested_by and submissions:
+		try:
+			from lms.lms.services.hitl.notification import notify_user_direct
+			from lms.lms.utils import get_lms_route
+			session_name = frappe.db.get_value("AI Grading Session", session, "session_name") or session
+			notify_user_direct(
+				for_user=requested_by,
+				subject=f"⚡ Chấm điểm AI đang xử lý: {session_name}",
+				email_content=(
+					f"Phiên chấm điểm <b>{session_name}</b> đã bắt đầu xử lý.<br>"
+					f"<b>{len(submissions)}</b> bài đã được đưa vào hàng đợi AI.<br>"
+					f"Kết quả sẽ xuất hiện dần trên giao diện — bài nào bị gắn cờ sẽ được thông báo riêng."
+				),
+				document_type="AI Grading Session",
+				document_name=session,
+				link=get_lms_route("ai-grading"),
+			)
+		except Exception:
+			pass
 
 
 try:

@@ -33,6 +33,11 @@
               <FormControl type="number" :label="__('Duration (min)')" v-model="formData.duration_minutes" />
               <FormControl type="select" :label="__('Language')" v-model="formData.language" :options="[{label: 'Tiếng Việt', value: 'vi'}, {label: 'English', value: 'en'}]" />
             </div>
+
+            <div class="space-y-4 pt-2">
+              <FormControl type="select" :label="__('Exam Format')" v-model="formData.exam_format" :options="['MOET 2025', 'Mixed (Trắc nghiệm + Tự luận)', 'Traditional MCQ', 'Custom']" />
+              <FormControl v-if="formData.exam_format === 'Custom'" type="textarea" :label="__('Custom Format Template')" v-model="formData.custom_format_template" :placeholder="__('Describe your exact exam format requirements here...')" />
+            </div>
           </div>
 
           <!-- Source Material -->
@@ -70,6 +75,27 @@
             </div>
           </div>
 
+          <!-- Section Configs -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2">{{ __('4. Cấu trúc Phần thi (Tùy chọn)') }}</h3>
+            <p class="text-sm text-slate-500">{{ __('Chỉ định rõ số lượng câu hỏi và chủ đề cho từng phần. Bỏ trống nếu muốn AI tự quyết định.') }}</p>
+            
+            <div class="space-y-4">
+              <div v-for="(sec, idx) in section_configs" :key="idx" class="p-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 relative">
+                <button v-if="formData.exam_format !== 'MOET 2025'" type="button" class="absolute top-2 right-2 text-slate-400 hover:text-red-500" @click="removeSection(idx)">✕</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                  <FormControl type="text" :label="__('Tên phần thi')" v-model="sec.section_name" :disabled="formData.exam_format === 'MOET 2025'" />
+                  <FormControl type="number" :label="__('Số lượng câu hỏi')" v-model="sec.num_questions" />
+                </div>
+                <FormControl type="text" :label="__('Chủ đề tập trung (VD: Sóng cơ, Dao động...)')" v-model="sec.topics" />
+              </div>
+            </div>
+            
+            <Button v-if="formData.exam_format !== 'MOET 2025'" type="button" variant="subtle" icon-left="plus" @click="addSection" class="mt-2">
+              {{ __('Thêm Phần Thi') }}
+            </Button>
+          </div>
+
           <!-- Actions -->
           <div class="flex justify-end items-center gap-4 pt-6 border-t border-slate-100 dark:border-slate-700 mt-8">
             <Button variant="subtle" theme="gray" class="px-6 border border-slate-300/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors" @click="router.push({ name: 'ExamDashboard' })">
@@ -95,7 +121,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { createResource, Button, FormControl, FileUploader } from 'frappe-ui'
 
@@ -109,6 +135,8 @@ const formData = reactive({
   exam_type: '45-Minute Test',
   duration_minutes: 45,
   language: 'vi',
+  exam_format: 'MOET 2025',
+  custom_format_template: '',
   teacher_instructions: '',
   file_url: null
 })
@@ -120,12 +148,37 @@ const difficulty = reactive({
   van_dung_cao: 20
 })
 
+const section_configs = reactive([])
+
+watch(() => formData.exam_format, (newFormat) => {
+  if (newFormat === 'MOET 2025') {
+    section_configs.splice(0, section_configs.length, 
+      { section_name: 'Phần I: Câu trắc nghiệm nhiều phương án lựa chọn', num_questions: 18, topics: '' },
+      { section_name: 'Phần II: Câu trắc nghiệm đúng sai', num_questions: 4, topics: '' },
+      { section_name: 'Phần III: Câu trắc nghiệm trả lời ngắn', num_questions: 6, topics: '' }
+    )
+  } else {
+    if (section_configs.length > 0 && section_configs[0].section_name.startsWith('Phần I:')) {
+      section_configs.splice(0, section_configs.length)
+    }
+  }
+}, { immediate: true })
+
+const addSection = () => {
+  section_configs.push({ section_name: '', num_questions: 10, topics: '' })
+}
+
+const removeSection = (idx) => {
+  section_configs.splice(idx, 1)
+}
+
 const submitResource = createResource({
   url: 'lms.lms.services.ai_exam.api.create_exam_request',
   makeParams() {
     return {
       ...formData,
-      difficulty_distribution: JSON.stringify(difficulty)
+      difficulty_distribution: JSON.stringify(difficulty),
+      section_configs_json: section_configs.length > 0 ? JSON.stringify(section_configs) : "[]"
     }
   },
   onSuccess(data) {

@@ -27,7 +27,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Multiple Choice\nShort Answer\nEssay"
+   "options": "Multiple Choice\nTrue/False\nShort Answer\nEssay"
   },
   {
    "fieldname": "question_text",
@@ -36,7 +36,7 @@
    "label": "Question Text"
   },
   {
-   "depends_on": "eval:doc.question_type=='Multiple Choice'",
+   "depends_on": "eval:in_list(['Multiple Choice', 'True/False'], doc.question_type)",
    "fieldname": "options",
    "fieldtype": "Code",
    "label": "Options (JSON)"

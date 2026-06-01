@@ -97,9 +97,42 @@ def _run_rubric_generation_job(rubric_name, assessment_description, file_url, gr
             
         doc.save(ignore_permissions=True)
         frappe.db.commit()
+
+        # Notify creator: Rubric generated successfully
+        from lms.lms.services.hitl.notification import notify_user_direct
+        from lms.lms.utils import get_lms_route
+        notify_user_direct(
+            for_user=frappe.db.get_value("LMS Rubric Template", rubric_name, "owner"),
+            subject=f"✅ Rubric tạo xong: {doc.title}",
+            email_content=(
+                f"Rubric <b>{doc.title}</b> đã được AI sinh thành công.<br>"
+                f"Rubric có <b>{len(doc.criteria)}</b> tiêu chí, tổng điểm tối đa <b>{doc.max_score}</b>."
+            ),
+            document_type="LMS Rubric Template",
+            document_name=rubric_name,
+            link=get_lms_route("rubric-builder"),
+        )
     except Exception as e:
         frappe.db.set_value("LMS Rubric Template", rubric_name, "description", f"Lỗi sinh AI: {str(e)}")
         frappe.db.commit()
+
+        # Notify creator: generation failed
+        try:
+            from lms.lms.services.hitl.notification import notify_user_direct
+            from lms.lms.utils import get_lms_route
+            notify_user_direct(
+                for_user=frappe.db.get_value("LMS Rubric Template", rubric_name, "owner"),
+                subject=f"❌ Rubric sinh thất bại",
+                email_content=(
+                    f"Rubric <b>{rubric_name}</b> bị lỗi khi sinh AI.<br>"
+                    f"<b>Lỗi:</b> {str(e)}<br>Bạn có thể bấm Retry để thử lại."
+                ),
+                document_type="LMS Rubric Template",
+                document_name=rubric_name,
+                link=get_lms_route("rubric-builder"),
+            )
+        except Exception:
+            pass
 
 @frappe.whitelist()
 def delete_rubric(name):
