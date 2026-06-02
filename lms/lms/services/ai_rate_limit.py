@@ -5,14 +5,67 @@ from frappe.utils.caching import redis_cache
 class AILimitExceededError(frappe.ValidationError):
     pass
 
-def get_user_tier(user):
-    tier_name = frappe.db.get_value("User", user, "ai_subscription_tier")
-    if tier_name:
-        return tier_name
+def init_default_tiers():
+    """Tự động khởi tạo 3 mức Tier cơ bản nếu chưa có."""
+    if frappe.db.count("LMS AI Tier") > 0:
+        return
+        
+    tiers = [
+        {"name": "Free", "is_default": 1, "limits": [
+            {"service": "Chatbot", "period": "Daily", "max_requests": 20},
+            {"service": "Quiz Gen", "period": "Daily", "max_requests": 5},
+            {"service": "Lesson Plan", "period": "Daily", "max_requests": 5},
+            {"service": "Rubric Gen", "period": "Daily", "max_requests": 5},
+            {"service": "Socratic", "period": "Daily", "max_requests": 20}
+        ]},
+        {"name": "Plus", "is_default": 0, "limits": [
+            {"service": "Chatbot", "period": "Daily", "max_requests": 100},
+            {"service": "Quiz Gen", "period": "Daily", "max_requests": 30},
+            {"service": "Lesson Plan", "period": "Daily", "max_requests": 30},
+            {"service": "Rubric Gen", "period": "Daily", "max_requests": 30},
+            {"service": "Socratic", "period": "Daily", "max_requests": 100}
+        ]},
+        {"name": "Pro", "is_default": 0, "limits": [
+            {"service": "Chatbot", "period": "Daily", "max_requests": 500},
+            {"service": "Quiz Gen", "period": "Daily", "max_requests": 150},
+            {"service": "Lesson Plan", "period": "Daily", "max_requests": 150},
+            {"service": "Rubric Gen", "period": "Daily", "max_requests": 150},
+            {"service": "Socratic", "period": "Daily", "max_requests": 500}
+        ]}
+    ]
     
-    # Fallback to default tier
+    for t in tiers:
+        try:
+            doc = frappe.get_doc({
+                "doctype": "LMS AI Tier",
+                "tier_name": t["name"],
+                "is_default": t["is_default"]
+            })
+            for limit in t["limits"]:
+                doc.append("limits", limit)
+            doc.insert(ignore_permissions=True)
+        except Exception as e:
+            pass
+            
+    frappe.db.commit()
+
+def get_user_tier(user):
+    init_default_tiers()
+    
+    # 1. Kiểm tra xem User có được gán trong bảng LMS AI Tier User không
+    try:
+        if frappe.db.exists("LMS AI Tier User", user):
+            tier_name = frappe.db.get_value("LMS AI Tier User", user, "ai_tier")
+            if tier_name:
+                return tier_name
+    except Exception:
+        pass
+    
+    # 2. Fallback to default tier (Free)
     default_tier = frappe.db.get_value("LMS AI Tier", {"is_default": 1}, "name")
-    return default_tier
+    if default_tier:
+        return default_tier
+    return "Free"
 
 def check_and_record_usage(user, service_type, increment=1):
     """
@@ -23,6 +76,28 @@ def check_and_record_usage(user, service_type, increment=1):
     # Exclude Administrator from limits
     if user == "Administrator":
         return True
+
+    # 1. Kiểm tra ngân sách ngày toàn hệ thống (Daily Budget Limit)
+    try:
+        from lms.lms.services.cost_tracking import CostTrackingService
+        from datetime import date
+        
+        tracker = CostTrackingService()
+        today_str = date.today().isoformat()
+        daily_cost_key = f"ai_cost:daily:{today_str}"
+        
+        current_daily_cost = float(frappe.cache().get_value(daily_cost_key) or 0.0)
+        max_daily = tracker._get_max_cost_per_day()
+        
+        if current_daily_cost >= max_daily:
+            frappe.throw(
+                f"Hệ thống AI đã vượt quá hạn mức ngân sách ngày cho phép ({max_daily} USD). Vui lòng thử lại vào ngày mai hoặc liên hệ Quản trị viên.",
+                title="Hạn mức ngân sách hệ thống đã hết"
+            )
+    except Exception as e:
+        if isinstance(e, frappe.ValidationError):
+            raise e
+        pass
 
     tier_name = get_user_tier(user)
     if not tier_name:

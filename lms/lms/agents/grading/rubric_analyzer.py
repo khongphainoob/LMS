@@ -38,7 +38,7 @@ def _extract_images(html_text: str) -> list:
 
 class RubricAgent:
     def __init__(self):
-        self.model = get_model("rubric_gen").with_structured_output(RubricAnalysis)
+        self.model = get_model("rubric_gen")[0].with_structured_output(RubricAnalysis)
 
     def analyze_rubric(self, rubric_text, items, images_base64=None):
         prompt_text = f"""

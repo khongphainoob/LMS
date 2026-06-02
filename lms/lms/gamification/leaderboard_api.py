@@ -68,6 +68,152 @@ def calculate_composite_score(member, batch=None):
 		"hours_spent": round(total_hours, 1),
 	}
 
+def get_streak_info_batch(members):
+	if not members:
+		return {}
+
+	# Fetch timezones for all users in a single query
+	user_tz_map = {
+		u.name: u.time_zone or "UTC"
+		for u in frappe.get_all("User", filters={"name": ["in", members]}, fields=["name", "time_zone"])
+	}
+
+	doctypes = [
+		"LMS Course Progress",
+		"LMS Quiz Submission",
+		"LMS Assignment Submission",
+		"LMS Programming Exercise Submission",
+	]
+
+	from lms.lms.gamification.utils import convert_utc_to_user_tz, calculate_streaks, calculate_current_streak
+
+	member_dates = {}
+	for dt in doctypes:
+		try:
+			records = frappe.get_all(dt, filters={"member": ["in", members]}, fields=["member", "creation"])
+			for r in records:
+				user_tz = user_tz_map.get(r.member, "UTC")
+				local_dt = convert_utc_to_user_tz(r.creation, user_tz)
+				d = local_dt.date() if hasattr(local_dt, "date") else local_dt
+				member_dates.setdefault(r.member, set()).add(d)
+		except Exception:
+			pass
+
+	streak_results = {}
+	for m in members:
+		dates = sorted(list(member_dates.get(m, [])))
+		streak, longest_streak = calculate_streaks(dates)
+		current_streak = calculate_current_streak(dates, streak)
+		streak_results[m] = {
+			"current_streak": current_streak,
+			"longest_streak": longest_streak,
+		}
+
+	return streak_results
+
+def calculate_composite_score_batch(members, batch=None):
+	if not members:
+		return {}
+
+	W_QUIZ = 0.30
+	W_ASSIGNMENT = 0.25
+	W_COMPLETION = 0.25
+	W_STREAK = 0.10
+	W_HOURS = 0.10
+	STREAK_CAP = 30
+	HOURS_CAP = 100
+
+	# Get courses in batch
+	courses = []
+	if batch:
+		courses = frappe.get_all("Batch Course", {"parent": batch}, pluck="course")
+
+	# Fetch quizzes in batch
+	quiz_filters = {"member": ["in", members]}
+	if batch and courses:
+		quiz_filters["course"] = ["in", courses]
+	quiz_data = frappe.db.get_all("LMS Quiz Submission", filters=quiz_filters, fields=["member", "percentage"])
+	
+	member_quizzes = {}
+	for q in quiz_data:
+		member_quizzes.setdefault(q.member, []).append(flt(q.percentage))
+
+	# Fetch assignments in batch
+	assign_filters = {"member": ["in", members], "status": ["in", ["Pass", "Fail"]]}
+	if batch and courses:
+		assign_filters["course"] = ["in", courses]
+	assignment_data = frappe.db.get_all(
+		"LMS Assignment Submission",
+		filters=assign_filters,
+		fields=["member", "numeric_score", "score_out_of"],
+	)
+	
+	member_assignments = {}
+	for a in assignment_data:
+		if flt(a.score_out_of) > 0:
+			member_assignments.setdefault(a.member, []).append(flt(a.numeric_score) / flt(a.score_out_of) * 100)
+
+	# Fetch course completions in batch
+	enroll_filters = {"member": ["in", members]}
+	if batch and courses:
+		enroll_filters["course"] = ["in", courses]
+	enrollment_data = frappe.db.get_all("LMS Enrollment", filters=enroll_filters, fields=["member", "progress"])
+	
+	member_enrollments = {}
+	for e in enrollment_data:
+		member_enrollments.setdefault(e.member, []).append(flt(e.progress))
+
+	# Fetch video watch times in batch
+	watch_data = frappe.db.sql("""
+		SELECT member, SUM(watch_time) as total_seconds
+		FROM `tabLMS Video Watch Duration`
+		WHERE member IN %(members)s
+		GROUP BY member
+	""", {"members": members}, as_dict=True)
+	member_watch = {w.member: w.total_seconds for w in watch_data}
+
+	# Fetch streaks in batch
+	streak_data = get_streak_info_batch(members)
+
+	results = {}
+	for m in members:
+		quizzes = member_quizzes.get(m, [])
+		avg_quiz_pct = sum(quizzes) / len(quizzes) if quizzes else 0
+
+		assignments = member_assignments.get(m, [])
+		avg_assignment_pct = sum(assignments) / len(assignments) if assignments else 0
+
+		enrollments = member_enrollments.get(m, [])
+		completion_pct = sum(enrollments) / len(enrollments) if enrollments else 0
+
+		current_streak = streak_data.get(m, {}).get("current_streak", 0)
+
+		total_seconds = member_watch.get(m, 0) or 0
+		total_hours = flt(total_seconds) / 3600
+
+		streak_score = min(current_streak / STREAK_CAP, 1) * 100
+		hours_score = min(total_hours / HOURS_CAP, 1) * 100
+
+		composite_score = round(
+			(W_QUIZ * avg_quiz_pct)
+			+ (W_ASSIGNMENT * avg_assignment_pct)
+			+ (W_COMPLETION * completion_pct)
+			+ (W_STREAK * streak_score)
+			+ (W_HOURS * hours_score),
+			1,
+		)
+
+		results[m] = {
+			"composite_score": composite_score,
+			"avg_quiz_score": round(avg_quiz_pct, 1),
+			"avg_assignment_score": round(avg_assignment_pct, 1),
+			"completion_pct": round(completion_pct, 1),
+			"streak_days": current_streak,
+			"hours_spent": round(total_hours, 1),
+		}
+
+	return results
+
 @frappe.whitelist()
 def get_leaderboard(batch=None, period="all_time", limit=25):
 	limit = cint(limit)
@@ -106,11 +252,19 @@ def get_leaderboard(batch=None, period="all_time", limit=25):
 		limit=limit
 	)
 
-	# Fallback if scheduler hasn't run yet
+	# Fallback if scheduler hasn't run yet - now extremely fast with batching!
 	if not entries and members:
 		leaderboard = []
+		scores = calculate_composite_score_batch(members, batch=batch)
 		for member in members:
-			stats = calculate_composite_score(member, batch=batch)
+			stats = scores.get(member, {
+				"composite_score": 0,
+				"avg_quiz_score": 0,
+				"avg_assignment_score": 0,
+				"completion_pct": 0,
+				"streak_days": 0,
+				"hours_spent": 0
+			})
 			stats["member"] = member
 			leaderboard.append(stats)
 

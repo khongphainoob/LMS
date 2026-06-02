@@ -2356,7 +2356,7 @@ Start a new journey,Bắt đầu một hành trình mới
 Start learning,Bắt đầu học
 Start the first lesson or try searching with a different keyword.,Bắt đầu bài học đầu tiên hoặc thử tìm với từ khóa khác.
 Started!,Đã bắt đầu!
-Starting a new session,Đang khởi tạo phiên mới
+Start a new session,Khởi tạo phiên mới
 Starting...,Đang bắt đầu...
 Still struggling?,Vẫn còn khó khăn?
 Stop,Dừng
@@ -2536,3 +2536,38 @@ Generate
 "Loading Exam...","Đang Tải Đề Thi..."
 "DOCX","DOCX"
 "Total Questions","Tổng Số Câu Hỏi"
+"AI đang viết từng phần thi theo khung đề bạn đã duyệt. Quá trình này mất vài phút, bạn có thể rời khỏi trang và quay lại sau.","AI đang viết từng phần thi theo khung đề bạn đã duyệt. Quá trình này mất vài phút, bạn có thể rời khỏi trang và quay lại sau."
+Approve & Generate Exam,Duyệt & Tạo Đề thi
+Describe your exact exam format requirements here...,Mô tả chi tiết yêu cầu định dạng đề thi của bạn tại đây...
+Exam Format,Định dạng Đề thi
+Exam Generator,Tạo Đề Thi Tự Động
+Export failed,Xuất file thất bại
+Export failed: ,Xuất file thất bại: 
+Feedback for AI (Optional),Ý kiến phản hồi cho AI (Không bắt buộc)
+"Please review the generated exam structure. You can either approve it to generate the full exam, or provide feedback to let the AI adjust the blueprint.","Vui lòng xem lại cấu trúc đề thi được tạo. Bạn có thể duyệt để tiến hành sinh đề đầy đủ, hoặc gửi phản hồi để AI điều chỉnh khung đề."
+Print Preview & Export,Xem trước & Xuất đề thi
+Regenerate with Feedback,Tạo lại theo phản hồi
+Retry,Thử lại
+Review Exam Blueprint,Xem xét Khung đề thi
+Difficulty Distribution (%),Phân bố độ khó (%)
+Remembering,Nhận biết
+Understanding,Thông hiểu
+Applying,Vận dụng
+Advanced Applying,Vận dụng cao
+4. Section Structure (Optional),4. Cấu trúc Phần thi (Tùy chọn)
+Specify the number of questions and topics for each section. Leave blank to let AI decide.,Chỉ định rõ số lượng câu hỏi và chủ đề cho từng phần. Bỏ trống nếu muốn AI tự quyết định.
+Section Name,Tên phần thi
+Number of Questions,Số lượng câu hỏi
+"Focus Topics (e.g., Mechanics, Waves...)","Chủ đề tập trung (VD: Sóng cơ, Dao động...)"
+Add Section,Thêm Phần Thi
+"Please wait, generating exam...",Vui lòng chờ đang tạo bài...
+Error generating exam: ,Lỗi tạo đề: 
+Generating questions...,Đang sinh câu hỏi...
+"AI is writing each exam section based on the approved blueprint. This takes a few minutes, you can leave the page and return later.","AI đang viết từng phần thi theo khung đề bạn đã duyệt. Quá trình này mất vài phút, bạn có thể rời khỏi trang và quay lại sau."
+Topic Distribution,Phân bổ chủ đề
+Quantity,Số lượng
+Question Type,Loại câu hỏi
+Starting regeneration...,Đang bắt đầu tạo lại đề...
+Error: ,Lỗi: 
+Are you sure you want to regenerate this exam?,Bạn có chắc chắn muốn tạo lại đề thi này không?
+Are you sure you want to delete this exam? All associated data will be permanently deleted!,Bạn có chắc chắn muốn xóa đề thi này không? Mọi dữ liệu liên quan sẽ bị xóa vĩnh viễn!

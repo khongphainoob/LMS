@@ -94,6 +94,14 @@
 
                   <div class="lg:col-span-3 flex items-center justify-end gap-2">
                     <button 
+                      v-if="quiz.status === 'Failed'"
+                      @click.stop="retryQuiz(quiz.name)"
+                      class="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all border border-slate-100 dark:border-slate-700"
+                      title="Thử lại"
+                    >
+                      <icons.RefreshCw class="h-3.5 w-3.5" />
+                    </button>
+                    <button 
                       @click.stop="router.push({ name: 'AIQuizDetail', params: { quizID: quiz.name } })"
                       class="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-all border border-slate-100 dark:border-slate-700"
                     >
@@ -163,7 +171,7 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { createResource, createListResource } from 'frappe-ui'
+import { createResource, createListResource, call } from 'frappe-ui'
 import * as icons from 'lucide-vue-next'
 
 const router = useRouter()
@@ -190,6 +198,19 @@ const deleteQuiz = (name) => {
       quizzesResource.fetch()
       statsResource.fetch()
     })
+  }
+}
+
+const retryQuiz = (name) => {
+  if (window.confirm(__('Are you sure you want to retry this failed quiz?'))) {
+    call('lms.lms.services.ai_quiz.api.retry_quiz', { quiz_id: name })
+      .then(() => {
+        quizzesResource.fetch()
+        statsResource.fetch()
+      })
+      .catch((err) => {
+        console.error(err)
+      })
   }
 }
 

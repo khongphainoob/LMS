@@ -10,17 +10,18 @@ def generate_docx(exam_name: str) -> str:
     md_lines = []
     
     # Header
-    school = exam.school_name or "TRƯỜNG........................."
-    dept = exam.department or "TỔ.............................."
-    md_lines.append(f"**{school}** | **CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM**")
-    md_lines.append(f"**{dept}** | **Độc lập - Tự do - Hạnh phúc**")
-    md_lines.append("---")
+    school = exam.get("school_name") or "TRƯỜNG........................."
+    dept = exam.get("department") or "TỔ.............................."
+    md_lines.append(f"**{school}** | **CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM**\n")
+    md_lines.append(f"**{dept}** | **Độc lập - Tự do - Hạnh phúc**\n")
+    md_lines.append("--- \n")
     
-    md_lines.append(f"# {exam.title}")
-    md_lines.append(f"**Môn:** {exam.subject} - **Lớp:** {exam.grade_level}")
-    md_lines.append(f"**Thời gian làm bài:** {exam.duration_minutes} phút")
-    md_lines.append("\n**Họ và tên học sinh:** .......................................................................")
-    md_lines.append("**Lớp:** ........................ **Số báo danh:** ........................")
+    md_lines.append(f"# **{exam.title}**\n")
+    md_lines.append(f"**Môn học:** {exam.subject}\n")
+    md_lines.append(f"**Lớp:** {exam.grade_level}\n")
+    md_lines.append(f"**Thời gian làm bài:** {exam.duration_minutes} phút\n")
+    md_lines.append("\n**Họ và tên học sinh:** .......................................................................\n")
+    md_lines.append("**Lớp:** ........................ **Số báo danh:** ........................\n")
     md_lines.append("\n---\n")
     
     questions = frappe.get_all("AI Exam Question", filters={"parent": exam_name}, fields=["*"], order_by="idx asc")
@@ -36,27 +37,33 @@ def generate_docx(exam_name: str) -> str:
         
         for q in section_questions:
             points = q.points if q.points is not None else 0.25
-            md_lines.append(f"**Câu {q.question_number} ({points} điểm):** {q.question_text}")
+            q_num = q.question_number if q.question_number else q.idx
+            md_lines.append(f"**Câu {q_num} ({points} điểm):** {q.question_text}\n")
             
             if q.options:
                 try:
                     options = json.loads(q.options)
                     for i, opt in enumerate(options):
-                        text = opt.get("text", str(opt)) if isinstance(opt, dict) else str(opt)
+                        text = ''
+                        if isinstance(opt, dict):
+                            text = opt.get("option_text") or opt.get("text") or str(opt)
+                        else:
+                            text = str(opt)
+                        text = str(text)
                         text = re.sub(r'^[A-Za-z][\.\:\)]\s*', '', text)
                         
                         if q.question_type == "True/False":
                             label = chr(97 + i) # a, b, c, d
-                            md_lines.append(f"{label}) {text}")
+                            md_lines.append(f"{label}) {text}\n")
                         else:
                             label = chr(65 + i) # A, B, C, D
-                            md_lines.append(f"**{label}.** {text}")
+                            md_lines.append(f"**{label}.** {text}\n")
                 except Exception:
                     pass
                     
-            md_lines.append(f"\n**Đáp án:** {q.correct_answer}")
+            md_lines.append(f"**Đáp án:** {q.correct_answer}\n")
             if q.solution:
-                md_lines.append(f"**Lời giải:**\n{q.solution}")
+                md_lines.append(f"**Lời giải:**\n{q.solution}\n")
                 
             md_lines.append("\n---\n")
             

@@ -21,6 +21,7 @@
   "max_tokens",
   "cost_per_1m_input",
   "cost_per_1m_output",
+  "cost",
   "section_break_prompt",
   "system_prompt_override"
  ],
@@ -31,7 +32,7 @@
    "fieldtype": "Autocomplete",
    "in_list_view": 1,
    "label": "Agent Name",
-   "options": "chatbot\ngrading_aggregator\ngrading_logic\ngrading_mcq\ngrading_reviewer\ngrading_rubric\ngrading_visual\nlesson_planner\nquiz_generator\nsocratic_evaluator\nsocratic_hint\nsocratic_tutor\ntools_ocr\ntools_ocr_cleaner",
+   "options": "chatbot\ngrading_aggregator\ngrading_logic\ngrading_mcq\ngrading_reviewer\ngrading_rubric\ngrading_visual\nlesson_planner\nquiz_generator\nexam_generator\nsocratic_evaluator\nsocratic_hint\nsocratic_tutor\ntools_ocr\ntools_ocr_cleaner",
    "reqd": 1
   },
   {
@@ -129,6 +130,14 @@
    "fieldname": "cost_per_1m_output",
    "fieldtype": "Float",
    "label": "Cost per 1M Output Tokens (USD)"
+  },
+  {
+   "default": "0",
+   "description": "Total actual cost spent by this agent (USD)",
+   "fieldname": "cost",
+   "fieldtype": "Float",
+   "label": "Total Cost Spent (USD)",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

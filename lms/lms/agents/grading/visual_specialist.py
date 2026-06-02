@@ -3,8 +3,9 @@ import logging
 import base64
 from typing import List, Dict
 from langchain_core.messages import HumanMessage
-from .shared_context import VisualPageReport, GradingContext
+from .shared_context import VisualPageReport, GradingContext, observe
 from ..provider import get_llm as get_model
+from lms.lms.services.observability import get_unified_config_dict
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ RUBRIC CONTEXT:
 """
 
 def _get_gemini_vision_model():
-    return get_model("visual")
+    return get_model("visual")[0]
 
 def _encode_image(image_path: str) -> str:
     import frappe
@@ -85,6 +86,7 @@ def _encode_image(image_path: str) -> str:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
 
+@observe(as_type="generation", name="Visual Specialist Analysis")
 def run_visual_analysis(context: GradingContext, image_paths: List[str], page_types: List[str]) -> List[VisualPageReport]:
     """
     Phân tích visual cho một tập hợp các trang.
@@ -125,7 +127,10 @@ def run_visual_analysis(context: GradingContext, image_paths: List[str], page_ty
 
         try:
             msg = HumanMessage(content=content)
-            response = model.invoke([msg])
+            
+            session_id = context.get('session_id')
+            config = get_unified_config_dict(agent_name="Visual Specialist", session_id=session_id, tags=["AI Grading"])
+            response = model.invoke([msg], config=config)
             
             # Parse JSON results
             import re

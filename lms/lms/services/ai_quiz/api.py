@@ -9,10 +9,26 @@ def create_quiz_request(title, bloom_level, language, prompt=None, file_url=None
     from lms.lms.services.ai_rate_limit import check_and_record_usage
     check_and_record_usage(frappe.session.user, "Quiz Gen", increment=1)
     
+    # Resilient mapping for bloom_level from frontend to valid Frappe options
+    bloom_map = {
+        "apply/analyze": "Analyze",
+        "apply": "Áp dụng",
+        "create": "Tạo",
+        "remember": "Remember",
+        "understand": "Understand",
+        "analyze": "Analyze",
+        "evaluate": "Evaluate"
+    }
+    safe_bloom = bloom_level
+    if bloom_level and bloom_level.lower() in bloom_map:
+        safe_bloom = bloom_map[bloom_level.lower()]
+    elif bloom_level == "Apply/Analyze":
+        safe_bloom = "Analyze"
+        
     quiz_doc = frappe.get_doc({
         "doctype": "AI Quiz",
         "title": title,
-        "bloom_level": bloom_level,
+        "bloom_level": safe_bloom,
         "language": language,
         "additional_prompt": prompt,
         "source_file": file_url,
@@ -46,6 +62,24 @@ def get_quiz_stats():
     }
 
 @frappe.whitelist()
+def retry_quiz(quiz_id):
+    """
+    Retries a failed AI Quiz by re-enqueuing the orchestrator.
+    """
+    quiz_doc = frappe.get_doc("AI Quiz", quiz_id)
+    if quiz_doc.status != "Failed":
+        frappe.throw("Chỉ có thể thử lại các Quiz đã thất bại.")
+        
+    frappe.enqueue(
+        "lms.lms.agents.quiz.orchestrator.generate_quiz_orchestrator",
+        queue="long",
+        timeout=600,
+        quiz_id=quiz_id,
+        config=quiz_doc.config
+    )
+    return {"status": "success", "message": "Đã xếp hàng thử lại thành công!"}
+
+@frappe.whitelist()
 def upload_source_file():
     """
     Hardened custom upload handler with extension and size validation.
@@ -71,11 +105,11 @@ def upload_source_file():
         if ext not in allowed_extensions:
             frappe.throw(f"Unsupported file type ({ext}). Allowed: PDF, DOCX, TXT.")
 
-        # 3. Security: Validate Size (Max 20MB)
-        MAX_SIZE = 20 * 1024 * 1024 # 20MB
+        # 3. Security: Validate Size (Max 100MB)
+        MAX_SIZE = 100 * 1024 * 1024 # 100MB
         content = file.read()
         if len(content) > MAX_SIZE:
-            frappe.throw("File is too large. Maximum size allowed is 20MB.")
+            frappe.throw("File is too large. Maximum size allowed is 100MB.")
         
         if not content:
             frappe.throw("File content is empty.")
@@ -140,52 +174,57 @@ def sync_to_lms(quiz_id):
     """
     Syncs an AI Quiz to a real LMS Quiz with LMS Questions.
     """
-    ai_quiz = frappe.get_doc("AI Quiz", quiz_id)
-    
-    if not ai_quiz.questions:
-        frappe.throw("Không có câu hỏi nào để đồng bộ.")
+    try:
+        ai_quiz = frappe.get_doc("AI Quiz", quiz_id)
         
-    # 1. Create LMS Quiz
-    lms_quiz = frappe.get_doc({
-        "doctype": "LMS Quiz",
-        "title": ai_quiz.title,
-        "passing_percentage": 50,
-        "duration": 30
-    })
-    lms_quiz.insert(ignore_permissions=True)
-    
-    from frappe.utils import cint
-    
-    # 2. Add Questions
-    for q in ai_quiz.questions:
-        question_doc = frappe.new_doc("LMS Question")
-        question_doc.question = str(q.question)
-        
-        type_map = {
-            "choices": "Choices",
-            "user input": "User Input",
-            "open ended": "Open Ended"
-        }
-        question_doc.type = type_map.get((q.type or "Choices").lower(), "Choices")
-        
-        for n in range(1, 5):
-            question_doc.set(f"option_{n}", q.get(f"option_{n}"))
-            question_doc.set(f"is_correct_{n}", cint(q.get(f"is_correct_{n}")))
-            if n == 1:
-                question_doc.set(f"explanation_{n}", q.get("explanation"))
-            question_doc.set(f"possibility_{n}", q.get(f"possibility_{n}"))
+        if not ai_quiz.questions:
+            frappe.throw("Không có câu hỏi nào để đồng bộ.")
             
-        question_doc.save(ignore_permissions=True)
-        
-        child_doc = frappe.get_doc({
-            "doctype": "LMS Quiz Question",
-            "parent": lms_quiz.name,
-            "parentfield": "questions",
-            "parenttype": "LMS Quiz",
-            "question": question_doc.name,
-            "marks": q.points or 1
+        # 1. Create LMS Quiz
+        lms_quiz = frappe.get_doc({
+            "doctype": "LMS Quiz",
+            "title": ai_quiz.title,
+            "passing_percentage": 50,
+            "duration": 30
         })
-        child_doc.insert(ignore_permissions=True)
+        lms_quiz.insert(ignore_permissions=True)
         
-    frappe.db.commit()
-    return {"status": "success", "lms_quiz_id": lms_quiz.name}
+        from frappe.utils import cint
+        
+        # 2. Add Questions
+        for q in ai_quiz.questions:
+            question_doc = frappe.new_doc("LMS Question")
+            question_doc.question = str(q.question)
+            
+            type_map = {
+                "choices": "Choices",
+                "user input": "User Input",
+                "open ended": "Open Ended"
+            }
+            question_doc.type = type_map.get((q.type or "Choices").lower(), "Choices")
+            
+            for n in range(1, 5):
+                question_doc.set(f"option_{n}", q.get(f"option_{n}"))
+                question_doc.set(f"is_correct_{n}", cint(q.get(f"is_correct_{n}")) if q.get(f"is_correct_{n}") else 0)
+                if n == 1:
+                    question_doc.set(f"explanation_{n}", q.get("explanation"))
+                question_doc.set(f"possibility_{n}", q.get(f"possibility_{n}"))
+                
+            question_doc.save(ignore_permissions=True)
+            
+            # Use append to build the child table in memory
+            lms_quiz.append("questions", {
+                "question": question_doc.name,
+                "marks": q.points or 1
+            })
+            
+        # Save the LMS Quiz once with all appended questions
+        lms_quiz.save(ignore_permissions=True)
+        frappe.db.commit()
+        return {"status": "success", "lms_quiz_id": lms_quiz.name}
+    except frappe.exceptions.UniqueValidationError:
+        frappe.throw(f"Bài trắc nghiệm có tên '{ai_quiz.title}' đã tồn tại trên hệ thống.")
+    except Exception as e:
+        import traceback
+        frappe.log_error(title="AI Quiz Sync Failed", message=traceback.format_exc())
+        frappe.throw(f"Lỗi đồng bộ: {str(e)}")

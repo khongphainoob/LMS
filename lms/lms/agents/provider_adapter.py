@@ -38,7 +38,7 @@ class BaseAIProvider(ABC):
             model: Model name to use (optional, uses default)
             config: Additional provider-specific configuration
         """
-        self.api_key = api_key or self._get_api_key()
+        self.api_key = api_key
         self.model = model or self.DEFAULT_MODEL
         self.config = config
 
@@ -69,6 +69,24 @@ class BaseAIProvider(ABC):
         pass
 
     @abstractmethod
+    def generate_image(
+        self,
+        prompt: str,
+        **kwargs
+    ) -> str:
+        """
+        Generate an image based on the prompt.
+
+        Args:
+            prompt: Description of the image
+            **kwargs: Additional parameters (size, quality, etc.)
+
+        Returns:
+            URL of the generated image.
+        """
+        pass
+
+    @abstractmethod
     def estimate_cost(self, prompt: str) -> float:
         """
         Estimate the cost of grading this prompt (in USD).
@@ -91,15 +109,18 @@ class BaseAIProvider(ABC):
         """
         pass
 
-    def _get_api_key(self) -> str:
-        """Get API key from LMS AI Settings."""
-        try:
-            from lms.lms.doctype.lms_ai_settings.lms_ai_settings import get_ai_settings
-            settings = get_ai_settings()
-            key_field = f"{self.PROVIDER_NAME}_api_key"
-            return settings.get(key_field, "")
-        except Exception:
-            return ""
+
+
+    def get_langchain_model(self, temperature: float = 0.3, max_tokens: int = 2048, **kwargs):
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            api_key=self.api_key,
+            base_url=self.config.get("base_url"),
+            model=self.model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        )
 
     def count_tokens(self, text: str) -> int:
         """
@@ -163,6 +184,18 @@ class OpenAIProvider(BaseAIProvider):
         except ImportError:
             frappe.throw("OpenAI package not installed. Run: pip install openai")
 
+    def get_langchain_model(self, temperature: float = 0.3, max_tokens: int = 2048, **kwargs):
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            api_key=self.api_key,
+            base_url=self.config.get("base_url"),
+            model=self.model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        )
+
+
     def grade(
         self,
         prompt: str,
@@ -217,6 +250,38 @@ class OpenAIProvider(BaseAIProvider):
                 "latency_seconds": time.time() - start_time
             }
 
+    def generate_image(self, prompt: str, **kwargs) -> str:
+        """Generate image using OpenAI DALL-E REST API."""
+        import requests
+        try:
+            base_url = kwargs.get("base_url") or "https://api.openai.com/v1"
+            url = f"{base_url.rstrip('/')}/images/generations"
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": kwargs.get("model", "dall-e-3"),
+                "prompt": prompt,
+                "n": 1,
+                "size": kwargs.get("size", "1024x1024")
+            }
+            
+            response = requests.post(url, headers=headers, json=payload, timeout=kwargs.get("timeout", 60))
+            response.raise_for_status()
+            
+            data = response.json()
+            return data["data"][0]["url"]
+            
+        except Exception as e:
+            frappe.log_error(
+                message=f"OpenAI Image Gen API Error: {str(e)}\nResponse: {getattr(e, 'response', '')}",
+                title="AI Image Generation Error"
+            )
+            return ""
+
     def estimate_cost(self, prompt: str) -> float:
         """Estimate cost before calling API."""
         input_tokens = self.count_tokens(prompt)
@@ -259,6 +324,17 @@ class GeminiProvider(BaseAIProvider):
             self.genai = genai
         except ImportError:
             frappe.throw("Google Generative AI package not installed")
+
+    def get_langchain_model(self, temperature: float = 0.3, max_tokens: int = 2048, **kwargs):
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI(
+            google_api_key=self.api_key,
+            model=self.model,
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            **kwargs
+        )
+
 
     def grade(
         self,
@@ -340,6 +416,53 @@ class GeminiProvider(BaseAIProvider):
                 "error": str(e)
             }
 
+    def generate_image(self, prompt: str, **kwargs) -> str:
+        """Generate image using Google Gemini/Vertex API (placeholder for actual REST API)."""
+        import requests
+        try:
+            # Note: Google's actual image generation API requires Vertex AI setup or specific AI Studio endpoint.
+            # We use a standard REST call here that the user can configure via base_url.
+            base_url = kwargs.get("base_url")
+            if not base_url:
+                frappe.log_error("Google Image Gen requires a valid base_url.", "AI Image Gen")
+                return ""
+                
+            headers = {
+                "Content-Type": "application/json"
+            }
+            # Many Google endpoints take API key in URL or header, assume URL param or Bearer
+            if "googleapis.com" in base_url and "key=" not in base_url:
+                base_url = f"{base_url}?key={self.api_key}"
+            else:
+                headers["Authorization"] = f"Bearer {self.api_key}"
+                
+            payload = {
+                "instances": [{"prompt": prompt}],
+                "parameters": {"sampleCount": 1}
+            }
+            
+            response = requests.post(base_url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+            return response.json().get("predictions", [{}])[0].get("bytesBase64Encoded", "") # Or return URL if supported
+            
+        except Exception as e:
+            frappe.log_error(f"Google Image Gen Error: {str(e)}", "AI Image Gen")
+            return ""
+
+
+class OpenRouterProvider(OpenAIProvider):
+    """OpenRouter Provider (OpenAI Compatible)"""
+    PROVIDER_NAME = "openrouter"
+    DEFAULT_MODEL = "openai/gpt-4o-mini"
+    
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, **config):
+        # Default base_url for OpenRouter
+        if not config.get("base_url"):
+            config["base_url"] = "https://openrouter.ai/api/v1"
+        super().__init__(api_key, model, **config)
+        
+    # generate_image is inherited from OpenAIProvider, which uses requests.post
+    # and is perfectly compatible with OpenRouter's URL structure if provided.
 
 class AnthropicProvider(BaseAIProvider):
     """Anthropic Claude provider adapter."""
@@ -360,6 +483,17 @@ class AnthropicProvider(BaseAIProvider):
             self.client = anthropic.Anthropic(api_key=self.api_key, base_url=base_url)
         except ImportError:
             frappe.throw("Anthropic package not installed")
+
+    def get_langchain_model(self, temperature: float = 0.3, max_tokens: int = 2048, **kwargs):
+        from langchain_anthropic import ChatAnthropic
+        return ChatAnthropic(
+            anthropic_api_key=self.api_key,
+            model_name=self.model,
+            temperature=temperature,
+            max_tokens_to_sample=max_tokens,
+            **kwargs
+        )
+
 
     def grade(
         self,
@@ -448,6 +582,16 @@ class OllamaProvider(BaseAIProvider):
             "base_url",
             frappe.get_value("LMS AI Settings", "LMS AI Settings", "ollama_base_url") or "http://localhost:11434"
         )
+
+    def get_langchain_model(self, temperature: float = 0.3, max_tokens: int = 2048, **kwargs):
+        from langchain_community.chat_models import ChatOllama
+        return ChatOllama(
+            base_url=self.base_url,
+            model=self.model,
+            temperature=temperature,
+            **kwargs
+        )
+
 
     def grade(
         self,
@@ -559,6 +703,18 @@ class KymaProvider(BaseAIProvider):
         except ImportError:
             frappe.throw("OpenAI package not installed. Run: pip install openai")
 
+    def get_langchain_model(self, temperature: float = 0.3, max_tokens: int = 2048, **kwargs):
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            model=self.model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        )
+
+
     def grade(
         self,
         prompt: str,
@@ -659,6 +815,7 @@ def get_provider(
     """
     providers = {
         "openai": OpenAIProvider,
+        "openrouter": OpenRouterProvider,
         "gemini": GeminiProvider,
         "google": GeminiProvider,
         "anthropic": AnthropicProvider,

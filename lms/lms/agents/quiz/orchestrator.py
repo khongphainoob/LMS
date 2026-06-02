@@ -7,6 +7,7 @@ from langgraph.graph import StateGraph, END, START
 from lms.lms.agents.provider import get_llm
 from lms.lms.agents.schemas import QuizSchema, QuizQuestionSchema
 from lms.lms.agents.utils.file_parser import get_content_from_file
+from langfuse import observe
 
 # --- 1. State Definition ---
 class QuizState(TypedDict):
@@ -21,8 +22,12 @@ class QuizState(TypedDict):
     frappe_config: dict # To store pre-fetched AI settings
 
 # --- 2. Specialist Nodes ---
+@observe(as_type="generation")
 def generate_questions_node(state: QuizState, q_type: str, frappe_type: str):
     """Generic node for specialist question generation."""
+    # No DB access in thread
+    pass
+        
     settings = state["requirements"].get(q_type, {})
     count = settings.get("count", 0)
     points = settings.get("points", 1)
@@ -53,13 +58,12 @@ You MUST return a JSON object with:
 2. "questions": The list of generated {frappe_type} questions. Each question must have a "type" field matching "{frappe_type}".
 """
 
-    logger = frappe.logger("AI Quiz")
-    logger.info(f"Agent {frappe_type} starting generation for {count} questions.")
+
     print(f"DEBUG: Node {frappe_type} starting for {count} questions...")
     
     try:
         # 2. Setup LLM (Use pre-fetched config to avoid parallel DB calls)
-        llm, _, _ = get_llm(f"Quiz {frappe_type}", **state.get("frappe_config", {}))
+        llm, _, _ = get_llm(f"Quiz {frappe_type}", override_config=state.get("frappe_config", {}).get("override_config"))
         # Ensure the model knows it needs to fill QuizSchema
         response = llm.with_structured_output(QuizSchema).invoke([
             ("system", system_prompt),
@@ -67,21 +71,16 @@ You MUST return a JSON object with:
         ])
         
         q_list = response.questions if response else []
-        logger.info(f"Agent {frappe_type} finished. Produced {len(q_list)} questions.")
         print(f"DEBUG: Node {frappe_type} finished. Produced {len(q_list)} questions.")
         
         if not response or not response.questions:
-            frappe.log_error(f"Specialist {frappe_type} returned empty", "AI Quiz LangGraph")
+            print(f"Specialist {frappe_type} returned empty")
             return {"questions": []}
         return {"questions": q_list}
     except Exception as e:
-        logger.error(f"Agent {frappe_type} failed: {str(e)}")
-        try:
-            # Reconnect DB to log error safely from a thread
-            frappe.db.connect()
-            frappe.log_error(f"Specialist {frappe_type} Exception: {str(e)}\n{frappe.get_traceback()}", "AI Quiz LangGraph")
-        except:
-            pass
+        import traceback
+        traceback.print_exc()
+        print(f"Specialist {frappe_type} Exception: {str(e)}")
         return {"questions": []}
 
 def choices_node(state: QuizState):
@@ -114,6 +113,7 @@ def create_quiz_graph():
     
     return workflow.compile()
 
+@observe(as_type="generation", name="AI Quiz Generation")
 def generate_quiz_orchestrator(quiz_id, config=None):
     """
     LangGraph-based AI Quiz Orchestrator with detailed logging.
@@ -142,6 +142,33 @@ def generate_quiz_orchestrator(quiz_id, config=None):
         # 1. Prepare Initial State (Pre-fetch config to avoid parallel DB calls)
         from lms.lms.agents.provider import get_agent_config
         ai_config = get_agent_config("Quiz Generator")
+        
+        # Thêm cấu hình Provider để tránh gọi DB trong thread
+        ai_settings_doc = frappe.get_doc("LMS AI Settings")
+        ai_settings = ai_settings_doc.as_dict()
+        override_config = {
+            "provider_name": ai_settings.get("default_provider"),
+            "model_name": ai_settings.get("default_model"),
+            "api_key": ai_settings_doc.get_password("default_api_key", raise_exception=False),
+            "base_url": ai_settings.get("default_base_url")
+        }
+        for row in ai_settings_doc.agent_configs:
+            if row.agent_name == "Quiz Generator" and row.enabled:
+                if row.provider and row.provider != "(inherit)":
+                    override_config["provider_name"] = row.provider
+                if row.model:
+                    override_config["model_name"] = row.model
+                if row.temperature is not None and row.temperature != "":
+                    override_config["temperature"] = float(row.temperature)
+                if row.max_tokens:
+                    override_config["max_tokens"] = int(row.max_tokens)
+                break
+        
+        # Luôn đảm bảo max_tokens đủ lớn để sinh nhiều câu hỏi
+        if override_config.get("max_tokens", 2048) < 8192:
+            override_config["max_tokens"] = 8192
+            
+        ai_config["override_config"] = override_config
 
         print(f"DEBUG: Extracting context for {quiz_id}...")
         logger.info(f"[{quiz_id}] Extracting context...")
@@ -241,3 +268,9 @@ def generate_quiz_orchestrator(quiz_id, config=None):
             quiz_doc.add_comment("Comment", error_msg)
             quiz_doc.save(ignore_permissions=True)
             frappe.db.commit()
+    finally:
+        try:
+            from langfuse import Langfuse
+            Langfuse().flush()
+        except Exception:
+            pass

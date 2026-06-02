@@ -299,19 +299,9 @@ def _extract_text_from_files(file_urls):
 			file_doc = frappe.get_doc("File", {"file_url": url})
 			file_path = file_doc.get_full_path()
 			
-			if url.lower().endswith('.pdf'):
-				import fitz # PyMuPDF
-				with fitz.open(file_path) as doc:
-					for page in doc:
-						text += page.get_text() + "\n"
-			elif url.lower().endswith('.docx'):
-				import docx
-				doc = docx.Document(file_path)
-				for para in doc.paragraphs:
-					text += para.text + "\n"
-			elif url.lower().endswith('.txt'):
-				with open(file_path, 'r', encoding='utf-8') as f:
-					text += f.read() + "\n"
+			if url.lower().endswith(('.pdf', '.docx', '.doc', '.txt', '.md')):
+				from lms.lms.agents.utils.file_parser import get_content_from_file
+				text += get_content_from_file(file_path) + "\n"
 		except Exception as e:
 			frappe.log_error(f"Error extracting text from {url}: {str(e)}", "AI Grading Text Extraction")
 	return text
@@ -578,7 +568,7 @@ def _should_flag_result(result: dict) -> bool:
 	consistency = result.get("consistency_score", 1.0)
 	try:
 		# Auto-accept only if both are high
-		if float(conf) >= 0.85 and float(consistency) >= 0.9:
+		if float(conf) >= 0.8 and float(consistency) >= 0.9:
 			return False
 		return True
 	except Exception:
@@ -593,6 +583,11 @@ def start_ai_grading_sync(submission: str):
 	Frontend can poll `get_ai_grading_status`.
 	"""
 	_ensure_ai_grading_access_for_submission(submission, ptype="write")
+	
+	doc = frappe.get_doc("AI Grading Submission", submission)
+	if (doc.retry_count or 0) >= 2:
+		frappe.throw(_("Bài thi này đã đạt giới hạn chấm AI tối đa (2 lần) để tiết kiệm chi phí."))
+		
 	check_and_record_usage(frappe.session.user, "AI Grading", increment=1)
 
 	# Best-effort: mark as grading immediately
@@ -602,11 +597,13 @@ def start_ai_grading_sync(submission: str):
 		{
 			"grading_started_at": now_datetime(),
 			"last_error": None,
+			"retry_count": (doc.retry_count or 0) + 1
 		},
 	)
 
 	# Clear stop-request (if any)
 	frappe.cache().delete_value(_ai_grading_stop_key(submission))
+	frappe.db.commit()
 
 	job = frappe.enqueue(
 		"lms.lms.services.ai_grading.api._run_ai_grading_job",
@@ -626,15 +623,47 @@ def start_batch_ai_grading(session: str):
 	"""Start batch AI grading for all submissions in a session (async enqueue)."""
 	_ensure_ai_grading_access_for_session(session, ptype="write")
 
+	# Fetch pending/flagged/failed submissions synchronously
+	submissions = frappe.get_all(
+		"AI Grading Submission",
+		filters={"session": session, "status": ["in", ["Pending", "Flagged", "Failed"]]},
+		fields=["name", "retry_count"],
+	)
+
+	submission_ids = []
+	for sub in submissions:
+		if (sub.retry_count or 0) >= 2:
+			continue
+		
+		# Synchronously set status to "Grading" so the UI immediately reflects it
+		_set_submission_status(
+			sub.name, 
+			"Grading", 
+			{
+				"grading_started_at": now_datetime(), 
+				"last_error": None, 
+				"retry_count": (sub.retry_count or 0) + 1
+			}
+		)
+		frappe.cache().delete_value(_ai_grading_stop_key(sub.name))
+		submission_ids.append(sub.name)
+
+	frappe.db.commit()
+
+	if not submission_ids:
+		return {"success": True, "status": "completed", "message": "Không có bài thi nào cần chấm."}
+
+	# Enqueue batch job runner with the list of submission IDs
 	job = frappe.enqueue(
 		"lms.lms.services.ai_grading.api._run_ai_grading_batch_job",
 		queue="long",
 		timeout=60 * 60,
 		session=session,
+		submission_ids=submission_ids,
 		requested_by=frappe.session.user,
 	)
 	job_id = getattr(job, "id", job)
-	return {"success": True, "status": "queued", "job_id": job_id}
+	return {"success": True, "status": "queued", "job_id": job_id, "submission_ids": submission_ids}
 
 
 @frappe.whitelist()
@@ -666,35 +695,53 @@ def stop_ai_grading(submission: str):
 	"""
 	_ensure_ai_grading_access_for_submission(submission, ptype="write")
 	frappe.cache().set_value(_ai_grading_stop_key(submission), "1", expires_in_sec=3600)
-	_set_submission_status(submission, "Pending")
+	
+	doc = frappe.get_doc("AI Grading Submission", submission)
+	new_count = max((doc.retry_count or 0) - 1, 0)
+	
+	_set_submission_status(submission, "Pending", {"retry_count": new_count})
 	return {"success": True, "status": "stop_requested"}
 
 
-def _run_ai_grading_batch_job(session: str, requested_by: str | None = None) -> None:
+def _run_ai_grading_batch_job(session: str, submission_ids: list | None = None, requested_by: str | None = None) -> None:
 	"""Background job: enqueue grading jobs for all pending/flagged submissions in a session."""
 	if requested_by:
 		frappe.set_user(requested_by)
 	if not session:
 		return
 
-	# Enqueue only submissions that are not Done
-	submissions = frappe.get_all(
-		"AI Grading Submission",
-		filters={"session": session, "status": ["in", ["Pending", "Flagged", "Failed"]]},
-		pluck="name",
-		order_by="creation asc",
-	)
-	for submission_id in submissions:
+	# Fallback if submission_ids not passed
+	if not submission_ids:
+		submissions = frappe.get_all(
+			"AI Grading Submission",
+			filters={"session": session, "status": ["in", ["Pending", "Flagged", "Failed"]]},
+			fields=["name"],
+			order_by="creation asc",
+		)
+		submission_ids = [sub.name for sub in submissions]
+
+	dispatched_count = 0
+	for submission_id in submission_ids:
 		try:
 			from lms.lms.services.ai_rate_limit import check_and_record_usage
 			try:
 				check_and_record_usage(requested_by, "AI Grading", increment=1)
 			except Exception as e:
 				frappe.log_error(frappe.get_traceback(), f"AI Grading Rate Limit Exceeded for {requested_by}")
-				break # Stop queuing further submissions if limit reached
+				
+				# Reset all remaining submissions in this batch so they don't get stuck in "Grading" status
+				curr_idx = submission_ids.index(submission_id)
+				for rest_id in submission_ids[curr_idx:]:
+					_set_submission_status(
+						rest_id, 
+						"Failed", 
+						{
+							"last_error": "Giới hạn ngân sách hoặc số lượt gọi AI hôm nay đã hết. Vui lòng thử lại sau.",
+							"retry_count": max((frappe.db.get_value("AI Grading Submission", rest_id, "retry_count") or 1) - 1, 0)
+						}
+					)
+				break
 
-			# Mark as queued/grading so UI reflects progress quickly
-			_set_submission_status(submission_id, "Grading", {"grading_started_at": now_datetime(), "last_error": None})
 			frappe.cache().delete_value(_ai_grading_stop_key(submission_id))
 			frappe.enqueue(
 				"lms.lms.services.ai_grading.api._run_ai_grading_job",
@@ -703,11 +750,13 @@ def _run_ai_grading_batch_job(session: str, requested_by: str | None = None) -> 
 				submission=submission_id,
 				requested_by=requested_by,
 			)
+			dispatched_count += 1
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), f"AI Grading enqueue failed: {submission_id}")
+			_set_submission_status(submission_id, "Failed", {"last_error": "Không thể đưa bài thi vào hàng đợi."})
 
 	# Notify teacher: batch dispatched
-	if requested_by and submissions:
+	if requested_by and dispatched_count > 0:
 		try:
 			from lms.lms.services.hitl.notification import notify_user_direct
 			from lms.lms.utils import get_lms_route
@@ -717,7 +766,7 @@ def _run_ai_grading_batch_job(session: str, requested_by: str | None = None) -> 
 				subject=f"⚡ Chấm điểm AI đang xử lý: {session_name}",
 				email_content=(
 					f"Phiên chấm điểm <b>{session_name}</b> đã bắt đầu xử lý.<br>"
-					f"<b>{len(submissions)}</b> bài đã được đưa vào hàng đợi AI.<br>"
+					f"<b>{dispatched_count}</b> bài đã được đưa vào hàng đợi AI.<br>"
 					f"Kết quả sẽ xuất hiện dần trên giao diện — bài nào bị gắn cờ sẽ được thông báo riêng."
 				),
 				document_type="AI Grading Session",
@@ -729,14 +778,16 @@ def _run_ai_grading_batch_job(session: str, requested_by: str | None = None) -> 
 
 
 try:
-	from langfuse.decorators import observe
+	from langfuse import observe
 except ImportError:
-	def observe(*args, **kwargs):
-		def decorator(func):
-			return func
-		return decorator
+	try:
+		from langfuse import observe
+	except ImportError:
+		def observe(*args, **kwargs):
+			def decorator(func):
+				return func
+			return decorator
 
-@observe(name="AI Grading Job")
 def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> None:
 	"""Background job: run grading pipeline and persist results to `AI Grading Submission`."""
 	from lms.lms.services.observability import init_langfuse_native_sdk
@@ -765,6 +816,9 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 					"last_error": _("No paper images or text found for this submission."),
 				},
 			)
+			frappe.db.commit()
+			return
+		
 		result = run_grading_session(session_id=submission, image_paths=paper_images, text_content=text_content)
 		if frappe.cache().get_value(_ai_grading_stop_key(submission)):
 			return
@@ -798,8 +852,10 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 		from lms.lms.services.hitl.notification import notify_teacher
 		
 		session_doc = frappe.get_doc("AI Grading Session", doc.session)
-		rubric_doc = frappe.get_doc("AI Grading Rubric", session_doc.rubric)
-		max_score = rubric_doc.total_max_score or 10.0
+		max_score = 10.0
+		if session_doc.rubric:
+			rubric_doc = frappe.get_doc("AI Grading Rubric", session_doc.rubric)
+			max_score = rubric_doc.total_max_score or 10.0
 		
 		is_flagged, reason, priority = should_flag_grading(result, max_score)
 		final_status = "Flagged" if is_flagged else "Done"
@@ -811,19 +867,25 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 			"tokens_used": est_input_tokens + est_output_tokens,
 			"input_tokens": est_input_tokens,
 			"output_tokens": est_output_tokens,
-			"total_cost_usd": est_cost
+			"estimated_cost_usd": est_cost
 		}
 		if score is not None:
 			extra["score"] = score
 		if is_flagged:
 			extra["flag_reason"] = reason
 
+		try:
+			from lms.lms.services.cost_tracking import track_agent_cost
+			track_agent_cost("grading_rubric", est_cost)
+		except Exception:
+			pass
+
 		_set_submission_status(submission, final_status, extra)
 		frappe.db.commit()
 		
 		if is_flagged:
 			notify_teacher(
-				event_type="grading_flagged",
+				event_type="Grading Flagged",
 				student=doc.student,
 				course=session_doc.course,
 				reference_doctype="AI Grading Submission",

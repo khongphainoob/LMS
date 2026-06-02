@@ -1,4 +1,17 @@
 from typing import TypedDict, List, Optional, Literal, Any
+import logging
+
+try:
+    from langfuse import observe
+except ImportError:
+    try:
+        from langfuse import observe
+    except ImportError:
+        logging.warning("langfuse observe not found. Using fallback observe.")
+        def observe(*args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
 
 ExamType = Literal['mcq_only', 'stem_visual', 'essay_only', 'mixed']
 

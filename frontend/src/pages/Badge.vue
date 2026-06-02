@@ -10,9 +10,11 @@
 				:alt="badge.data.badge"
 				class="h-60 mt-2"
 			/>
-			<div v-else class="h-[240px] w-[240px] mt-4 flex items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white text-[6rem] shadow-2xl border-4 border-white mx-auto">
-				{{ getFallbackEmoji(badge.data.badge) }}
-			</div>
+			<PremiumBadgeIcon
+				v-else
+				:badgeName="badge.data.badge"
+				class="h-[240px] w-[240px] mt-4 mx-auto"
+			/>
 			<div class="">
 				{{
 					__('This badge has been awarded to {0} on {1}.').format(
@@ -31,6 +33,7 @@
 import { createResource, usePageMeta } from 'frappe-ui'
 import { computed, inject } from 'vue'
 import { sessionStore } from '../stores/session'
+import PremiumBadgeIcon from '@/components/Settings/PremiumBadgeIcon.vue'
 
 const dayjs = inject('$dayjs')
 const { brand } = sessionStore()

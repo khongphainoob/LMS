@@ -4,6 +4,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from ..utils.json_utils import extract_and_validate
 from ..schemas import MCQGraderResultSchema
 from ..provider import get_llm as get_model
+from .shared_context import observe
+from lms.lms.services.observability import get_unified_config_dict
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +45,9 @@ Nhiệm vụ: So khớp bài làm học sinh với đáp án chuẩn và phân t
 LƯU Ý: Tuyệt đối tuân thủ tên trường (field names) để không gây lỗi Pydantic.
 """
 
-def run_mcq_grading(ocr_text: str, answer_key: dict, rubric_context: str) -> dict:
-    model = get_model("mcq_grading")
+@observe(as_type="generation", name="MCQ Grader Analysis")
+def run_mcq_grading(ocr_text: str, answer_key: dict, rubric_context: str, session_id: str = None) -> dict:
+    model, _, _ = get_model("mcq_grading")
     
     payload = {
         "student_ocr_text": ocr_text,
@@ -58,7 +61,11 @@ def run_mcq_grading(ocr_text: str, answer_key: dict, rubric_context: str) -> dic
     ]
     
     try:
-        response = model.invoke(messages)
+        config = get_unified_config_dict(agent_name="MCQ Grader", session_id=session_id, tags=["AI Grading"]) if session_id else None
+        if config:
+            response = model.invoke(messages, config=config)
+        else:
+            response = model.invoke(messages)
         result = extract_and_validate(response.content, MCQGraderResultSchema)
         if result:
             return result.model_dump()

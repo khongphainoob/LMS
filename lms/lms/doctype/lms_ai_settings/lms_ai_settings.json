@@ -9,6 +9,11 @@
   "default_model",
   "default_api_key",
   "default_base_url",
+  "image_gen_section",
+  "image_gen_provider",
+  "image_gen_model",
+  "image_gen_base_url",
+  "image_gen_api_key",
   "agent_config_section",
   "agent_configs",
   "ocr_section",
@@ -26,7 +31,11 @@
   "pix2text_enabled",
   "search_section",
   "tavily_api_key",
+  "cost_section",
+  "max_cost_per_day",
+  "max_cost_per_session",
   "usd_to_vnd_exchange_rate",
+  "cost",
   "observability_section",
   "enable_langfuse",
   "langfuse_host",
@@ -61,6 +70,34 @@
    "fieldname": "default_base_url",
    "fieldtype": "Data",
    "label": "Default Base URL (Optional)"
+  },
+  {
+   "fieldname": "image_gen_section",
+   "fieldtype": "Section Break",
+   "label": "Image Generation Settings"
+  },
+  {
+   "default": "OpenAI",
+   "fieldname": "image_gen_provider",
+   "fieldtype": "Select",
+   "label": "Image Generation Provider",
+   "options": "Google\nOpenRouter\nOpenAI"
+  },
+  {
+   "default": "dall-e-3",
+   "fieldname": "image_gen_model",
+   "fieldtype": "Data",
+   "label": "Image Generation Model"
+  },
+  {
+   "fieldname": "image_gen_base_url",
+   "fieldtype": "Data",
+   "label": "Image Generation Base URL"
+  },
+  {
+   "fieldname": "image_gen_api_key",
+   "fieldtype": "Password",
+   "label": "Image Gen API Key"
   },
   {
    "fieldname": "agent_config_section",
@@ -155,11 +192,38 @@
    "label": "Tavily API Key (for Web Search)"
   },
   {
+   "fieldname": "cost_section",
+   "fieldtype": "Section Break",
+   "label": "AI Budget & Cost Control Settings"
+  },
+  {
+   "default": "50.0",
+   "description": "Max cumulative daily cost limit (USD) across all AI services.",
+   "fieldname": "max_cost_per_day",
+   "fieldtype": "Float",
+   "label": "Max Daily Budget Limit (USD)"
+  },
+  {
+   "default": "40.0",
+   "description": "Max budget limit (USD) per single AI session (e.g. grading session, exam session).",
+   "fieldname": "max_cost_per_session",
+   "fieldtype": "Float",
+   "label": "Max Session Budget Limit (USD)"
+  },
+  {
    "default": "25400",
    "description": "Used to convert AI Token Costs (USD) into local currency (VND) for analytics.",
    "fieldname": "usd_to_vnd_exchange_rate",
    "fieldtype": "Float",
    "label": "USD to VND Exchange Rate"
+  },
+  {
+   "default": "0",
+   "description": "Total actual cost spent across all AI agents (USD)",
+   "fieldname": "cost",
+   "fieldtype": "Float",
+   "label": "Total Cost Spent (USD)",
+   "read_only": 1
   },
   {
    "fieldname": "observability_section",

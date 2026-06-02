@@ -4,46 +4,54 @@ from frappe import _
 @frappe.whitelist()
 def generate_rubric(assessment_description=None, file_url=None, grading_scale="10-point", max_score=10.0, subject=None, level="High School"):
     """Generate a rubric automatically using AI, from text or file (Async)."""
-    frappe.only_for(["Moderator", "Course Creator", "Instructor", "Batch Evaluator"])
-    
-    if not assessment_description and not file_url:
-        frappe.throw("Cần cung cấp nội dung mô tả đề bài hoặc đính kèm file.")
+    try:
+        frappe.only_for(["Moderator", "Course Creator", "Instructor", "Batch Evaluator"])
         
-    title = f"AI Rubric - {subject or 'General'} - {frappe.utils.now_datetime().strftime('%Y-%m-%d %H:%M:%S')}"
-    
-    doc = frappe.get_doc({
-        "doctype": "LMS Rubric Template",
-        "title": title,
-        "description": "Đang khởi tạo (Generating...)",
-        "source_content": assessment_description or "",
-        "grading_scale": grading_scale,
-        "max_score": float(max_score),
-        "is_active": 0
-    })
-    
-    # Add a dummy criterion to bypass validation `A rubric must have at least one criterion.`
-    doc.append("criteria", {
-        "criterion_name": "Generating...",
-        "max_score": float(max_score)
-    })
-    
-    doc.insert(ignore_permissions=True)
-    frappe.db.commit()
-    
-    frappe.enqueue(
-        "lms.lms.services.rubric_builder.api._run_rubric_generation_job",
-        queue="long",
-        timeout=600,
-        rubric_name=doc.name,
-        assessment_description=assessment_description,
-        file_url=file_url,
-        grading_scale=grading_scale,
-        max_score=max_score,
-        subject=subject,
-        level=level
-    )
-    
-    return {"name": doc.name, "status": "Generating"}
+        if not assessment_description and not file_url:
+            frappe.throw("Cần cung cấp nội dung mô tả đề bài hoặc đính kèm file.")
+            
+        from lms.lms.services.ai_rate_limit import check_and_record_usage
+        check_and_record_usage(frappe.session.user, "Rubric Gen", increment=1)
+            
+        title = f"AI Rubric - {subject or 'General'} - {frappe.utils.now_datetime().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        doc = frappe.get_doc({
+            "doctype": "LMS Rubric Template",
+            "title": title,
+            "description": "Đang khởi tạo (Generating...)",
+            "source_content": assessment_description or "",
+            "grading_scale": grading_scale,
+            "max_score": float(max_score),
+            "is_active": 0
+        })
+        
+        # Add a dummy criterion to bypass validation `A rubric must have at least one criterion.`
+        doc.append("criteria", {
+            "criterion_name": "Generating...",
+            "max_score": float(max_score)
+        })
+        
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        
+        frappe.enqueue(
+            "lms.lms.services.rubric_builder.api._run_rubric_generation_job",
+            queue="long",
+            timeout=600,
+            rubric_name=doc.name,
+            assessment_description=assessment_description,
+            file_url=file_url,
+            grading_scale=grading_scale,
+            max_score=max_score,
+            subject=subject,
+            level=level
+        )
+        
+        return {"name": doc.name, "status": "Generating"}
+    except Exception as e:
+        if not isinstance(e, frappe.ValidationError):
+            frappe.log_error(frappe.get_traceback(), "Rubric Gen API Error")
+        raise e
 
 def _run_rubric_generation_job(rubric_name, assessment_description, file_url, grading_scale, max_score, subject, level):
     from lms.lms.services.rubric_builder.rubric_builder_service import RubricBuilderService
@@ -144,26 +152,35 @@ def delete_rubric(name):
 @frappe.whitelist()
 def retry_generate_rubric(name):
     """Thử lại sinh Rubric nếu bị lỗi."""
-    frappe.only_for(["Moderator", "Course Creator", "Instructor", "Batch Evaluator"])
-    doc = frappe.get_doc("LMS Rubric Template", name)
-    
-    if doc.is_active == 1:
-        frappe.throw("Rubric này đã hoàn thành, không thể thử lại.")
+    try:
+        frappe.only_for(["Moderator", "Course Creator", "Instructor", "Batch Evaluator"])
         
-    frappe.db.set_value("LMS Rubric Template", name, "description", "Đang khởi tạo (Generating...)")
-    frappe.db.commit()
-    
-    frappe.enqueue(
-        "lms.lms.services.rubric_builder.api._run_rubric_generation_job",
-        queue="long",
-        timeout=600,
-        rubric_name=doc.name,
-        assessment_description=doc.get("source_content") or "",
-        file_url=None,
-        grading_scale=doc.grading_scale,
-        max_score=doc.max_score,
-        subject=None,
-        level="High School"
-    )
-    
-    return {"name": doc.name, "status": "Generating"}
+        from lms.lms.services.ai_rate_limit import check_and_record_usage
+        check_and_record_usage(frappe.session.user, "Rubric Gen", increment=1)
+        
+        doc = frappe.get_doc("LMS Rubric Template", name)
+        
+        if doc.is_active == 1:
+            frappe.throw("Rubric này đã hoàn thành, không thể thử lại.")
+            
+        frappe.db.set_value("LMS Rubric Template", name, "description", "Đang khởi tạo (Generating...)")
+        frappe.db.commit()
+        
+        frappe.enqueue(
+            "lms.lms.services.rubric_builder.api._run_rubric_generation_job",
+            queue="long",
+            timeout=600,
+            rubric_name=doc.name,
+            assessment_description=doc.get("source_content") or "",
+            file_url=None,
+            grading_scale=doc.grading_scale,
+            max_score=doc.max_score,
+            subject=None,
+            level="High School"
+        )
+        
+        return {"name": doc.name, "status": "Generating"}
+    except Exception as e:
+        if not isinstance(e, frappe.ValidationError):
+            frappe.log_error(frappe.get_traceback(), "Rubric Gen Retry API Error")
+        raise e

@@ -44,9 +44,11 @@
 								:alt="badge.badge"
 								class="h-[80px]"
 							/>
-							<div v-else class="h-[80px] w-[80px] flex items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white text-3xl shadow-md border-2 border-white">
-								{{ getFallbackEmoji(badge.badge) }}
-							</div>
+							<PremiumBadgeIcon
+								v-else
+								:badgeName="badge.badge"
+								class="h-[80px] w-[80px] mx-auto"
+							/>
 							<div
 								v-if="badge.count > 1"
 								class="flex items-end bg-surface-gray-2 p-2 text-xs font-semibold rounded-full absolute right-0 bottom-0"
@@ -67,9 +69,11 @@
 									:alt="badge.badge"
 									class="h-[200px] mx-auto"
 								/>
-								<div v-else class="h-[200px] w-[200px] mx-auto flex items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white text-[5rem] shadow-xl border-4 border-white">
-									{{ getFallbackEmoji(badge.badge) }}
-								</div>
+								<PremiumBadgeIcon
+									v-else
+									:badgeName="badge.badge"
+									class="h-[200px] w-[200px] mx-auto"
+								/>
 							</div>
 							<div class="p-5">
 								<div class="text-2xl font-semibold mb-2">
@@ -131,6 +135,7 @@ import { sessionStore } from '@/stores/session'
 import { decodeEntities } from '@/utils'
 import DOMPurify from 'dompurify'
 import { getLmsRoute } from '@/utils/basePath'
+import PremiumBadgeIcon from '@/components/Settings/PremiumBadgeIcon.vue'
 
 const dayjs = inject('$dayjs')
 const { branding } = sessionStore()

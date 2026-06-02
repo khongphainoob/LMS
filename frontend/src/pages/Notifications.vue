@@ -31,9 +31,9 @@
 			@click="navigateToPage(log)"
 		>
 			<Avatar
-				:image="log.from_user_details.user_image"
+				:image="log.from_user_details?.user_image"
 				size="xl"
-				:label="log.from_user_details.full_name"
+				:label="log.from_user_details?.full_name"
 			/>
 			<div class="space-y-2 w-full">
 				<div class="flex items-center justify-between">
@@ -67,7 +67,7 @@
 					<iframe
 						v-if="
 							log.document_type == 'LMS Course' &&
-							log.document_details.video_link
+							log.document_details?.video_link
 						"
 						:src="`https://www.youtube.com/embed/${log.document_details.video_link}`"
 						class="rounded-l-md w-72"
@@ -75,11 +75,12 @@
 					<video
 						v-else-if="
 							log.document_type == 'LMS Batch' &&
-							log.document_details.video_link
+							log.document_details?.video_link
 						"
 						:src="log.document_details.video_link"
 						class="rounded-l-md w-72"
 					/>
+
 					<div class="p-3">
 						<div
 							class="bg-surface-violet-1 w-fit py-1 px-1.5 rounded-full text-ink-violet-1 text-sm mb-2"
@@ -90,14 +91,14 @@
 									: __('New Batch')
 							}}
 						</div>
-						<div class="font-semibold mb-1">
+						<div class="font-semibold mb-1" v-if="log.document_details?.title">
 							{{ __(log.document_details.title) }}
 						</div>
-						<div class="leading-5">
+						<div class="leading-5" v-if="log.document_details?.short_introduction">
 							{{ __(log.document_details.short_introduction) }}
 						</div>
 						<div
-							v-if="log.document_details.start_date"
+							v-if="log.document_details?.start_date"
 							class="flex items-center space-x-2 text-sm mt-5"
 						>
 							<Calendar class="size-3 stroke-1.5" />
@@ -108,7 +109,7 @@
 							</span>
 						</div>
 						<div
-							v-if="log.document_details.start_time"
+							v-if="log.document_details?.start_time"
 							class="flex items-center space-x-2 text-sm mt-2"
 						>
 							<Clock class="size-3 stroke-1.5" />
@@ -118,7 +119,7 @@
 							</span>
 						</div>
 						<div
-							v-if="log.document_details.instructors.length > 1"
+							v-if="log.document_details?.instructors?.length > 1"
 							class="space-y-2 mt-5"
 						>
 							<div
@@ -127,11 +128,11 @@
 							>
 								<Avatar
 									:size="'sm'"
-									:image="instructor.user_image"
-									:label="instructor.full_name"
+									:image="instructor?.user_image"
+									:label="instructor?.full_name"
 								/>
 								<span class="font-medium text-sm">
-									{{ instructor.full_name }}
+									{{ instructor?.full_name }}
 								</span>
 							</div>
 						</div>

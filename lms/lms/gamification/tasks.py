@@ -2,7 +2,20 @@ import frappe
 from lms.lms.gamification.leaderboard_api import calculate_composite_score
 from lms.lms.gamification.utils import get_streak_info
 
+def ensure_database_indexes():
+	try:
+		frappe.db.add_index("LMS Quiz Submission", ["member"])
+		frappe.db.add_index("LMS Assignment Submission", ["member", "status"])
+		frappe.db.add_index("LMS Enrollment", ["member"])
+		frappe.db.add_index("LMS Video Watch Duration", ["member"])
+		frappe.db.add_index("LMS Game Leaderboard Entry", ["batch", "period", "rank"])
+	except Exception:
+		pass
+
 def recalculate_leaderboard():
+	# Safe DB setup
+	ensure_database_indexes()
+
 	for period in ["all_time", "weekly", "monthly"]:
 		_recalc_for_batch(None, period)
 		
@@ -16,11 +29,23 @@ def _recalc_for_batch(batch, period):
 	else:
 		members = frappe.get_all("LMS Enrollment", group_by="member", pluck="member")
 		
+	if not members:
+		return
+
+	# Performance: batch calculate scores in 1 execution rather than looping
+	from lms.lms.gamification.leaderboard_api import calculate_composite_score_batch
+	scores = calculate_composite_score_batch(members, batch=batch)
+
 	entries = []
 	for m in members:
-		score_data = calculate_composite_score(m, batch=batch)
-		# Add period filter logic in calculate_composite_score if needed,
-		# but for now we'll just use the standard composite score as base
+		score_data = scores.get(m, {
+			"composite_score": 0,
+			"avg_quiz_score": 0,
+			"avg_assignment_score": 0,
+			"completion_pct": 0,
+			"streak_days": 0,
+			"hours_spent": 0
+		})
 		entries.append({
 			"batch": batch or "", 
 			"member": m,
@@ -63,6 +88,7 @@ def upsert_leaderboard_entry(entry):
 			pass
 
 def check_gamification_badges():
+	ensure_database_indexes()
 	members = frappe.get_all("LMS Enrollment", group_by="member", pluck="member")
 	for member in members:
 		check_streak_badges(member)
@@ -110,14 +136,12 @@ def check_leaderboard_badges(member):
 		if best_rank <= 10:
 			auto_award_if_not_exists("Top 10", member)
 
-	completed = frappe.db.count("LMS Enrollment", {"member": member, "progress": [">=", 100]})
-	if completed >= 5:
-		auto_award_if_not_exists("Scholar", member)
-
 def check_completion_badges(member):
 	completed_count = frappe.db.count("LMS Enrollment", {"member": member, "progress": [">=", 100]})
 	if completed_count >= 1:
 		auto_award_if_not_exists("First Step", member)
+	if completed_count >= 5:
+		auto_award_if_not_exists("Scholar", member)
 
 def auto_award_if_not_exists(badge_title, member):
 	if frappe.db.exists("LMS Badge Assignment", {"badge": badge_title, "member": member}):

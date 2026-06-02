@@ -117,8 +117,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, inject } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+
+const router = useRouter()
+const user = inject('$user')
 
 const timeRange = ref('7')
 const rawData = ref(null)
@@ -241,7 +245,16 @@ const renderCharts = () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    await user.promise
+  } catch (e) {
+    console.error("Error loading user info", e)
+  }
+  if (!user.data?.is_system_manager) {
+    router.push({ name: 'Home' })
+    return
+  }
   fetchData()
   window.addEventListener('resize', () => {
     if (eTrend) eTrend.resize()

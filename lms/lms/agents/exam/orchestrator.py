@@ -1,198 +1,402 @@
-import logging
 import json
+import operator
+from typing import Annotated, List, TypedDict, Any
 import frappe
+from langgraph.graph import StateGraph, END, START
+from langgraph.types import Send, Command, interrupt
+from langchain_core.runnables import RunnableConfig
+from pydantic import BaseModel, Field
 import os
-import unicodedata
-from typing import Dict, Any, TypedDict
-from langgraph.graph import StateGraph, END
-from lms.lms.services.observability import get_unified_config_dict
+import logging
 
 from lms.lms.agents.provider import get_llm
 from lms.lms.agents.utils.json_utils import extract_and_validate
-from .schemas import ExamSchema, ExamBlueprintSchema, ExamSectionSchema
-from .prompts import ANALYSIS_PROMPT, BLUEPRINT_PROMPT, QUESTION_WRITER_PROMPT
-try:
-    from lms.lms.agents.quiz.extractor import extract_text_from_quiz_source
-except ImportError:
-    try:
-        from lms.lms.services.ai_quiz.api import extract_text_from_quiz_source
-    except ImportError:
-        extract_text_from_quiz_source = None
+from lms.lms.agents.exam.prompts import (
+    ANALYSIS_PROMPT, BLUEPRINT_PROMPT, 
+    MCQ_WRITER_PROMPT, TRUE_FALSE_WRITER_PROMPT, SHORT_ANSWER_WRITER_PROMPT, 
+    EVALUATOR_PROMPT
+)
+from lms.lms.services.observability import get_unified_config_dict
+from langgraph.checkpoint.sqlite import SqliteSaver
 
-from lms.lms.services.ai_rate_limit import check_and_record_usage
+logger = logging.getLogger("lms.exam.orchestrator")
 
-logger = logging.getLogger(__name__)
+def ensure_frappe_connection(config: RunnableConfig):
+    import frappe
+    site = config.get("configurable", {}).get("site")
+    if site:
+        frappe.init(site=site)
+        try:
+            if not getattr(frappe.local, "db", None):
+                frappe.connect()
+            else:
+                frappe.db.sql("SELECT 1")
+        except Exception:
+            frappe.connect()
 
+# --- SCHEMAS ---
+class ExamSectionSchema(BaseModel):
+    section_name: str
+    section_type: str
+    instructions: str
+    questions: List[dict]
+
+class ExamBlueprintSchema(BaseModel):
+    title: str
+    instructions: str
+    sections_blueprint: List[dict]
+    
+class EvaluatorFeedbackSchema(BaseModel):
+    is_passed: bool
+    feedback: str
+
+# --- STATES ---
 class ExamState(TypedDict):
     exam_name: str
-    source_text: str
     teacher_config: dict
+    source_text: str
     knowledge_map: str
     blueprint: dict
+    sections_drafts: Annotated[list, operator.add]
     final_exam: dict
-    errors: list
+    errors: Annotated[list, operator.add]
+    regenerate_count: int
 
+class SectionState(TypedDict):
+    section_index: int
+    section_blueprint: dict
+    knowledge_map: str
+    exam_format: str
+    draft_questions: dict
+    feedback: str
+    retry_count: int
+
+# --- UTILS ---
 def normalize_text(text: str) -> str:
-    """Normalize unicode characters (NFC) to fix Vietnamese font rendering issues and OCR artifacts."""
-    if not text:
-        return text
-    
-    # 1. Convert rogue spacing accents to combining accents
-    text = text.replace('´', '\u0301')
-    text = text.replace('`', '\u0300')
-    
-    # 2. Normalize to NFC to combine valid pairs (like â + \u0300 -> ầ)
-    import unicodedata
-    import re
+    if not text: return text
+    text = text.replace('´', '\u0301').replace('`', '\u0300')
+    import unicodedata, re
     text = unicodedata.normalize('NFC', text)
-    
-    # 3. Strip any leftover combining accents (e.g. from ắ + \u0301 where ắ already has a tone)
     text = re.sub(r'\u0301|\u0300', '', text)
-    
     return text
 
-def generate_with_fallback(llm, prompt_text, schema_class):
-    """Attempt with_structured_output first, fallback to prompt parsing on failure."""
+def generate_with_fallback(llm, prompt_text, schema_class, config=None):
     try:
         structured_llm = llm.with_structured_output(schema_class)
-        result = structured_llm.invoke(prompt_text)
-        if result:
-            return result.model_dump()
+        result = structured_llm.invoke(prompt_text, config=config)
+        if result: return result.model_dump()
     except Exception as e:
-        logger.warning(f"Structured output failed: {e}. Falling back to manual extraction.")
-        
+        logger.warning(f"Structured output failed: {e}. Falling back.")
     try:
-        response = llm.invoke(prompt_text)
+        response = llm.invoke(prompt_text, config=config)
         result = extract_and_validate(response.content, schema_class)
-        if result:
-            return result.model_dump()
+        if result: return result.model_dump()
     except Exception as e:
-        logger.error(f"Fallback manual extraction failed: {e}")
+        logger.error(f"Fallback extraction failed: {e}")
     return None
 
-def node_analyze(state: ExamState):
+# --- NODES ---
+def node_analyze(state: ExamState, config: RunnableConfig):
+    ensure_frappe_connection(config)
     """Phase 1: Content Analysis"""
+    exam_name = state["exam_name"]
+    frappe.publish_realtime("ai_exam_progress", {"status": "Analyzing knowledge..."}, room=exam_name)
     llm, _, _ = get_llm("exam_generator", temperature=0.2)
-    config = state["teacher_config"]
+    state_config = state["teacher_config"]
     prompt = ANALYSIS_PROMPT.format(
-        subject=config.get("subject", ""),
-        grade_level=config.get("grade_level", ""),
-        instructions=config.get("teacher_instructions", ""),
-        context=state["source_text"][:15000]
+        subject=state_config.get("subject", ""),
+        grade_level=state_config.get("grade_level", ""),
+        instructions=state_config.get("teacher_instructions", ""),
+        context=(state.get("source_text") or "")[:15000],
     )
-    
+    obs_config = get_unified_config_dict("exam_generator_analyze", exam_name)
+    run_config = {**config, **obs_config} if config else obs_config
     try:
-        response = llm.invoke(prompt)
-        state["knowledge_map"] = response.content
+        response = llm.invoke(prompt, config=run_config)
+        return {"knowledge_map": response.content}
     except Exception as e:
-        state["errors"].append(f"Analysis failed: {str(e)}")
-    
-    return state
+        return {"errors": [f"Analysis failed: {str(e)}"]}
 
-def node_blueprint(state: ExamState):
+def node_blueprint(state: ExamState, config: RunnableConfig):
+    ensure_frappe_connection(config)
     """Phase 2: Blueprint Generation"""
+    exam_name = state["exam_name"]
+    frappe.publish_realtime("ai_exam_progress", {"status": "Generating blueprint..."}, room=exam_name)
     llm, _, _ = get_llm("exam_generator", temperature=0.3)
-    config = state["teacher_config"]
+    state_config = state["teacher_config"]
     prompt = BLUEPRINT_PROMPT.format(
         knowledge_map=state["knowledge_map"],
-        subject=config.get("subject", ""),
-        grade_level=config.get("grade_level", ""),
-        curriculum=config.get("curriculum", ""),
-        exam_type=config.get("exam_type", ""),
-        duration_minutes=config.get("duration_minutes", 45),
-        difficulty_distribution=config.get("difficulty_distribution", ""),
-        instructions=config.get("teacher_instructions", ""),
-        exam_format=config.get("exam_format", "MOET 2025"),
-        custom_format_template=config.get("custom_format_template", ""),
-        section_configs=config.get("section_configs_json", "[]")
+        subject=state_config.get("subject", ""),
+        grade_level=state_config.get("grade_level", ""),
+        curriculum=state_config.get("curriculum", ""),
+        exam_type=state_config.get("exam_type", ""),
+        duration_minutes=state_config.get("duration_minutes", 45),
+        difficulty_distribution=state_config.get("difficulty_distribution", ""),
+        instructions=state_config.get("teacher_instructions", ""),
+        exam_format=state_config.get("exam_format", "MOET 2025"),
+        custom_format_template=state_config.get("custom_format_template", ""),
+        section_configs=state_config.get("section_configs_json", "[]")
     )
-    try:
-        blueprint_dict = generate_with_fallback(llm, prompt, ExamBlueprintSchema)
-        if blueprint_dict:
-            state["blueprint"] = blueprint_dict
-        else:
-            state["errors"].append("Failed to extract valid Blueprint structure")
-    except Exception as e:
-        state["errors"].append(f"Blueprint generation failed: {str(e)}")
-        
-    return state
-
-def node_generate(state: ExamState):
-    """Phase 3: Final Generation (Iterative Section Writer)"""
-    llm, _, _ = get_llm("exam_generator", temperature=0.4)
-    config = state["teacher_config"]
+    obs_config = get_unified_config_dict("exam_generator_blueprint", exam_name)
+    run_config = {**config, **obs_config} if config else obs_config
     
-    try:
-        doc = frappe.get_doc("AI Exam", state.get("exam_name"))
-        exam_format = doc.exam_format if hasattr(doc, "exam_format") else "MOET 2025"
-    except:
-        exam_format = "MOET 2025"
+    blueprint_dict = generate_with_fallback(llm, prompt, ExamBlueprintSchema, config=run_config)
+    if blueprint_dict:
+        total_q = sum([int(s.get("num_questions", 0)) for s in blueprint_dict.get("sections_blueprint", [])])
+        blueprint_dict["total_questions"] = total_q
+        blueprint_dict["total_points"] = 10.0
         
-    final_sections = []
-    
-    for section_blueprint in state["blueprint"].get("sections_blueprint", []):
-        # Support both field name variants from AI
-        num_questions = (
-            section_blueprint.get("num_questions")
-            or section_blueprint.get("total_questions")
-            or 0
-        )
-        question_type = (
-            section_blueprint.get("section_type")
-            or section_blueprint.get("question_type")
-            or "Multiple Choice"
-        )
-        # Cast to int to avoid TypeError when value comes as string from AI
+        doc = frappe.get_doc("AI Exam", exam_name)
+        doc.db_set({
+            "status": "Waiting for Review",
+            "review_started_at": frappe.utils.now_datetime(),
+            "review_notified": 0
+        })
+        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=exam_name)
         try:
-            num_questions = int(num_questions)
-        except (TypeError, ValueError):
-            num_questions = 0
-        if num_questions <= 0:
+            frappe.new_doc("Notification Log").update({
+                "subject": f"Đề thi {doc.title or exam_name} đã tạo xong Blueprint. Vui lòng duyệt!",
+                "type": "Alert",
+                "for_user": doc.owner,
+                "document_type": "AI Exam",
+                "document_name": doc.name
+            }).insert(ignore_permissions=True)
+        except Exception as e:
+            frappe.logger().error(f"[AI Exam] Failed to send HITL notification: {str(e)}")
+        return {"blueprint": blueprint_dict, "errors": []}
+    return {"errors": ["Blueprint generation failed"]}
+
+def node_review_blueprint(state: ExamState, config: RunnableConfig):
+    ensure_frappe_connection(config)
+    """Human-in-the-loop: Pause execution to wait for human review."""
+    exam_name = state["exam_name"]
+    frappe.publish_realtime("ai_exam_progress", {"status": "Waiting for review..."}, room=exam_name)
+    
+    feedback = interrupt("Please review the blueprint.")
+    
+    if feedback and isinstance(feedback, str) and feedback != "approve":
+        frappe.publish_realtime("ai_exam_progress", {"status": "Regenerating blueprint..."}, room=exam_name)
+        new_config = dict(state["teacher_config"])
+        new_config["teacher_instructions"] = new_config.get("teacher_instructions", "") + f"\n\n[USER FEEDBACK FOR REGENERATION]: {feedback}"
+        
+        # Increment regeneration counter in state
+        current_count = state.get("regenerate_count", 0) + 1
+        
+        return Command(goto="blueprint", update={
+            "teacher_config": new_config,
+            "regenerate_count": current_count
+        })
+        
+    frappe.publish_realtime("ai_exam_progress", {"status": "Generating questions..."}, room=exam_name)
+    doc = frappe.get_doc("AI Exam", exam_name)
+    doc.db_set("status", "Processing")
+    return Command(goto="prepare_sections")
+
+def node_prepare_sections(state: ExamState, config: RunnableConfig):
+    return {}
+
+def route_sections(state: ExamState):
+    """Map step: Create parallel sub-tasks for each section"""
+    sections = state["blueprint"].get("sections_blueprint", [])
+    sends = []
+    for idx, sec in enumerate(sections):
+        sends.append(Send("process_section", {
+            "section_index": idx,
+            "section_blueprint": sec,
+            "knowledge_map": state["knowledge_map"],
+            "exam_format": state["teacher_config"].get("exam_format", "MOET 2025"),
+            "draft_questions": {},
+            "feedback": "",
+            "retry_count": 0
+        }))
+    return sends
+
+def node_process_section(state: SectionState, config: RunnableConfig):
+    ensure_frappe_connection(config)
+    llm_gen, _, _ = get_llm("exam_generator", temperature=0.4, max_tokens=8192)
+    llm_eval, _, _ = get_llm("exam_generator", temperature=0.1, max_tokens=4096)
+    
+    sec = state["section_blueprint"]
+    title = sec.get("section_name", "")
+    
+    prompt_template = MCQ_WRITER_PROMPT
+    if "đúng sai" in title.lower() or "đúng/sai" in title.lower():
+        prompt_template = TRUE_FALSE_WRITER_PROMPT
+    elif "trả lời ngắn" in title.lower() or "tự luận" in title.lower():
+        prompt_template = SHORT_ANSWER_WRITER_PROMPT
+        
+    feedback = ""
+    best_draft = {"section_name": title, "questions": []}
+    
+    from lms.lms.services.observability import get_unified_config_dict
+    
+    for attempt in range(3):
+        prompt = prompt_template.format(
+            section_blueprint=json.dumps(sec, ensure_ascii=False, indent=2),
+            knowledge_map=state["knowledge_map"],
+            num_questions=sec.get("num_questions", 0)
+        )
+        if feedback:
+            prompt += f"\n\nPHẢN HỒI TỪ ĐỢT SINH TRƯỚC (HÃY SỬA LỖI NÀY):\n{feedback}"
+            
+        obs_config = get_unified_config_dict("exam_generator_section")
+        run_config = {**config, **obs_config} if config else obs_config
+        
+        draft = generate_with_fallback(llm_gen, prompt, ExamSectionSchema, config=run_config)
+        if not draft:
+            feedback = "Failed to generate JSON. Try again."
             continue
             
-        prompt = QUESTION_WRITER_PROMPT.format(
-            section_blueprint=json.dumps(section_blueprint, ensure_ascii=False, indent=2),
-            knowledge_map=state["knowledge_map"],
-            exam_format=exam_format,
-            num_questions=num_questions,
-            question_type=question_type
-        )
-        
-        try:
-            section_dict = generate_with_fallback(llm, prompt, ExamSectionSchema)
-            if section_dict:
-                if not section_dict.get("section_name"):
-                    section_dict["section_name"] = section_blueprint.get("section_name", "")
-                final_sections.append(section_dict)
-            else:
-                state["errors"].append(f"Failed to extract section {section_blueprint.get('section_name', '')}")
-        except Exception as e:
-            state["errors"].append(f"Section generation failed: {str(e)}")
+        if not draft.get("section_name"):
+            draft["section_name"] = title
             
-    # Always build final_exam with whatever sections we have
-    state["final_exam"] = {
+        best_draft = draft
+        
+        eval_prompt = EVALUATOR_PROMPT.format(
+            section_blueprint=json.dumps(sec, ensure_ascii=False, indent=2),
+            draft_questions=json.dumps(draft, ensure_ascii=False, indent=2),
+            num_questions=sec.get("num_questions", 0)
+        )
+        eval_obs_config = get_unified_config_dict("exam_generator_evaluator")
+        eval_run_config = {**config, **eval_obs_config} if config else eval_obs_config
+        
+        eval_result = generate_with_fallback(llm_eval, eval_prompt, EvaluatorFeedbackSchema, config=eval_run_config)
+        
+        if eval_result and eval_result.get("is_passed"):
+            draft["_index"] = state["section_index"]
+            return {"sections_drafts": [draft]}
+            
+        feedback = eval_result.get("feedback", "Requirements not met.") if eval_result else "Evaluation failed."
+        
+    best_draft["_index"] = state["section_index"]
+    return {"sections_drafts": [best_draft]}
+
+def node_format_final(state: ExamState, config: RunnableConfig):
+    ensure_frappe_connection(config)
+    exam_name = state["exam_name"]
+    frappe.publish_realtime("ai_exam_progress", {"status": "Formatting final exam..."}, room=exam_name)
+    
+    sections = state.get("sections_drafts", [])
+    sections.sort(key=lambda x: x.get("_index", 999))
+    
+    for s in sections:
+        if "_index" in s:
+            del s["_index"]
+            
+    final_exam = {
         "title": state["blueprint"].get("title", ""),
         "instructions": state["blueprint"].get("instructions", ""),
-        "sections": final_sections
+        "sections": sections
     }
-        
-    return state
+    
+    from lms.lms.agents.exam.orchestrator import calculate_10_point_scale # fallback for math logic
+    final_exam = calculate_10_point_scale(final_exam, state["teacher_config"].get("exam_format", "MOET 2025"), state["teacher_config"].get("subject", "Toán"))
+    
+    for sec in final_exam.get("sections", []):
+        sec["section_name"] = normalize_text(sec.get("section_name", ""))
+        sec["instructions"] = normalize_text(sec.get("instructions", ""))
+        for q in sec.get("questions", []):
+            q["question_text"] = normalize_text(q.get("question_text", ""))
+            q["correct_answer"] = normalize_text(q.get("correct_answer", ""))
+            q["explanation"] = normalize_text(q.get("explanation", ""))
+            for opt in q.get("options", []):
+                opt["text"] = normalize_text(opt.get("text", ""))
+                
+    doc = frappe.get_doc("AI Exam", exam_name)
+    doc.set("sections", [])
+    doc.set("questions", [])
+    
+    q_index = 1
+    for sec_data in final_exam["sections"]:
+        sec_doc = doc.append("sections", {
+            "section_title": sec_data.get("section_name"),
+            "section_instructions": sec_data.get("instructions"),
+            "section_type": sec_data.get("section_type", "Multiple Choice"),
+            "num_questions": len(sec_data.get("questions", []))
+        })
+        for q_data in sec_data.get("questions", []):
+            q_doc = doc.append("questions", {
+                "question_number": q_data.get("question_number", q_index),
+                "section_ref": sec_doc.name,
+                "question_type": q_data.get("question_type", "Multiple Choice"),
+                "question_text": q_data.get("question_text", ""),
+                "correct_answer": q_data.get("correct_answer", ""),
+                "explanation": q_data.get("explanation", ""),
+                "points": q_data.get("points", 1.0),
+                "bloom_level": q_data.get("bloom_level", ""),
+                "needs_visual": q_data.get("needs_visual", 0),
+                "visual_prompt": q_data.get("visual_prompt", "")
+            })
+            q_index += 1
+            # options is a Code (JSON) field in AI Exam Question
+            options_list = []
+            for opt in q_data.get("options", []):
+                if opt.get("text"):
+                    options_list.append({
+                        "option_label": opt.get("label", ""),
+                        "option_text": opt.get("text", ""),
+                        "is_correct": 1 if opt.get("is_correct") else 0
+                    })
+            if options_list:
+                q_doc.options = json.dumps(options_list, ensure_ascii=False)
+            
+            # criteria is not a field in AI Exam Question, we store it in solution if it exists
+            if q_data.get("criteria"):
+                rubric_md = "\n\n**Tiêu chí chấm (Rubric):**\n"
+                for crit in q_data.get("criteria"):
+                    c_name = crit.get("criterion_name", "")
+                    c_score = crit.get("max_score", 0)
+                    rubric_md += f"- **{c_name}** (Tối đa: {c_score} điểm)\n"
+                    
+                    perf_json = crit.get("performance_levels_json")
+                    if perf_json:
+                        try:
+                            levels = json.loads(perf_json).get("levels", [])
+                            for lvl in levels:
+                                desc = lvl.get("description", "")
+                                score = lvl.get("score", 0)
+                                rubric_md += f"  - {desc}: {score} điểm\n"
+                        except Exception:
+                            pass
+                q_doc.solution = (q_doc.solution or "") + rubric_md
+    doc.status = "Completed"
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=exam_name)
+    
+    return {"final_exam": final_exam}
 
 def build_graph():
-    workflow = StateGraph(ExamState)
-    workflow.add_node("analyze", node_analyze)
-    workflow.add_node("blueprint", node_blueprint)
-    workflow.add_node("generate", node_generate)
+    builder = StateGraph(ExamState)
+    builder.add_node("analyze", node_analyze)
+    builder.add_node("blueprint", node_blueprint)
+    builder.add_node("review_blueprint", node_review_blueprint)
+    builder.add_node("prepare_sections", node_prepare_sections)
     
-    workflow.set_entry_point("analyze")
-    workflow.add_edge("analyze", "blueprint")
-    workflow.add_edge("blueprint", "generate")
-    workflow.add_edge("generate", END)
+    builder.add_node("process_section", node_process_section)
+    builder.add_node("format_final", node_format_final)
     
-    return workflow.compile()
+    builder.add_edge(START, "analyze")
+    builder.add_edge("analyze", "blueprint")
+    builder.add_edge("blueprint", "review_blueprint")
+    
+    builder.add_conditional_edges("prepare_sections", route_sections, ["process_section"])
+    builder.add_edge("process_section", "format_final")
+    builder.add_edge("format_final", END)
+    
+    return builder
 
+# Compile globally with SqliteSaver
+frappe_site_path = frappe.get_site_path("private", "files")
+os.makedirs(frappe_site_path, exist_ok=True)
+import sqlite3
+db_path = os.path.join(frappe_site_path, "exam_checkpoints.sqlite")
+conn = sqlite3.connect(db_path, check_same_thread=False)
+memory = SqliteSaver(conn)
+graph = build_graph().compile(checkpointer=memory)
+
+# --- PUBLIC APIS FOR FRAPPE TASKS ---
 def calculate_10_point_scale(final_exam: dict, exam_format: str = "MOET 2025", subject: str = "Toán") -> dict:
-    """Calculate 10-point scale for multiple choice and subjective questions."""
     sections = final_exam.get("sections", [])
     
     if exam_format == "MOET 2025":
@@ -279,234 +483,105 @@ def calculate_10_point_scale(final_exam: dict, exam_format: str = "MOET 2025", s
                         
     return final_exam
 
-def get_state_file_path(exam_name: str) -> str:
-    site_path = frappe.get_site_path()
-    state_dir = os.path.join(site_path, 'private', 'files', 'ai_exam_states')
-    os.makedirs(state_dir, exist_ok=True)
-    return os.path.join(state_dir, f"{exam_name}_state.json")
+def run_exam_graph(exam_name: str, resume_action: str = None, modified_blueprint: str = None):
+    import frappe
+    from lms.lms.services.observability import get_unified_config_dict, flush_langfuse
+    from langgraph.types import Command
+    import json
+    import traceback
+    
+    config = get_unified_config_dict(agent_name="exam_generator", session_id=f"exam_{exam_name}")
+    config["configurable"] = {"thread_id": exam_name, "site": getattr(frappe.local, "site", None)}
+    doc = frappe.get_doc("AI Exam", exam_name)
+    
+    try:
+        if resume_action:
+            # We are resuming from an interrupt (either feedback string or "approve")
+            if modified_blueprint:
+                state = graph.get_state(config)
+                if state and state.values:
+                    graph.update_state(config, {"blueprint": json.loads(modified_blueprint)})
+                    
+            graph.invoke(Command(resume=resume_action), config=config)
+        else:
+            # We are starting fresh or retrying
+            
+            # --- Check if we can resume from existing approved blueprint after failure ---
+            state = graph.get_state(config)
+            if doc.status == "Failed" and state and state.values and state.values.get("blueprint"):
+                frappe.logger().info(f"[AI Exam] Resuming {exam_name} from existing approved blueprint after failure.")
+                doc.db_set("status", "Processing")
+                frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
+                # Resume from prepare_sections
+                graph.invoke(Command(goto="prepare_sections"), config=config)
+                flush_langfuse()
+                return
 
-def save_state_to_file(exam_name: str, state: dict):
-    file_path = get_state_file_path(exam_name)
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+            from lms.lms.services.ai_rate_limit import check_and_record_usage
+            can_proceed = check_and_record_usage(frappe.session.user, "Exam Gen")
+            if not can_proceed:
+                doc.db_set("status", "Failed")
+                doc.db_set("error_log", "AI Rate limit exceeded.")
+                frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
+                return
+
+            doc.db_set("status", "Processing")
+            frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
+
+            try:
+                from lms.lms.agents.quiz.extractor import extract_text_from_quiz_source
+            except ImportError:
+                try:
+                    from lms.lms.services.ai_quiz.api import extract_text_from_quiz_source
+                except ImportError:
+                    extract_text_from_quiz_source = None
+                    
+            source_text = ""
+            if hasattr(doc, "source_file") and doc.source_file:
+                if extract_text_from_quiz_source:
+                    source_text = extract_text_from_quiz_source("Document", doc.source_file, "")
+                else:
+                    source_text = f"Attached file: {doc.source_file}"
+            else:
+                source_text = doc.teacher_instructions
+                
+            initial_state = {
+                "exam_name": exam_name,
+                "source_text": source_text,
+                "teacher_config": {
+                    "subject": doc.subject,
+                    "grade_level": doc.grade_level,
+                    "curriculum": doc.curriculum,
+                    "exam_type": doc.exam_type,
+                    "duration_minutes": doc.duration_minutes,
+                    "difficulty_distribution": doc.difficulty_distribution,
+                    "teacher_instructions": doc.teacher_instructions,
+                    "exam_format": doc.exam_format if hasattr(doc, "exam_format") else "MOET 2025",
+                    "custom_format_template": doc.custom_format_template if hasattr(doc, "custom_format_template") else "",
+                    "section_configs_json": doc.section_configs_json if hasattr(doc, "section_configs_json") else "[]"
+                },
+                "knowledge_map": "",
+                "blueprint": {},
+                "sections_drafts": [],
+                "final_exam": {},
+                "errors": [],
+                "regenerate_count": 0
+            }
+            
+            graph.invoke(initial_state, config=config)
+            
+        flush_langfuse()
+        
+    except Exception as e:
+        full_traceback = traceback.format_exc()
+        frappe.log_error(f"AI Exam Graph Error: {full_traceback}", "AI Exam")
+        frappe.db.set_value("AI Exam", exam_name, "status", "Failed")
+        frappe.db.set_value("AI Exam", exam_name, "error_log", full_traceback)
+        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=exam_name)
 
 def load_state_from_file(exam_name: str) -> dict:
-    file_path = get_state_file_path(exam_name)
-    if os.path.exists(file_path):
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+    config = {"configurable": {"thread_id": exam_name}}
+    state = graph.get_state(config)
+    if state and state.values:
+        return state.values
     return {}
-
-def process_phase_1(exam_name: str):
-    """Run Analysis and Blueprint generation, then await human review."""
-    try:
-        doc = frappe.get_doc("AI Exam", exam_name)
-        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
-        
-        can_proceed = check_and_record_usage(frappe.session.user, "Exam Gen")
-        if not can_proceed:
-            doc.db_set("status", "Failed")
-            doc.db_set("error_log", "AI Rate limit exceeded.")
-            frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
-            return
-
-        doc.db_set("status", "Processing")
-        
-        source_text = ""
-        if hasattr(doc, "source_file") and doc.source_file:
-            if extract_text_from_quiz_source:
-                # We don't have source_type, so we assume Document
-                source_text = extract_text_from_quiz_source("Document", doc.source_file, "")
-            else:
-                source_text = f"Attached file: {doc.source_file}"
-        else:
-            source_text = doc.teacher_instructions
-            
-        initial_state = {
-            "exam_name": exam_name,
-            "source_text": source_text,
-            "teacher_config": {
-                "subject": doc.subject,
-                "grade_level": doc.grade_level,
-                "curriculum": doc.curriculum,
-                "exam_type": doc.exam_type,
-                "duration_minutes": doc.duration_minutes,
-                "difficulty_distribution": doc.difficulty_distribution,
-                "teacher_instructions": doc.teacher_instructions,
-                "exam_format": doc.exam_format if hasattr(doc, "exam_format") else "MOET 2025",
-                "custom_format_template": doc.custom_format_template if hasattr(doc, "custom_format_template") else "",
-                "section_configs_json": doc.section_configs_json if hasattr(doc, "section_configs_json") else "[]"
-            },
-            "knowledge_map": "",
-            "blueprint": {},
-            "final_exam": {},
-            "errors": []
-        }
-
-        # Build partial graph for phase 1
-        workflow = StateGraph(ExamState)
-        workflow.add_node("analyze", node_analyze)
-        workflow.add_node("blueprint", node_blueprint)
-        workflow.set_entry_point("analyze")
-        workflow.add_edge("analyze", "blueprint")
-        workflow.add_edge("blueprint", END)
-        graph = workflow.compile()
-        
-        frappe.publish_realtime("ai_exam_progress", {"status": "Analyzing knowledge..."}, room=doc.name)
-        
-        # Unify tracking and observability
-        thread_id = f"exam_{exam_name}"
-        config = get_unified_config_dict(agent_name="exam_phase_1", session_id=thread_id)
-        
-        final_state = graph.invoke(initial_state, config=config)
-        
-        if final_state.get("errors"):
-            raise Exception(" | ".join(final_state["errors"]))
-            
-        save_state_to_file(exam_name, final_state)
-        
-        doc.db_set({
-            "status": "Waiting for Review",
-            "review_started_at": frappe.utils.now_datetime(),
-            "review_notified": 0,
-            "owner_user": doc.owner,
-        })
-        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
-        
-    except Exception as e:
-        logger.error(f"AI Exam Phase 1 Error: {e}", exc_info=True)
-        frappe.db.set_value("AI Exam", exam_name, "status", "Failed")
-        frappe.db.set_value("AI Exam", exam_name, "error_log", str(e))
-        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=exam_name)
-
-def process_phase_2(exam_name: str, modified_blueprint: str = None):
-    """Run Generation using the approved blueprint."""
-    try:
-        doc = frappe.get_doc("AI Exam", exam_name)
-        doc.db_set("status", "Processing")
-        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
-        
-        state = load_state_from_file(exam_name)
-        if not state:
-            raise Exception("State file missing, please start from Phase 1")
-            
-        # Unify tracking and observability
-        thread_id = f"exam_{exam_name}_p2"
-        config = get_unified_config_dict(agent_name="exam_phase_2", session_id=thread_id)
-        
-        if modified_blueprint:
-            state["blueprint"] = json.loads(modified_blueprint)
-            
-        from lms.lms.agents.exam.nodes.formatter import node_format
-        
-        workflow = StateGraph(ExamState)
-        workflow.add_node("generate", node_generate)
-        workflow.add_node("formatter", node_format)
-        workflow.set_entry_point("generate")
-        workflow.add_edge("generate", "formatter")
-        workflow.add_edge("formatter", END)
-        graph = workflow.compile()
-        
-        final_state = graph.invoke(state)
-        
-        if final_state.get("errors"):
-            raise Exception(" | ".join(final_state["errors"]))
-            
-        exam_data = final_state.get("final_exam", {})
-        exam_format = doc.exam_format if hasattr(doc, "exam_format") else "MOET 2025"
-        exam_data = calculate_10_point_scale(exam_data, exam_format=exam_format, subject=doc.subject)
-        
-        doc.title = normalize_text(exam_data.get("title", doc.title))
-        doc.instructions = normalize_text(exam_data.get("instructions", ""))
-        
-        q_num = 1
-        for sec in exam_data.get("sections", []):
-            sec_doc = doc.append("sections", {})
-            sec_doc.section_title = normalize_text(sec.get("section_name", sec.get("section_title")))
-            sec_doc.section_instructions = normalize_text(sec.get("instructions", sec.get("section_instructions")))
-            sec_doc.num_questions = len(sec.get("questions", []))
-            
-            for q in sec.get("questions", []):
-                q_doc = doc.append("questions", {})
-                q_doc.question_number = q_num
-                q_num += 1
-                
-                raw_type = normalize_text(q.get("question_type", sec.get("section_type"))).lower()
-                if "đúng sai" in raw_type or "true/false" in raw_type:
-                    q_doc.question_type = "True/False"
-                elif "ngắn" in raw_type or "short" in raw_type:
-                    q_doc.question_type = "Short Answer"
-                elif "tự luận" in raw_type or "essay" in raw_type:
-                    q_doc.question_type = "Essay"
-                else:
-                    q_doc.question_type = "Multiple Choice"
-                    
-                q_doc.question_text = normalize_text(q.get("question_text"))
-                q_doc.difficulty_level = normalize_text(q.get("difficulty_level"))
-                q_doc.points = q.get("points", 1.0)
-                formatted_options = []
-                # Guard against options=None for non-MCQ questions
-                for opt in (q.get("options") or []):
-                    if isinstance(opt, dict):
-                        formatted_options.append({
-                            "label": normalize_text(opt.get("label", "")),
-                            "text": normalize_text(opt.get("text", "")),
-                            "is_correct": opt.get("is_correct", False)
-                        })
-                    else:
-                        formatted_options.append(normalize_text(str(opt)))
-                q_doc.options = json.dumps(formatted_options, ensure_ascii=False) if formatted_options else None
-                if q.get("correct_answer"):
-                    q_doc.correct_answer = json.dumps(q.get("correct_answer", [])) if isinstance(q.get("correct_answer"), list) else normalize_text(q.get("correct_answer"))
-                q_doc.explanation = normalize_text(q.get("explanation"))
-                q_doc.bloom_level = normalize_text(q.get("bloom_level"))
-                
-        doc.status = "Completed"
-        doc.hitl_status = "Approved"
-        doc.save(ignore_permissions=True)
-        frappe.db.commit()
-        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
-
-        # Persistent notification → /lms/notifications + bell icon
-        try:
-            from lms.lms.services.hitl.notification import notify_user_direct
-            from lms.lms.utils import get_lms_route
-            notify_user_direct(
-                for_user=doc.owner,
-                subject=f"✅ Đề thi hoàn thành: {doc.title}",
-                email_content=(
-                    f"Đề thi <b>{doc.title}</b> đã được AI sinh câu hỏi xong.<br>"
-                    f"Tổng số câu hỏi: <b>{len(doc.questions)}</b>. Sẵn sàng xuất bản!"
-                ),
-                document_type="AI Exam",
-                document_name=exam_name,
-                link=get_lms_route("exam-generator"),
-            )
-        except Exception:
-            pass
-    except Exception as e:
-        logger.error(f"AI Exam Phase 2 Error: {e}", exc_info=True)
-        frappe.db.set_value("AI Exam", exam_name, "status", "Failed")
-        frappe.db.set_value("AI Exam", exam_name, "error_log", str(e))
-        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=exam_name)
-
-        # Persistent failure notification
-        try:
-            from lms.lms.services.hitl.notification import notify_user_direct
-            from lms.lms.utils import get_lms_route
-            owner = frappe.db.get_value("AI Exam", exam_name, "owner")
-            title = frappe.db.get_value("AI Exam", exam_name, "title") or exam_name
-            if owner:
-                notify_user_direct(
-                    for_user=owner,
-                    subject=f"❌ Đề thi sinh thất bại: {title}",
-                    email_content=(
-                        f"Đề thi <b>{title}</b> bị lỗi ở giai đoạn sinh câu hỏi.<br>"
-                        f"<b>Lỗi:</b> {str(e)}"
-                    ),
-                    document_type="AI Exam",
-                    document_name=exam_name,
-                    link=get_lms_route("exam-generator"),
-                )
-        except Exception:
-            pass

@@ -54,7 +54,7 @@
           
           <div v-for="q in getQuestionsForSection(section, secIdx)" :key="q.question_number" class="mb-4">
             <div class="flex">
-              <span class="font-bold mr-2 whitespace-nowrap">Câu {{ q.question_number }} ({{ q.points || 0.25 }} điểm):</span>
+              <span class="font-bold mr-2 whitespace-nowrap">Câu {{ q.question_number || q.idx || secIdx * 10 + q.question_number }} ({{ q.points || 0.25 }} điểm):</span>
               <div>
                 <div class="markdown-content mb-3" v-html="renderMarkdown(q.question_text)"></div>
                 
@@ -113,7 +113,7 @@ const renderMarkdown = (text) => {
 }
 
 const cleanOptionText = (opt) => {
-  let text = opt.text || opt || ''
+  let text = opt.option_text || opt.text || opt || ''
   if (typeof text === 'string') {
     text = text.replace(/^[A-Z][\.\:\)]\s*/i, '')
   }
@@ -150,16 +150,15 @@ onUpdated(() => {
 const router = useRouter()
 const route = useRoute()
 const examResource = createResource({
-  url: 'lms.lms.services.ai_exam.api.get_exam_details',
+  url: 'frappe.client.get',
+  cache: ['exam_detail', route.params.examID],
   makeParams() {
     return {
-      exam_name: route.params.examID
+      doctype: 'AI Exam',
+      name: route.params.examID
     }
   },
-  auto: true,
-  transform(data) {
-    return data.exam || {}
-  }
+  auto: true
 })
 
 const parseJSON = (str) => {

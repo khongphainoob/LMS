@@ -116,6 +116,37 @@
           </div>
         </div>
       </section>
+
+      <!-- ===== ADMIN TOOLS ===== -->
+      <section v-if="isAdmin">
+        <div class="flex items-center gap-4 mb-8 mt-12">
+          <span class="text-3xl">🛠️</span>
+          <div>
+            <h3 class="text-2xl font-bold text-slate-900 dark:text-lime-400">{{ __('Admin Tools') }}</h3>
+            <p class="text-sm text-slate-600 dark:text-sky-300 font-medium">{{ __('System and AI monitoring.') }}</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-for="item in adminItems"
+            :key="item.label"
+            @click="go(item.to)"
+            class="group flex flex-col gap-5 rounded-2xl bg-purple-100/60 dark:bg-purple-900/30 p-6 transition-all hover:bg-purple-200/80 dark:hover:bg-purple-800/50 hover:shadow-xl hover:-translate-y-1 cursor-pointer border border-purple-200/50 dark:border-purple-700/40 relative overflow-hidden"
+          >
+            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-800 shadow-lg transition-transform group-hover:scale-110 text-2xl">
+              {{ item.emoji }}
+            </div>
+            <div>
+              <h4 class="text-base font-bold text-slate-900 dark:text-lime-400 mb-2">{{ __(item.label) }}</h4>
+              <p class="text-sm text-slate-600 dark:text-sky-300 leading-relaxed font-medium">
+                {{ __(item.description) }}
+              </p>
+            </div>
+            <div class="absolute bottom-0 left-0 h-1 w-0 bg-purple-500 transition-all duration-500 group-hover:w-full rounded-full"></div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Footer -->
@@ -145,6 +176,20 @@ const user = inject('$user')
 
 const isTeacher = computed(() => user.data?.is_moderator || user.data?.is_instructor)
 const isStudent = computed(() => user.data?.is_student)
+const isAdmin = computed(() => user.data?.is_system_manager)
+
+const adminItems = computed(() => {
+  const items = [
+    {
+      label: 'AI Observability',
+      description: __('Monitor AI token usage, costs, errors, and traces.'),
+      emoji: '📈',
+      to: 'AIDashboard',
+      condition: true,
+    },
+  ]
+  return items.filter(item => item.condition)
+})
 
 const teacherItems = computed(() => {
   const items = [
@@ -181,7 +226,7 @@ const teacherItems = computed(() => {
       description: __('Generate full, print-ready exam papers with varied formats and answer keys.'),
       emoji: '📄',
       to: 'ExamDashboard',
-      condition: true,
+      condition: parseInt(settings.data?.enable_exam_generator) !== 0,
     },
     {
       label: 'Documents',

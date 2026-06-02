@@ -17,7 +17,7 @@
         <div class="flex items-center gap-3">
           <button @click="showNewSessionModal = true" class="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-amber-200 transition-all hover:bg-amber-600 hover:scale-[1.02] active:scale-95">
             <icons.Plus class="h-4 w-4 stroke-[3px]" />
-            {{ __('Starting a NEW TGFR session') }}
+            {{ __('Start a new session') }}
           </button>
         </div>
       </div>

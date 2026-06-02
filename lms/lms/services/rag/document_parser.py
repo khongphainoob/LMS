@@ -50,37 +50,9 @@ class DocumentParser:
 		)
 
 	def _parse_docx(self, path: str) -> ParsedDocument:
-		from docx import Document
-		doc = Document(path)
-		
-		content_parts = []
-		sections = []
-		current_section = {"title": "General", "content": "", "level": 0, "page": 0}
-		
-		for para in doc.paragraphs:
-			text = para.text.strip()
-			if not text:
-				continue
-				
-			if para.style.name.startswith('Heading'):
-				try:
-					level = int(para.style.name.split(' ')[1])
-				except Exception:
-					level = 1
-					
-				if current_section["content"]:
-					sections.append(current_section)
-				
-				current_section = {"title": text, "content": text + "\n", "level": level, "page": 0}
-				content_parts.append(f"{'#' * level} {text}")
-			else:
-				current_section["content"] += text + "\n"
-				content_parts.append(text)
-		
-		if current_section["content"]:
-			sections.append(current_section)
-			
-		md_text = "\n\n".join(content_parts)
+		from lms.lms.agents.utils.file_parser import get_content_from_file
+		md_text = get_content_from_file(path)
+		sections = self._extract_sections_from_markdown(md_text)
 		return ParsedDocument(
 			content=md_text,
 			sections=sections,

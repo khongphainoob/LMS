@@ -37,7 +37,7 @@ NỘI DUNG CÂU HỎI TRÍCH XUẤT:
 """
 
 def generate_rubric_structure(extracted_text: str) -> List[Dict]:
-    model = get_model("rubric_gen")
+    model, _, _ = get_model("rubric_gen")
 
     try:
         response = model.invoke(RUBRIC_GEN_PROMPT.format(extracted_text=extracted_text))

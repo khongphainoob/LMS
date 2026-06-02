@@ -35,8 +35,8 @@
           <div class="absolute inset-0 w-20 h-20 rounded-full border-4 border-transparent border-t-emerald-500 animate-spin"></div>
           <div class="absolute inset-0 flex items-center justify-center text-2xl">🤖</div>
         </div>
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-3">{{ isGenerating ? __('Đang sinh câu hỏi...') : __('AI is generating your exam...') }}</h2>
-        <p class="text-slate-500 text-center max-w-md">{{ isGenerating ? __('AI đang viết từng phần thi theo khung đề bạn đã duyệt. Quá trình này mất vài phút, bạn có thể rời khỏi trang và quay lại sau.') : __('This may take a few minutes depending on the length of the source material.') }}</p>
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-3">{{ isGenerating ? __('Generating questions...') : __('AI is generating your exam...') }}</h2>
+        <p class="text-slate-500 text-center max-w-md">{{ isGenerating ? __('AI is writing each exam section based on the approved blueprint. This takes a few minutes, you can leave the page and return later.') : __('This may take a few minutes depending on the length of the source material.') }}</p>
         <div v-if="isGenerating" class="mt-6 flex gap-2">
           <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style="animation-delay:0ms"></span>
           <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style="animation-delay:150ms"></span>
@@ -80,16 +80,23 @@
                     
                     <div class="flex flex-wrap gap-4 bg-white dark:bg-slate-900 px-4 py-3 rounded-lg text-sm border border-slate-200 dark:border-slate-700">
                       <div class="flex items-center gap-2">
-                        <span class="text-slate-500">Số lượng:</span>
-                        <span class="font-medium text-slate-800 dark:text-slate-200">{{ sec.num_questions }} câu</span>
+                        <span class="text-slate-500">{{ __('Quantity') }}:</span>
+                        <span class="font-medium text-slate-800 dark:text-slate-200">{{ sec.num_questions }} {{ __('questions') }}</span>
                       </div>
                       <div class="flex items-center gap-2">
-                        <span class="text-slate-500">Loại câu hỏi:</span>
+                        <span class="text-slate-500">{{ __('Question Type') }}:</span>
                         <span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded text-xs">{{ sec.section_type || sec.question_type }}</span>
                       </div>
-                      <div class="flex items-center gap-2">
-                        <span class="text-slate-500">Chủ đề:</span>
-                        <span class="text-slate-700 dark:text-slate-300">{{ sec.topics || 'N/A' }}</span>
+                      <div class="flex flex-col gap-2 w-full mt-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+                        <span class="text-slate-500 text-xs font-bold uppercase tracking-wider">{{ __('Topic Distribution') }}</span>
+                        <div class="flex flex-wrap gap-2">
+                          <template v-if="sec.topic_allocation && sec.topic_allocation.length">
+                             <span v-for="(t, tIdx) in sec.topic_allocation" :key="tIdx" class="bg-indigo-50/80 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1.5 rounded-md text-xs font-medium">
+                               {{ t.topic }} <span class="opacity-60 ml-1">({{ t.count }} {{ __('questions') }})</span>
+                             </span>
+                          </template>
+                          <span v-else class="text-slate-700 dark:text-slate-300">{{ sec.topics || 'N/A' }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -193,7 +200,7 @@
                   <div v-for="q in getQuestionsForSection(section, secIdx)" :key="q.name" class="relative group">
                   
                   <div class="flex gap-2">
-                    <span class="font-bold shrink-0">{{ __('Câu') }} {{ q.question_number }} ({{ q.score }} {{ __('điểm') }}):</span>
+                    <span class="font-bold shrink-0">{{ __('Câu') }} {{ q.question_number || q.idx }} ({{ q.score || q.points || 0.25 }} {{ __('điểm') }}):</span>
                     <div class="w-full">
                       <div class="mb-3 markdown-content" v-html="renderMarkdown(q.question_text)"></div>
                       
@@ -257,7 +264,7 @@ const renderMarkdown = (text) => {
 }
 
 const cleanOptionText = (opt) => {
-  let text = opt.text || opt || ''
+  let text = opt.option_text || opt.text || opt || ''
   if (typeof text === 'string') {
     // Remove leading "A.", "B)", "C:", etc. if the old LLM format included them
     text = text.replace(/^[A-Z][\.\:\)]\s*/i, '')
@@ -312,6 +319,7 @@ onUpdated(() => {
 
 const examResource = createResource({
   url: 'frappe.client.get',
+  cache: ['exam_detail', route.params.examID],
   makeParams() {
     return {
       doctype: 'AI Exam',
@@ -331,10 +339,11 @@ const blueprintResource = createResource({
   makeParams() {
     return { exam_name: route.params.examID }
   },
-  onSuccess(data) {
-    if (data.success && data.blueprint) {
-      blueprintResource.data = data.blueprint
+  transform(data) {
+    if (data && data.success && data.blueprint) {
+      return data.blueprint
     }
+    return data
   }
 })
 
@@ -412,9 +421,9 @@ const getQuestionsForSection = (section, secIdx) => {
   if (!examResource.data?.questions) return []
   let startIndex = 0
   for (let i = 0; i < secIdx; i++) {
-    startIndex += examResource.data.sections[i].num_questions || 0
+    startIndex += parseInt(examResource.data.sections[i].num_questions) || 0
   }
-  const endIndex = startIndex + (section.num_questions || 0)
+  const endIndex = startIndex + (parseInt(section.num_questions) || 0)
   return examResource.data.questions.slice(startIndex, endIndex)
 }
 

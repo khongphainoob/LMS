@@ -62,7 +62,8 @@
       "fieldname": "session_key",
       "fieldtype": "Data",
       "label": "Redis Session Key",
-      "read_only": 1
+      "read_only": 1,
+      "search_index": 1
     },
     {
       "fieldname": "started_at",

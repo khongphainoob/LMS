@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50 flex flex-col font-sans">
+  <div class="h-[100dvh] w-full bg-slate-50 flex flex-col font-sans overflow-hidden">
     <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur-md shadow-sm">
       <div class="flex items-center justify-between mx-auto w-full max-w-[1400px]">
         <div class="flex items-center gap-4">
@@ -37,9 +37,9 @@
       </div>
     </header>
 
-    <main class="flex-1 mx-auto w-full max-w-[1400px] h-full flex flex-col lg:flex-row overflow-hidden bg-white/50">
-      <!-- Left Column: Context Review -->
-      <section class="flex flex-col w-full lg:w-[40%] xl:w-[35%] h-full border-r border-slate-200 p-5 space-y-6 overflow-y-auto bg-white">
+    <main class="flex-1 mx-auto w-full max-w-[1400px] h-full flex flex-col lg:flex-row overflow-hidden bg-white/50 min-h-0">
+      <!-- Context Review Sidebar (Left) -->
+      <section class="hidden lg:flex flex-col w-full lg:w-[40%] xl:w-[35%] max-h-[30vh] lg:max-h-none lg:h-full border-b lg:border-b-0 lg:border-r border-slate-200 p-4 lg:p-5 space-y-6 overflow-y-auto bg-white shrink-0">
         <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-5">
           <div class="flex items-center gap-3 mb-5">
             <div class="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-200/50">
@@ -158,12 +158,15 @@
         <div class="p-4 sm:p-5 border-t border-slate-200 bg-white">
           <div class="mx-auto w-full max-w-4xl relative">
             <textarea
+              ref="textareaRef"
               v-model="userInput"
               rows="1"
-              class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3.5 pr-14 text-sm outline-none transition-all focus:bg-white focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 resize-none shadow-sm"
+              class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3.5 pr-14 text-sm outline-none transition-all focus:bg-white focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 resize-none shadow-sm overflow-hidden"
+              style="min-height: 48px; max-height: 160px; line-height: 1.5;"
               :placeholder="__('Enter your answer or question...')"
               :disabled="chatbotResource.loading || isAwaitingResponse"
               @keydown.enter.prevent="handleSend"
+              @input="resizeTextarea"
             ></textarea>
 
             <button
@@ -204,7 +207,16 @@ const { brand } = sessionStore()
 
 const userInput = ref('')
 const scrollContainer = ref(null)
+const textareaRef = ref(null)
 const currentSessionTitle = ref('')
+
+const resizeTextarea = () => {
+  if (!textareaRef.value) return
+  textareaRef.value.style.height = '48px'
+  const scrollH = textareaRef.value.scrollHeight
+  textareaRef.value.style.height = Math.min(scrollH, 160) + 'px'
+  textareaRef.value.style.overflowY = scrollH > 160 ? 'auto' : 'hidden'
+}
 
 const lastSessionImage = ref(null)
 const lastSessionImages = ref([])
@@ -284,6 +296,12 @@ const handleSend = () => {
   
   messages.value.push({ role: 'user', content: text, message_type: 'qa' })
   userInput.value = ''
+  nextTick(() => {
+    if (textareaRef.value) {
+      textareaRef.value.style.height = '48px'
+      textareaRef.value.style.overflowY = 'hidden'
+    }
+  })
 
   const requestId = generateRequestId()
   pendingRequests.value[requestId] = true

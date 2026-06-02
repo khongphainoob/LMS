@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, date, timedelta
 import frappe
 
-from ..base_service import BaseService
+from lms.lms.services.base_service import BaseService
 
 
 class CostTrackingService(BaseService):
@@ -25,8 +25,8 @@ class CostTrackingService(BaseService):
     """
 
     # Budget limits (can be configurable)
-    DEFAULT_MAX_COST_PER_SESSION = 50.0  # USD
-    DEFAULT_MAX_COST_PER_DAY = 200.0  # USD
+    DEFAULT_MAX_COST_PER_SESSION = 40.0  # USD
+    DEFAULT_MAX_COST_PER_DAY = 50.0  # USD
     DEFAULT_MAX_COST_PER_MONTH = 1000.0  # USD
 
     def __init__(self):
@@ -55,53 +55,15 @@ class CostTrackingService(BaseService):
             grading_time: Time spent grading in seconds
         """
         today = date.today()
-
-        # Check if cost track exists for today + provider + model
-        existing = frappe.db.exists(
-            "AI Grading Cost Track",
-            {
-                "cost_date": today,
-                "ai_provider": provider,
-                "ai_model": model,
-                "session": session
-            }
-        )
-
-        if existing:
-            # Update existing record
-            doc = frappe.get_doc("AI Grading Cost Track", existing)
-            doc.submission_count += 1
-            doc.total_tokens += tokens
-            doc.total_cost_usd += cost
-
-            # Update weighted average grading time
-            if grading_time > 0:
-                new_avg_time = (
-                    (doc.average_tokens_per_submission * (doc.submission_count - 1) + grading_time)
-                    / doc.submission_count
-                )
-                doc.average_tokens_per_submission = new_avg_time  # Reusing field for time
-
-            # Recalculate averages
-            if doc.submission_count > 0:
-                doc.average_cost_per_submission = doc.total_cost_usd / doc.submission_count
-                doc.average_tokens_per_submission = doc.total_tokens / doc.submission_count
-
-            doc.save()
-        else:
-            # Create new record
-            frappe.get_doc({
-                "doctype": "AI Grading Cost Track",
-                "cost_date": today,
-                "ai_provider": provider,
-                "ai_model": model,
-                "session": session,
-                "submission_count": 1,
-                "total_tokens": tokens,
-                "total_cost_usd": cost,
-                "average_cost_per_submission": cost,
-                "average_tokens_per_submission": tokens
-            }).insert()
+        frappe.get_doc({
+            "doctype": "AI Grading Cost Track",
+            "cost_date": today,
+            "ai_provider": provider,
+            "ai_model": model,
+            "session": session,
+            "total_tokens": tokens,
+            "total_cost": cost
+        }).insert(ignore_permissions=True, ignore_links=True)
 
     def get_session_costs(self, session: str) -> Dict[str, Any]:
         """
@@ -116,6 +78,7 @@ class CostTrackingService(BaseService):
         cost_tracks = frappe.get_all(
             "AI Grading Cost Track",
             filters={"session": session},
+            fields=["*"],
             order_by="cost_date ASC"
         )
 
@@ -128,23 +91,25 @@ class CostTrackingService(BaseService):
                 "breakdown_by_provider": {}
             }
 
-        total_cost = sum(ct["total_cost_usd"] for ct in cost_tracks)
-        total_tokens = sum(ct["total_tokens"] for ct in cost_tracks)
-        total_submissions = sum(ct["submission_count"] for ct in cost_tracks)
+        total_cost = sum(ct.get("total_cost") or 0.0 for ct in cost_tracks)
+        total_tokens = sum(ct.get("total_tokens") or 0 for ct in cost_tracks)
+        total_submissions = len(cost_tracks)
 
         # Breakdown by provider
         provider_breakdown = {}
         for ct in cost_tracks:
-            provider = ct["ai_provider"]
+            provider = ct.get("ai_provider")
+            if not provider:
+                continue
             if provider not in provider_breakdown:
                 provider_breakdown[provider] = {
                     "cost": 0.0,
                     "tokens": 0,
                     "submissions": 0
                 }
-            provider_breakdown[provider]["cost"] += ct["total_cost_usd"]
-            provider_breakdown[provider]["tokens"] += ct["total_tokens"]
-            provider_breakdown[provider]["submissions"] += ct["submission_count"]
+            provider_breakdown[provider]["cost"] += ct.get("total_cost") or 0.0
+            provider_breakdown[provider]["tokens"] += ct.get("total_tokens") or 0
+            provider_breakdown[provider]["submissions"] += 1
 
         return {
             "session": session,
@@ -179,7 +144,7 @@ class CostTrackingService(BaseService):
         if provider:
             filters["ai_provider"] = provider
 
-        return self.get_list(filters=filters, order_by="cost_date ASC")
+        return self.get_list(filters=filters, fields=["*"], order_by="cost_date ASC", limit=0)
 
     def get_cost_summary(
         self,
@@ -213,7 +178,7 @@ class CostTrackingService(BaseService):
         if session:
             filters["session"] = session
 
-        cost_tracks = self.get_list(filters=filters)
+        cost_tracks = self.get_list(filters=filters, fields=["*"], limit=0)
 
         if not cost_tracks:
             return {
@@ -225,9 +190,9 @@ class CostTrackingService(BaseService):
                 "sessions": {}
             }
 
-        total_cost = sum(ct["total_cost_usd"] for ct in cost_tracks)
-        total_tokens = sum(ct["total_tokens"] for ct in cost_tracks)
-        total_submissions = sum(ct["submission_count"] for ct in cost_tracks)
+        total_cost = sum(ct.get("total_cost") or 0.0 for ct in cost_tracks)
+        total_tokens = sum(ct.get("total_tokens") or 0 for ct in cost_tracks)
+        total_submissions = len(cost_tracks)
         
         exchange_rate = self.get_exchange_rate()
         total_cost_vnd = total_cost * exchange_rate
@@ -235,38 +200,44 @@ class CostTrackingService(BaseService):
         # Breakdown by provider
         providers = {}
         for ct in cost_tracks:
-            provider = ct["ai_provider"]
+            provider = ct.get("ai_provider")
+            if not provider:
+                continue
             if provider not in providers:
                 providers[provider] = {
                     "cost": 0.0,
                     "tokens": 0,
                     "submissions": 0
                 }
-            providers[provider]["cost"] += ct["total_cost_usd"]
-            providers[provider]["tokens"] += ct["total_tokens"]
-            providers[provider]["submissions"] += ct["submission_count"]
+            providers[provider]["cost"] += ct.get("total_cost") or 0.0
+            providers[provider]["tokens"] += ct.get("total_tokens") or 0
+            providers[provider]["submissions"] += 1
 
         # Breakdown by model
         models = {}
         for ct in cost_tracks:
-            model = ct["ai_model"]
+            model = ct.get("ai_model")
+            if not model:
+                continue
             if model not in models:
                 models[model] = {
                     "cost": 0.0,
                     "tokens": 0,
                     "submissions": 0
                 }
-            models[model]["cost"] += ct["total_cost_usd"]
-            models[model]["tokens"] += ct["total_tokens"]
-            models[model]["submissions"] += ct["submission_count"]
+            models[model]["cost"] += ct.get("total_cost") or 0.0
+            models[model]["tokens"] += ct.get("total_tokens") or 0
+            models[model]["submissions"] += 1
 
         # Breakdown by session (top 10)
         session_costs = {}
         for ct in cost_tracks:
-            session = ct["session"]
+            session = ct.get("session")
+            if not session:
+                continue
             if session not in session_costs:
                 session_costs[session] = 0.0
-            session_costs[session] += ct["total_cost_usd"]
+            session_costs[session] += ct.get("total_cost") or 0.0
 
         # Get top 10 sessions by cost
         sorted_sessions = sorted(session_costs.items(), key=lambda x: x[1], reverse=True)[:10]
@@ -302,17 +273,17 @@ class CostTrackingService(BaseService):
         """
         # Get cost tracking for today
         today = date.today()
-        today_costs = self.get_list(filters={"cost_date": today})
+        today_costs = self.get_list(filters={"cost_date": today}, fields=["*"], limit=0)
 
         # Calculate today's totals
-        today_cost = sum(ct["total_cost_usd"] for ct in today_costs)
-        today_tokens = sum(ct["total_tokens"] for ct in today_costs)
+        today_cost = sum(ct.get("total_cost") or 0.0 for ct in today_costs)
+        today_tokens = sum(ct.get("total_tokens") or 0 for ct in today_costs)
 
         # Get this session's cost
         session_cost = 0.0
         if session:
-            session_costs = self.get_list(filters={"session": session})
-            session_cost = sum(ct["total_cost_usd"] for ct in session_costs)
+            session_costs = self.get_list(filters={"session": session}, fields=["*"], limit=0)
+            session_cost = sum(ct.get("total_cost") or 0.0 for ct in session_costs)
 
         # Check against limits
         max_daily = self._get_max_cost_per_day()
@@ -382,13 +353,14 @@ class CostTrackingService(BaseService):
         # Get recent average cost per submission for this provider/model
         recent_costs = self.get_list(
             filters={"ai_provider": provider, "ai_model": model},
+            fields=["*"],
             limit=7,
             order_by="cost_date DESC"
         )
 
         if recent_costs:
-            avg_cost = sum(ct["average_cost_per_submission"] for ct in recent_costs) / len(recent_costs)
-            avg_tokens = sum(ct["average_tokens_per_submission"] for ct in recent_costs) / len(recent_costs)
+            avg_cost = sum(ct.get("total_cost") or 0.0 for ct in recent_costs) / len(recent_costs)
+            avg_tokens = sum(ct.get("total_tokens") or 0 for ct in recent_costs) / len(recent_costs)
         else:
             # Use defaults if no historical data
             from lms.lms.agents.provider_adapter import get_provider
@@ -433,7 +405,7 @@ class CostTrackingService(BaseService):
         if provider:
             filters["ai_provider"] = provider
 
-        cost_records = self.get_list(filters=filters, order_by="cost_date ASC")
+        cost_records = self.get_list(filters=filters, fields=["*"], order_by="cost_date ASC", limit=0)
 
         # Aggregate by date
         daily_data = {}
@@ -446,9 +418,9 @@ class CostTrackingService(BaseService):
                     "tokens": 0,
                     "submissions": 0
                 }
-            daily_data[cost_date]["cost"] += record["total_cost_usd"]
-            daily_data[cost_date]["tokens"] += record["total_tokens"]
-            daily_data[cost_date]["submissions"] += record["submission_count"]
+            daily_data[cost_date]["cost"] += record.get("total_cost") or 0.0
+            daily_data[cost_date]["tokens"] += record.get("total_tokens") or 0
+            daily_data[cost_date]["submissions"] += 1
 
         return list(daily_data.values())
 
@@ -504,14 +476,105 @@ class CostTrackingService(BaseService):
         except (ValueError, TypeError):
             return 25400.0
 
+    def track_agent_call_cost(self, agent_name: str, cost: float, tokens: int = 0, provider: str = None, model: str = None):
+        """
+        Record a cost for a specific agent config call.
+        Updates the cost field on the AI Agent Config child table row and LMS AI Settings document.
+        Also logs a detailed cost event to the AI Grading Cost Track database table.
+        """
+        if not agent_name or cost <= 0:
+            return
+            
+        try:
+            settings = frappe.get_doc("LMS AI Settings")
+            settings.cost = (settings.cost or 0.0) + cost
+            
+            updated = False
+            for row in settings.get("agent_configs", []):
+                if row.get("agent_name") == agent_name:
+                    row.cost = (row.cost or 0.0) + cost
+                    updated = True
+                    break
+            
+            # If agent not found in configs, we can still update total_cost of parent
+            settings.save(ignore_permissions=True)
+            frappe.db.commit()
+            
+            # --- DETAILED DATABASE COST LOGGING ---
+            try:
+                self.track_grading_cost(
+                    session=agent_name,
+                    submission="API Call",
+                    provider=provider or "Google",
+                    model=model or "gemini-1.5-flash",
+                    cost=cost,
+                    tokens=tokens or 0
+                )
+            except Exception as e_track:
+                frappe.log_error(f"Error logging to Cost Track: {e_track}")
+
+            # --- DAILY BUDGET WARNING ---
+            today_str = date.today().isoformat()
+            daily_cost_key = f"ai_cost:daily:{today_str}"
+            
+            # Increment daily cost in Redis
+            current_daily_cost = frappe.cache().get_value(daily_cost_key) or 0.0
+            new_daily_cost = float(current_daily_cost) + cost
+            frappe.cache().set_value(daily_cost_key, new_daily_cost, expires_in_sec=86400 * 2)
+            
+            max_daily = self._get_max_cost_per_day()
+            
+            # 90% Threshold Warning
+            if new_daily_cost >= max_daily * 0.9 and not frappe.cache().get_value(f"ai_cost:warn_90:{today_str}"):
+                frappe.cache().set_value(f"ai_cost:warn_90:{today_str}", "1", expires_in_sec=86400 * 2)
+                self.send_budget_warning_notification("90%", new_daily_cost, max_daily)
+                
+            # 100% Limit Exceeded Warning
+            if new_daily_cost >= max_daily and not frappe.cache().get_value(f"ai_cost:warn_100:{today_str}"):
+                frappe.cache().set_value(f"ai_cost:warn_100:{today_str}", "1", expires_in_sec=86400 * 2)
+                self.send_budget_warning_notification("100%", new_daily_cost, max_daily)
+                
+        except Exception as e:
+            frappe.log_error(f"Error tracking agent call cost for {agent_name}: {e}")
+
+    def send_budget_warning_notification(self, threshold: str, current_cost: float, max_cost: float):
+        """Sends LMS bell notification to all System Managers when daily cost threshold is reached."""
+        try:
+            from lms.lms.services.hitl.notification import notify_user_direct
+            from lms.lms.utils import get_lms_route
+            
+            # Find all System Managers
+            users_with_role = frappe.get_all("Has Role", filters={"role": "System Manager", "parenttype": "User"}, fields=["parent"])
+            admins = list(set([u.parent for u in users_with_role]))
+            
+            subject = f"⚠️ Cảnh báo chi phí AI: Chạm {threshold} giới hạn ngân sách ngày"
+            email_content = (
+                f"Hệ thống giám sát chi phí AI báo cáo:<br>"
+                f"Tổng chi phí sử dụng AI hôm nay đã đạt <b>{current_cost:.4f} USD</b>, "
+                f"chạm ngưỡng <b>{threshold}</b> hạn mức ngày (<b>{max_cost:.2f} USD</b>).<br>"
+                f"Vui lòng kiểm tra và điều chỉnh cấu hình nếu cần."
+            )
+            
+            for admin in admins:
+                notify_user_direct(
+                    for_user=admin,
+                    subject=subject,
+                    email_content=email_content,
+                    document_type="LMS AI Settings",
+                    document_name="LMS AI Settings",
+                    link=get_lms_route("ai-settings") or ""
+                )
+        except Exception as e:
+            frappe.log_error(f"Failed to send budget warning notification: {e}")
+
 
 # Convenience functions for quick access
 def get_total_cost_today() -> float:
     """Get total cost for today."""
     service = CostTrackingService()
     today = date.today()
-    costs = service.get_list(filters={"cost_date": today})
-    return sum(ct["total_cost_usd"] for ct in costs)
+    costs = service.get_list(filters={"cost_date": today}, fields=["*"], limit=0)
+    return sum(ct.get("total_cost") or 0.0 for ct in costs)
 
 
 def get_provider_cost_summary(provider: str, days: int = 30) -> Dict[str, Any]:
@@ -525,3 +588,35 @@ def get_provider_cost_summary(provider: str, days: int = 30) -> Dict[str, Any]:
         end_date=end_date,
         provider=provider
     )
+
+
+def track_agent_cost(agent_name: str, cost: float, tokens: int = 0, provider: str = None, model: str = None):
+    """Convenience function to track cost for a specific agent config call."""
+    service = CostTrackingService()
+    service.track_agent_call_cost(agent_name, cost, tokens, provider, model)
+
+
+@frappe.whitelist()
+def get_ai_cost_summary(start_date=None, end_date=None, provider=None):
+    """Whitelisted API for admin dashboard to get cost summary."""
+    frappe.only_for("System Manager")
+    from datetime import datetime
+    
+    start = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    end = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+    
+    service = CostTrackingService()
+    return service.get_cost_summary(start_date=start, end_date=end, provider=provider)
+
+
+@frappe.whitelist()
+def get_ai_cost_trend(days=30, provider=None):
+    """Whitelisted API for admin dashboard to get cost trend data."""
+    frappe.only_for("System Manager")
+    try:
+        days = int(days)
+    except ValueError:
+        days = 30
+        
+    service = CostTrackingService()
+    return service.get_cost_trend(days=days, provider=provider)

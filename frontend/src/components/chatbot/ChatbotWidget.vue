@@ -50,18 +50,21 @@
 
         <!-- Input -->
         <div class="p-3 border-t bg-white">
-          <div class="relative flex items-center">
-            <input
+          <div class="relative flex items-end">
+            <textarea
+              ref="textareaRef"
               v-model="input"
-              class="w-full rounded-xl border border-outline-gray-2 dark:border-slate-700 px-4 py-2.5 text-xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all bg-surface-gray-1/30 dark:bg-slate-800"
-              style="color: var(--input-text-color) !important;"
+              rows="1"
+              class="w-full rounded-xl border border-outline-gray-2 dark:border-slate-700 px-4 py-2.5 pr-10 text-xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all bg-surface-gray-1/30 dark:bg-slate-800 resize-none overflow-hidden"
+              style="color: var(--input-text-color) !important; min-height: 40px; max-height: 120px; line-height: 1.5;"
               :placeholder="__('Ask something...')"
-              @keyup.enter="send"
-            />
+              @keydown.enter.prevent="send"
+              @input="resizeTextarea"
+            ></textarea>
             <button 
               @click="send"
               :disabled="!input.trim() || chatbotResource.loading"
-              class="absolute right-1 p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-30"
+              class="absolute right-1 bottom-1.5 p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-30"
             >
               <icons.Send class="h-4 w-4" />
             </button>
@@ -94,6 +97,7 @@ const isOpen = ref(false)
 const input = ref('')
 const messages = ref([])
 const scrollContainer = ref(null)
+const textareaRef = ref(null)
 const currentSessionKey = ref(null)
 const isAwaitingResponse = ref(false)
 const socket = inject('$socket')
@@ -112,12 +116,26 @@ const chatbotResource = createResource({
   },
 })
 
+const resizeTextarea = () => {
+  if (!textareaRef.value) return
+  textareaRef.value.style.height = '40px'
+  const scrollH = textareaRef.value.scrollHeight
+  textareaRef.value.style.height = Math.min(scrollH, 120) + 'px'
+  textareaRef.value.style.overflowY = scrollH > 120 ? 'auto' : 'hidden'
+}
+
 const send = () => {
   if (!input.value.trim() || chatbotResource.loading || isAwaitingResponse.value) return
   const text = input.value.trim()
   messages.value.push({ role: 'user', content: text })
   input.value = ''
-  scrollToBottom()
+  nextTick(() => {
+    if (textareaRef.value) {
+      textareaRef.value.style.height = '40px'
+      textareaRef.value.style.overflowY = 'hidden'
+    }
+    scrollToBottom()
+  })
 
   const requestId = generateRequestId()
   pendingRequestId.value = requestId

@@ -1073,7 +1073,8 @@ async function runBatchGrading() {
     await startBatchGradingResource.submit({ 
       session: sessionDoc.value.name 
     })
-    setTimeout(loadSubmissions, 5000)
+    frappe.show_alert({ message: __('Batch marking in progress...'), indicator: 'blue' })
+    await loadSubmissions()
   } catch (e) {
     console.error(e)
   } finally {

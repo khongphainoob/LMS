@@ -53,17 +53,9 @@ def _get_session_files(session_id: str):
             content = ""
             
             try:
-                if ext == "pdf":
-                    from pypdf import PdfReader
-                    reader = PdfReader(file_path)
-                    content = "\n".join([page.extract_text() for page in reader.pages])
-                elif ext in ["docx", "doc"]:
-                    try:
-                        import docx
-                        doc = docx.Document(file_path)
-                        content = "\n".join([p.text for p in doc.paragraphs])
-                    except ImportError:
-                        content = f"[Warning: python-docx not installed. Cannot parse {att.file_name}]"
+                from lms.lms.agents.utils.file_parser import get_content_from_file
+                if ext in ["pdf", "docx", "doc", "txt", "md"]:
+                    content = get_content_from_file(file_path)
                 elif ext in ["xlsx", "xls", "csv"]:
                     try:
                         import pandas as pd
@@ -74,9 +66,6 @@ def _get_session_files(session_id: str):
                         content = df.to_string()
                     except ImportError:
                         content = f"[Warning: pandas/openpyxl not installed. Cannot parse {att.file_name}]"
-                elif ext in ["txt", "md"]:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read()
                 
                 if content:
                     context_files.append({
@@ -139,7 +128,7 @@ def _resize_256px(path: str) -> str:
 
 def _get_vision_model():
     """Lấy model Vision tập trung từ model_router."""
-    return get_model("ocr")
+    return get_model("ocr")[0]
 
 
 def _classify_batch(thumbnails: list[str]) -> list[dict]:

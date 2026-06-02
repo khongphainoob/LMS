@@ -101,8 +101,8 @@
 					<div v-if="earnedBadges.length" class="flex gap-3 overflow-x-auto pb-1">
 						<div v-for="b in earnedBadges.slice(0, 5)" :key="b.name" class="flex-shrink-0 w-16 text-center">
 							<div class="w-12 h-12 mx-auto rounded-lg flex items-center justify-center bg-surface-gray-2 mb-1 border overflow-hidden">
-								<img v-if="b.image" :src="b.image" :alt="b.title" class="w-full h-full object-cover" />
-								<div v-else class="text-2xl">{{ getFallbackEmoji(b.title) }}</div>
+								<img v-if="b.image && !b.image.includes('badge.png')" :src="b.image" :alt="b.title" class="w-full h-full object-cover" />
+								<PremiumBadgeIcon v-else :badgeName="b.title" class="w-12 h-12" />
 							</div>
 							<div class="text-[9px] text-ink-gray-5 truncate" :title="b.title">{{ b.title }}</div>
 						</div>
@@ -149,6 +149,7 @@ import {
 	Flame, Clock, Award, Target, FileCheck, BookOpen, 
 	TrendingUp, Gamepad2, Trophy, ChevronRight 
 } from 'lucide-vue-next'
+import PremiumBadgeIcon from '@/components/Settings/PremiumBadgeIcon.vue'
 
 const emit = defineEmits(['switch-tab'])
 

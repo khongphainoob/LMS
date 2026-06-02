@@ -37,8 +37,8 @@
 				<!-- Badge Image -->
 				<div class="w-20 h-20 mb-3 rounded-full overflow-hidden border-2 flex items-center justify-center bg-surface-gray-2"
 					 :class="badge.earned ? 'border-ink-blue-3 shadow-sm' : 'border-outline-gray-3'">
-					<img v-if="badge.image" :src="badge.image" :alt="badge.title" class="w-full h-full object-cover" />
-					<div v-else class="text-3xl">{{ getFallbackEmoji(badge.title) }}</div>
+					<img v-if="badge.image && !badge.image.includes('badge.png')" :src="badge.image" :alt="badge.title" class="w-full h-full object-cover" />
+					<PremiumBadgeIcon v-else :badgeName="badge.title" class="w-20 h-20" />
 				</div>
 
 				<h3 class="text-sm font-bold text-center text-ink-gray-9 line-clamp-1" :title="badge.title">
@@ -77,6 +77,7 @@ import { ref, computed, onMounted, inject } from 'vue'
 import { createResource, Spinner, Badge } from 'frappe-ui'
 import { Check } from 'lucide-vue-next'
 import dayjs from '@/utils/dayjs'
+import PremiumBadgeIcon from '@/components/Settings/PremiumBadgeIcon.vue'
 
 const socket = inject('$socket')
 

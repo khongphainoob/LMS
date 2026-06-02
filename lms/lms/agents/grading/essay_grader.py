@@ -7,7 +7,7 @@ def run_essay_grading(context, image_reports):
     """
     Chuyên gia về bài luận (Essay) sẽ phân tích văn bản dài và chấm điểm theo rubric.
     """
-    model = get_model("logic")
+    model, _, _ = get_model("logic")
 
     
     combined_text = "\n".join([r.get('extracted_text', '') for r in image_reports])

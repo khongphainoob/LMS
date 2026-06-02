@@ -22,8 +22,7 @@ class SocraticState(TypedDict):
     model_used: str
 
 def socratic_node(state: SocraticState) -> SocraticState:
-    llm, _, _ = get_llm("socratic_tutor")
-    model_name = "socratic_tutor"
+    llm, model_name, _ = get_llm("socratic_tutor", temperature=0.4)
     
     level = state.get("scaffolding_level", 0)
     history = state.get("chat_history", [])

@@ -1,1 +1,2 @@
 langfuse>=2.0.0
+pypandoc

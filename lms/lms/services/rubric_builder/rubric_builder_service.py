@@ -202,7 +202,7 @@ class RubricBuilderService(BaseService):
             
         docx_path = md_path.replace(".md", ".docx")
         try:
-            pypandoc.convert_file(md_path, 'docx', outputfile=docx_path, extra_args=["--mathjax"])
+            pypandoc.convert_file(md_path, 'docx', outputfile=docx_path)
             with open(docx_path, 'rb') as f:
                 docx_bytes = f.read()
         finally:

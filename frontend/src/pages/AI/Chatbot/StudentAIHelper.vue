@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#fdfcf9] dark:bg-[#0a0a0a] flex flex-col transition-colors duration-300 overflow-hidden system-font">
+  <div class="h-[100dvh] w-full bg-[#fdfcf9] dark:bg-[#0a0a0a] flex flex-col transition-colors duration-300 overflow-hidden system-font">
     <!-- Header based on AIIntegration -->
     <header class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md px-6 py-4">
       <div class="flex items-center justify-between mx-auto w-full max-w-[1300px]">
@@ -9,6 +9,12 @@
             @click="$router.push({ name: 'AIIntegration' })"
           >
             <icons.ChevronLeft class="h-5 w-5 text-slate-600 stroke-[3px]" />
+          </button>
+          <button
+            class="group flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-100 shadow-sm transition-all hover:scale-105 active:scale-95 lg:hidden"
+            @click="showMobileHistory = !showMobileHistory"
+          >
+            <icons.Menu class="h-5 w-5 text-slate-600 stroke-[3px]" />
           </button>
           <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
           <div>
@@ -27,9 +33,19 @@
       </div>
     </header>
 
-    <div class="flex-1 flex overflow-hidden mx-auto w-full max-w-[1300px]">
+    <div class="flex-1 flex overflow-hidden mx-auto w-full max-w-[1300px] relative min-h-0">
+      <!-- Mobile Backdrop -->
+      <div 
+        v-if="showMobileHistory" 
+        class="lg:hidden absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-30"
+        @click="showMobileHistory = false"
+      ></div>
+
       <!-- Session Sidebar (Left) -->
-      <aside class="hidden lg:flex flex-col w-64 border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+      <aside 
+        class="flex flex-col w-64 border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 absolute lg:relative z-40 h-full transition-transform duration-300 lg:translate-x-0"
+        :class="showMobileHistory ? 'translate-x-0' : '-translate-x-full'"
+      >
         <div class="p-6 flex items-center justify-between border-b border-slate-50 dark:border-slate-800">
           <h3 class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{{ __('HISTORY') }}</h3>
           <button @click="sessionsResource.fetch()" class="p-2 rounded-lg hover:bg-amber-500/10 text-amber-600 transition-all">
@@ -122,12 +138,15 @@
             <!-- Input Box -->
             <div class="flex items-center gap-3 p-1.5 rounded-full border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl focus-within:border-amber-400 focus-within:bg-white dark:focus-within:bg-slate-950 transition-all duration-300">
               <textarea
+                ref="textareaRef"
                 v-model="userInput"
                 rows="1"
-                class="flex-1 bg-transparent px-6 py-3 text-sm font-semibold text-slate-800 dark:text-white outline-none border-none ring-0 focus:ring-0 resize-none placeholder:text-slate-400"
+                class="flex-1 bg-transparent px-6 py-3 text-sm font-semibold text-slate-800 dark:text-white outline-none border-none ring-0 focus:ring-0 resize-none placeholder:text-slate-400 overflow-hidden"
+                style="min-height: 48px; max-height: 160px; line-height: 1.5;"
                 :placeholder="__('Ask a question about your lesson...')"
                 :disabled="chatbotResource.loading"
                 @keydown.enter.prevent="handleSend"
+                @input="resizeTextarea"
               ></textarea>
               <button
                 class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-amber-400 shadow-xl transition-all hover:scale-105 active:scale-95 shrink-0"
@@ -258,9 +277,19 @@ const { brand } = sessionStore()
 const userInput = ref('')
 const messages = ref([])
 const scrollContainer = ref(null)
+const textareaRef = ref(null)
 const currentSessionKey = ref(null)
 const currentLessonName = ref(null)
 const showNewSessionModal = ref(false)
+const showMobileHistory = ref(false)
+
+const resizeTextarea = () => {
+  if (!textareaRef.value) return
+  textareaRef.value.style.height = '48px'
+  const scrollH = textareaRef.value.scrollHeight
+  textareaRef.value.style.height = Math.min(scrollH, 160) + 'px'
+  textareaRef.value.style.overflowY = scrollH > 160 ? 'auto' : 'hidden'
+}
 
 const newSessionForm = reactive({ lesson: null })
 const courseBatchModel = ref({ mode: 'course', batch: null, course: null })
@@ -329,7 +358,13 @@ const handleSend = () => {
   const text = userInput.value.trim()
   messages.value.push({ role: 'user', content: text })
   userInput.value = ''
-  scrollToBottom()
+  nextTick(() => {
+    if (textareaRef.value) {
+      textareaRef.value.style.height = '48px'
+      textareaRef.value.style.overflowY = 'hidden'
+    }
+    scrollToBottom()
+  })
   chatbotResource.fetch({
     message: text,
     session_key: currentSessionKey.value,
@@ -345,6 +380,7 @@ const selectSession = (session) => {
   currentSessionKey.value = session.session_key
   currentLessonName.value = session.lesson || session.course
   historyResource.fetch({ session_key: session.session_key })
+  showMobileHistory.value = false
 }
 
 const confirmDeleteSession = (sessionKey) => {

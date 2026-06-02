@@ -47,14 +47,13 @@ QUY TẮC QUAN TRỌNG (ÁP DỤNG CHUẨN MỚI):
         "level_excellent": "Mô tả mức độ xuất sắc (ví dụ: Làm đúng hoàn toàn +1.0đ)",
         "level_good": "Mô tả mức độ khá (ví dụ: Thiếu kết luận +0.75đ)",
         "level_adequate": "Mô tả mức độ đạt (ví dụ: Chỉ đúng công thức +0.25đ)",
-        "level_poor": "Mô tả mức độ kém (ví dụ: Sai hoàn toàn +0đ)",
-        "performance_levels_json": "{{\\"levels\\": [{{\\"description\\": \\"Đúng\\", \\"score\\": 1.0}}]}}"
+        "level_poor": "Mô tả mức độ kém (ví dụ: Sai hoàn toàn +0đ)"
     }}
 ]
 """
 
 def node_generate_rubric(state: RubricBuilderState) -> RubricBuilderState:
-    llm, model_name, cost_info = get_llm("rubric_gen")
+    llm, model_name, cost_info = get_llm("rubric_gen", temperature=0.1)
     prompt = RUBRIC_GEN_PROMPT.format(
         subject=state.get("subject", "General"),
         level=state.get("level", "N/A"),

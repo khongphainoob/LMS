@@ -4,8 +4,9 @@ from typing import Optional
 from langchain_core.messages import HumanMessage
 from ..utils.json_utils import extract_and_validate
 from ..schemas import LogicReportSchema
-from .shared_context import LogicReport, GradingContext, VisualPageReport
+from .shared_context import LogicReport, GradingContext, VisualPageReport, observe
 from ..provider import get_llm as get_model
+from lms.lms.services.observability import get_unified_config_dict
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +52,9 @@ DỮ LIỆU BÀI LÀM:
 """
 
 def _get_logic_model():
-    return get_model("logic")
+    return get_model("logic")[0]
 
+@observe(as_type="generation", name="Logic Specialist Analysis")
 def run_logic_analysis(context: GradingContext) -> Optional[LogicReport]:
     """
     Chạy phân tích logic và tính toán.
@@ -81,7 +83,10 @@ def run_logic_analysis(context: GradingContext) -> Optional[LogicReport]:
     model = _get_logic_model()
     try:
         prompt = LOGIC_PROMPT_TEMPLATE.format(grading_manifest=json.dumps(manifest, ensure_ascii=False))
-        response = model.invoke(prompt)
+        
+        session_id = context.get('session_id')
+        config = get_unified_config_dict(agent_name="Logic Specialist", session_id=session_id, tags=["AI Grading"])
+        response = model.invoke(prompt, config=config)
         
         import re
         json_match = re.search(r"\{.*\}", response.content, re.DOTALL)

@@ -358,6 +358,19 @@ def get_sessions():
 		order_by="last_active desc"
 	)
 	
+	# Optimize N+1 query: bulk fetch the earliest user message for all sessions
+	session_names = [s.name for s in sessions if not s.get("lesson") and not s.get("batch") and not s.get("course")]
+	first_msgs = {}
+	if session_names:
+		msgs = frappe.get_all("Chatbot Message",
+			filters={"session": ["in", session_names], "role": "user"},
+			fields=["session", "content"],
+			order_by="creation asc"
+		)
+		for m in msgs:
+			if m.session not in first_msgs:
+				first_msgs[m.session] = m.content
+
 	for s in sessions:
 		# Determine title
 		if s.get("lesson"):
@@ -368,8 +381,7 @@ def get_sessions():
 			s["title"] = _("Khóa: {0}").format(s["course"])
 		else:
 			# Fallback to first message
-			first_msg = frappe.db.get_value("Chatbot Message", 
-				{"session": s.name, "role": "user"}, "content", order_by="creation asc")
+			first_msg = first_msgs.get(s.name)
 			
 			if first_msg:
 				s["title"] = (first_msg[:40] + "...") if len(first_msg) > 40 else first_msg

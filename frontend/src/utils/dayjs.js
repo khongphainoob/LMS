@@ -7,6 +7,7 @@ import isSameOrBefore from 'dayjs/esm/plugin/isSameOrBefore'
 import isSameOrAfter from 'dayjs/esm/plugin/isSameOrAfter'
 import utc from 'dayjs/esm/plugin/utc'
 import timezone from 'dayjs/esm/plugin/timezone'
+import 'dayjs/esm/locale/vi'
 
 dayjs.extend(updateLocale)
 dayjs.extend(relativeTime)
@@ -17,4 +18,8 @@ dayjs.extend(isSameOrAfter)
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
+// Set global locale to Vietnamese
+dayjs.locale('vi')
+
 export default dayjs
+

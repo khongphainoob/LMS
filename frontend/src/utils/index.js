@@ -31,7 +31,7 @@ export function formatTime(timeString) {
 	if (!timeString) return ''
 	const [hour, minute] = timeString.split(':').map(Number)
 	const dummyDate = new Date(0, 0, 0, hour, minute)
-	const formattedTime = new Intl.DateTimeFormat('en-US', {
+	const formattedTime = new Intl.DateTimeFormat('vi-VN', {
 		hour: 'numeric',
 		minute: 'numeric',
 		hour12: true,

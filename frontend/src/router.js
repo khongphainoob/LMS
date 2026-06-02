@@ -143,6 +143,41 @@ const routes = [
 		props: true,
 	},
 	{
+		path: '/user/:username',
+		name: 'Profile',
+		component: () => import('@/pages/Profile.vue'),
+		props: true,
+		redirect: { name: 'ProfileAbout' },
+		children: [
+			{
+				name: 'ProfileAbout',
+				path: '',
+				component: () => import('@/pages/ProfileAbout.vue'),
+			},
+			{
+				name: 'ProfileCertificates',
+				path: 'certificates',
+				component: () => import('@/pages/ProfileCertificates.vue'),
+			},
+			{
+				name: 'ProfileRoles',
+				path: 'roles',
+				component: () => import('@/pages/ProfileRoles.vue'),
+			},
+			{
+				name: 'ProfileEvaluator',
+				path: 'slots',
+				component: () => import('@/pages/ProfileEvaluator.vue'),
+			},
+			{
+				name: 'ProfileEvaluationSchedule',
+				path: 'schedule',
+				component: () =>
+					import('@/pages/ProfileEvaluationSchedule.vue'),
+			},
+		],
+	},
+	{
 		path: '/programs',
 		name: 'Programs',
 		component: () => import('@/pages/Programs/Programs.vue'),
@@ -421,6 +456,12 @@ router.beforeEach(async (to, from, next) => {
 		if (!settings.data.allow_guest_access) {
 			window.location.href = '/login'
 			return
+		}
+	}
+
+	if (to.name === 'AIDashboard') {
+		if (!userResource.data?.is_system_manager) {
+			return next({ name: 'Home' })
 		}
 	}
 

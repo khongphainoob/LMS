@@ -7,10 +7,8 @@ def socratic_hint_node(state: dict) -> dict:
     """Generate contextual Socratic questions using LLM."""
     frappe.logger("socratic").info("=== [socratic_hint] START ===")
     
-    from ...provider import get_llm, get_agent_config
-    llm, _, _ = get_llm("socratic_hint", temperature=0.5)
-    config = get_agent_config("socratic_hint")
-    model_name = config["model"]
+    from ...provider import get_llm
+    llm, model_name, _ = get_llm("socratic_hint", temperature=0.4)
     
     processed = state.get("processed_content", "")
     context = state.get("context", "")

@@ -7,7 +7,7 @@ def run_stem_grading(context, image_reports):
     """
     Chuyên gia STEM sẽ tập trung vào độ chính xác của công thức, đơn vị và các bước giải bài tập.
     """
-    model = get_model("logic")
+    model, _, _ = get_model("logic")
 
     
     # Gom tất cả các phân tích visual có liên quan đến công thức/hình vẽ

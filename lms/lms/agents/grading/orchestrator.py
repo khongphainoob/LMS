@@ -3,6 +3,7 @@ import logging
 import time
 import os
 from .session_store import GradingSession
+from .shared_context import observe
 from .visual_specialist import run_visual_analysis
 from .logic_specialist import run_logic_analysis
 from .aggregator import aggregate_final_grade
@@ -13,6 +14,7 @@ from ..utils.filesystem import _read_filesystem, _write_to_filesystem
 
 logger = logging.getLogger(__name__)
 
+@observe(as_type="generation", name="AI Grading Pipeline")
 def run_grading_session(session_id: str, image_paths: list[str], text_content: str = None) -> dict:
     try:
         logger.info(f"--- STARTING TIER 4 MULTI-EXPERT PIPELINE: {session_id} ---")
@@ -68,11 +70,14 @@ def run_grading_session(session_id: str, image_paths: list[str], text_content: s
             page_types = ["stem_visual"] * len(image_paths)
             
         # Set exam_type
-        if all(pt == "mcq" for pt in page_types):
+        if page_types and all(pt == "mcq" for pt in page_types):
             session.grading_type = "mcq_only"
-        elif all(pt == "stem_visual" for pt in page_types):
+        elif page_types and all(pt == "stem_visual" for pt in page_types):
             session.grading_type = "stem_visual"
-        elif all(pt == "essay_layout" for pt in page_types):
+        elif page_types and all(pt == "essay_layout" for pt in page_types):
+            session.grading_type = "essay_only"
+        elif not page_types:
+            # Nếu không có ảnh nào (vd: text submission), ưu tiên Logic Specialist
             session.grading_type = "essay_only"
         else:
             session.grading_type = "mixed"
@@ -119,7 +124,7 @@ def run_grading_session(session_id: str, image_paths: list[str], text_content: s
                 start_time = time.time()
                 # Tổng hợp toàn bộ OCR text từ Visual Reports
                 combined_ocr = "\n".join([r.get('raw_ocr_text', '') for r in session.visual_reports])
-                session.logic_report = run_mcq_grading(combined_ocr, session.answer_key, session.rubric_context)
+                session.logic_report = run_mcq_grading(combined_ocr, session.answer_key, session.rubric_context, session.session_id)
                 session.log_step(f"MCQ Analysis (Attempt {attempt+1})", "Success", time.time() - start_time)
             elif any(r.get('has_solution_text') for r in session.visual_reports) or session.grading_type in ["stem_visual", "mixed", "essay_only"]:
                 logger.info("Phase 2: Logic Specialist is thinking...")

@@ -1,10 +1,11 @@
 import logging
 import json
 from typing import Dict
-from .shared_context import GradingContext
+from .shared_context import GradingContext, observe
 from ..utils.json_utils import extract_and_validate
 from ..schemas import AggregatorResultSchema
 from ..provider import get_llm as get_model
+from lms.lms.services.observability import get_unified_config_dict
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ LƯU Ý: max_score CỦA TỪNG CÂU VÀ TỪNG Ý PHẢI > 0. KHÔNG BAO GIỜ 
 {final_manifest}
 """
 
+@observe(as_type="generation", name="Aggregator Finalization")
 def aggregate_final_grade(context: dict) -> dict:
     """
     Hàm tổng hợp cuối cùng.
@@ -82,7 +84,7 @@ def aggregate_final_grade(context: dict) -> dict:
     elif exam_type in ['stem_visual', 'mixed']:
         logger.debug("Applying Priority Rule: Logic > Visual (Analysis Mode)")
 
-    model = get_model('aggregator')
+    model, _, _ = get_model('aggregator', max_tokens=8192)
 
     manifest = {
         "exam_type": exam_type,
@@ -96,13 +98,18 @@ def aggregate_final_grade(context: dict) -> dict:
         prompt = AGGREGATOR_PROMPT_TEMPLATE.format(
             final_manifest=json.dumps(manifest, ensure_ascii=False, indent=2)
         )
-        response = model.invoke(prompt)
+        config = get_unified_config_dict(agent_name="Aggregator", session_id=session_id, tags=["AI Grading"])
+        response = model.invoke(prompt, config=config)
         
         result = extract_and_validate(response.content, AggregatorResultSchema)
         if result:
             return result.model_dump()
+        else:
+            frappe.log_error(f"Aggregator extract_and_validate failed. Raw response: {response.content}", "Aggregator Error")
             
     except Exception as e:
+        import traceback
+        frappe.log_error(f"Aggregator Exception: {str(e)}\n{traceback.format_exc()}", "Aggregator Error")
         logger.error(f"Aggregator Error: {str(e)}")
         
     return {

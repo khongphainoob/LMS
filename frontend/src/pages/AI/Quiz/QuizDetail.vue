@@ -22,6 +22,14 @@
 
         <div class="flex items-center gap-4">
           <button 
+            v-if="quiz.status === 'Failed'"
+            @click="retryQuiz"
+            class="flex items-center gap-3 px-8 py-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 font-bold text-[10px] uppercase tracking-widest hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10 transition-all active:scale-95"
+          >
+            <icons.RefreshCw class="h-4 w-4" />
+            {{ __('Retry') }}
+          </button>
+          <button 
             @click="syncToLMS"
             :disabled="syncResource.loading"
             class="flex items-center gap-3 px-8 py-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:shadow-lg hover:shadow-indigo-500/10 transition-all active:scale-95 disabled:opacity-50"
@@ -241,7 +249,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { createResource } from 'frappe-ui'
+import { createResource, call } from 'frappe-ui'
 import * as icons from 'lucide-vue-next'
 
 const props = defineProps(['quizID'])
@@ -303,6 +311,16 @@ const syncToLMS = () => {
     syncResource.submit({
       quiz_id: props.quizID
     })
+  }
+}
+
+const retryQuiz = () => {
+  if (confirm(__('Are you sure you want to retry this failed quiz?'))) {
+    call('lms.lms.services.ai_quiz.api.retry_quiz', { quiz_id: props.quizID })
+      .then(() => {
+        quizResource.fetch()
+      })
+      .catch((err) => console.error(err))
   }
 }
 

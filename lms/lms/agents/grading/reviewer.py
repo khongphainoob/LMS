@@ -1,10 +1,11 @@
 import json
 import logging
 from typing import Dict
-from .shared_context import GradingContext
+from .shared_context import GradingContext, observe
 from ..utils.json_utils import extract_and_validate
 from ..schemas import ReviewerResultSchema
 from ..provider import get_llm as get_model
+from lms.lms.services.observability import get_unified_config_dict
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +74,10 @@ Bạn PHẢI trả về JSON tuân thủ CHÍNH XÁC cấu trúc sau (tuân th�
 HÃY TRẢ VỀ BẢN JSON ĐÃ ĐƯỢC SỬA LỖI. CHỈ TRẢ VỀ JSON.
 """
 
+@observe(as_type="generation", name="Reviewer Specialist Analysis")
 def run_review_analysis(context: GradingContext, draft_result: Dict) -> Dict:
     logger.info("Reviewer Agent: Double-checking the results...")
-    model = get_model("review")
+    model, _, _ = get_model("review")
 
     try:
         prompt = REVIEWER_PROMPT_TEMPLATE.format(
@@ -85,7 +87,9 @@ def run_review_analysis(context: GradingContext, draft_result: Dict) -> Dict:
             reanalysis_count=context.get('reanalysis_count', 0)
         )
 
-        response = model.invoke(prompt)
+        session_id = context.get('session_id')
+        config = get_unified_config_dict(agent_name="Reviewer Specialist", session_id=session_id, tags=["AI Grading"])
+        response = model.invoke(prompt, config=config)
         result = extract_and_validate(response.content, ReviewerResultSchema)
         if result:
             return result.model_dump()

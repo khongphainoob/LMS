@@ -1380,7 +1380,8 @@ def get_notifications(filters):
 
 def update_user_details(notification):
 	if (
-		notification.document_details
+		notification.get("document_details")
+		and isinstance(notification.document_details, dict)
 		and len(notification.document_details.get("instructors", []))
 		and not is_mention(notification)
 	):
@@ -1389,6 +1390,11 @@ def update_user_details(notification):
 		from_user_details = frappe.db.get_value(
 			"User", notification.from_user, ["full_name", "user_image"], as_dict=1
 		)
+	if not from_user_details:
+		from_user_details = {
+			"full_name": notification.from_user or "System",
+			"user_image": None
+		}
 	notification["from_user_details"] = from_user_details
 	return notification
 
@@ -1406,9 +1412,12 @@ def update_document_details(notification):
 		details = frappe.db.get_value(
 			"LMS Course", notification.document_name, ["title", "video_link", "short_introduction"], as_dict=1
 		)
-		instructors = get_instructors("LMS Course", notification.document_name)
-		details["instructors"] = instructors
-		notification["document_details"] = details
+		if details:
+			instructors = get_instructors("LMS Course", notification.document_name)
+			details["instructors"] = instructors or []
+			notification["document_details"] = details
+		else:
+			notification["document_details"] = None
 
 	elif notification.document_type == "LMS Batch":
 		details = frappe.db.get_value(
@@ -1425,9 +1434,12 @@ def update_document_details(notification):
 			],
 			as_dict=1,
 		)
-		instructors = get_instructors("LMS Batch", notification.document_name)
-		details["instructors"] = instructors
-		notification["document_details"] = details
+		if details:
+			instructors = get_instructors("LMS Batch", notification.document_name)
+			details["instructors"] = instructors or []
+			notification["document_details"] = details
+		else:
+			notification["document_details"] = None
 	return notification
 
 

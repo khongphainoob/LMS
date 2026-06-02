@@ -28,7 +28,7 @@
 		</div>
 	</div>
 </template>
-<script setup>
+<script setup lang="ts">
 import {
 	Badge,
 	Button,
@@ -38,6 +38,7 @@ import {
 	usePageMeta,
 } from 'frappe-ui'
 import { computed, inject, markRaw, onMounted, ref, watch } from 'vue'
+import type { Component } from 'vue'
 import { sessionStore } from '@/stores/session'
 import { useRouter, useRoute } from 'vue-router'
 import { List, Settings2, Trash2, TrendingUp } from 'lucide-vue-next'
@@ -45,12 +46,21 @@ import CourseOverview from '@/pages/Courses/CourseOverview.vue'
 import CourseDashboard from '@/pages/Courses/CourseDashboard.vue'
 import CourseForm from '@/pages/Courses/CourseForm.vue'
 
-const { brand } = sessionStore()
+type Brand = { name?: string; logo?: string; favicon?: string }
+
+interface TabDef {
+	label: string
+	name: string
+	component: ReturnType<typeof markRaw>
+	icon: Component
+}
+
+const { brand } = sessionStore() as { brand: Brand }
 const router = useRouter()
 const route = useRoute()
-const user = inject('$user')
+const user = inject<any>('$user')
 const tabIndex = ref(0)
-const childRef = ref(null)
+const childRef = ref<any>(null)
 
 const props = defineProps({
 	courseName: {
@@ -92,24 +102,24 @@ const course = createResource({
 	auto: true,
 })
 
-const tabs = ref([
+const tabs = ref<TabDef[]>([
 	{
 		label: __('Overview'),
 		name: 'overview',
 		component: markRaw(CourseOverview),
-		icon: List,
+		icon: markRaw(List),
 	},
 	{
 		label: __('Dashboard'),
 		name: 'dashboard',
 		component: markRaw(CourseDashboard),
-		icon: TrendingUp,
+		icon: markRaw(TrendingUp),
 	},
 	{
 		label: __('Settings'),
 		name: 'settings',
 		component: markRaw(CourseForm),
-		icon: Settings2,
+		icon: markRaw(Settings2),
 	},
 ])
 
@@ -130,7 +140,7 @@ watch(course, () => {
 
 const isInstructor = () => {
 	let user_is_instructor = false
-	course.data?.instructors.forEach((instructor) => {
+	course.data?.instructors.forEach((instructor: any) => {
 		if (!user_is_instructor && instructor.name == user.data?.name) {
 			user_is_instructor = true
 		}

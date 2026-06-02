@@ -24,7 +24,7 @@
             <FormControl type="text" :label="__('Exam Title')" v-model="formData.title" required :placeholder="__('e.g., Midterm Exam - Grade 12 Math')" />
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormControl type="select" :label="__('Subject')" v-model="formData.subject" :options="['Toán', 'Vật Lý', 'Hóa Học', 'Sinh Học', 'Tiếng Anh', 'Ngữ Văn', 'Lịch Sử', 'Địa Lý']" />
+              <FormControl type="select" :label="__('Subject')" v-model="formData.subject" :options="['Math', 'Physics', 'Chemistry', 'Biology', 'English', 'Literature', 'History', 'Geography']" />
               <FormControl type="select" :label="__('Grade Level')" v-model="formData.grade_level" :options="['Grade 10', 'Grade 11', 'Grade 12', 'University']" />
             </div>
 
@@ -65,34 +65,34 @@
             <h3 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2">{{ __('3. Generation Settings') }}</h3>
             
             <div>
-              <label class="block text-sm text-slate-600 dark:text-slate-400 mb-2">{{ __('Phân bố độ khó (%)') }}</label>
+              <label class="block text-sm text-slate-600 dark:text-slate-400 mb-2">{{ __('Difficulty Distribution (%)') }}</label>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <FormControl type="number" :label="__('Nhận biết')" v-model="difficulty.nhan_biet" />
-                <FormControl type="number" :label="__('Thông hiểu')" v-model="difficulty.thong_hieu" />
-                <FormControl type="number" :label="__('Vận dụng')" v-model="difficulty.van_dung" />
-                <FormControl type="number" :label="__('Vận dụng cao')" v-model="difficulty.van_dung_cao" />
+                <FormControl type="number" :label="__('Remembering')" v-model="difficulty.nhan_biet" />
+                <FormControl type="number" :label="__('Understanding')" v-model="difficulty.thong_hieu" />
+                <FormControl type="number" :label="__('Applying')" v-model="difficulty.van_dung" />
+                <FormControl type="number" :label="__('Advanced Applying')" v-model="difficulty.van_dung_cao" />
               </div>
             </div>
           </div>
 
           <!-- Section Configs -->
           <div class="space-y-4">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2">{{ __('4. Cấu trúc Phần thi (Tùy chọn)') }}</h3>
-            <p class="text-sm text-slate-500">{{ __('Chỉ định rõ số lượng câu hỏi và chủ đề cho từng phần. Bỏ trống nếu muốn AI tự quyết định.') }}</p>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2">{{ __('4. Section Structure (Optional)') }}</h3>
+            <p class="text-sm text-slate-500">{{ __('Specify the number of questions and topics for each section. Leave blank to let AI decide.') }}</p>
             
             <div class="space-y-4">
               <div v-for="(sec, idx) in section_configs" :key="idx" class="p-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 relative">
                 <button v-if="formData.exam_format !== 'MOET 2025'" type="button" class="absolute top-2 right-2 text-slate-400 hover:text-red-500" @click="removeSection(idx)">✕</button>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-                  <FormControl type="text" :label="__('Tên phần thi')" v-model="sec.section_name" :disabled="formData.exam_format === 'MOET 2025'" />
-                  <FormControl type="number" :label="__('Số lượng câu hỏi')" v-model="sec.num_questions" />
+                  <FormControl type="text" :label="__('Section Name')" v-model="sec.section_name" :disabled="formData.exam_format === 'MOET 2025'" />
+                  <FormControl type="number" :label="__('Number of Questions')" v-model="sec.num_questions" />
                 </div>
-                <FormControl type="text" :label="__('Chủ đề tập trung (VD: Sóng cơ, Dao động...)')" v-model="sec.topics" />
+                <FormControl type="text" :label="__('Focus Topics (e.g., Mechanics, Waves...)')" v-model="sec.topics" />
               </div>
             </div>
             
             <Button v-if="formData.exam_format !== 'MOET 2025'" type="button" variant="subtle" icon-left="plus" @click="addSection" class="mt-2">
-              {{ __('Thêm Phần Thi') }}
+              {{ __('Add Section') }}
             </Button>
           </div>
 
@@ -129,7 +129,7 @@ const router = useRouter()
 
 const formData = reactive({
   title: '',
-  subject: 'Toán',
+  subject: 'Math',
   grade_level: 'Grade 12',
   curriculum: 'Vietnamese National',
   exam_type: '45-Minute Test',
@@ -153,12 +153,12 @@ const section_configs = reactive([])
 watch(() => formData.exam_format, (newFormat) => {
   if (newFormat === 'MOET 2025') {
     section_configs.splice(0, section_configs.length, 
-      { section_name: 'Phần I: Câu trắc nghiệm nhiều phương án lựa chọn', num_questions: 18, topics: '' },
-      { section_name: 'Phần II: Câu trắc nghiệm đúng sai', num_questions: 4, topics: '' },
-      { section_name: 'Phần III: Câu trắc nghiệm trả lời ngắn', num_questions: 6, topics: '' }
+      { section_name: 'Part I: Multiple choice questions with multiple options', num_questions: 18, topics: '' },
+      { section_name: 'Part II: True/False multiple choice questions', num_questions: 4, topics: '' },
+      { section_name: 'Part III: Short answer questions', num_questions: 6, topics: '' }
     )
   } else {
-    if (section_configs.length > 0 && section_configs[0].section_name.startsWith('Phần I:')) {
+    if (section_configs.length > 0 && section_configs[0].section_name.startsWith('Part I:')) {
       section_configs.splice(0, section_configs.length)
     }
   }
@@ -184,16 +184,16 @@ const submitResource = createResource({
   onSuccess(data) {
     if (data.success) {
       if (window.frappe && window.frappe.show_alert) {
-        window.frappe.show_alert({ message: __('Vui lòng chờ đang tạo bài...'), indicator: 'blue' });
+        window.frappe.show_alert({ message: __('Please wait, generating exam...'), indicator: 'blue' });
       } else {
-        alert(__('Vui lòng chờ đang tạo bài...'));
+        alert(__('Please wait, generating exam...'));
       }
       router.push({ name: 'ExamDashboard' })
     } else {
       if (window.frappe && window.frappe.show_alert) {
-        window.frappe.show_alert({ message: __('Lỗi tạo đề: ') + data.error, indicator: 'red' });
+        window.frappe.show_alert({ message: __('Error generating exam: ') + data.error, indicator: 'red' });
       } else {
-        alert(__('Lỗi tạo đề: ') + data.error);
+        alert(__('Error generating exam: ') + data.error);
       }
     }
   }

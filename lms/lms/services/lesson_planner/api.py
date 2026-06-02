@@ -32,20 +32,9 @@ def extract_text_from_file(file_url):
                 return ""
             
         ext = os.path.splitext(file_path)[1].lower()
-        if ext == ".txt":
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                return f.read()
-        elif ext == ".docx":
-            from docx import Document
-            doc = Document(file_path)
-            return "\n".join([p.text for p in doc.paragraphs])
-        elif ext == ".pdf":
-            from pypdf import PdfReader
-            reader = PdfReader(file_path)
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text() or ""
-            return text
+        if ext in [".txt", ".docx", ".doc", ".pdf", ".md"]:
+            from lms.lms.agents.utils.file_parser import get_content_from_file
+            return get_content_from_file(file_path)
     except Exception as e:
         logger.error(f"Error extracting text from file {file_url}: {e}", exc_info=True)
     return ""
@@ -251,17 +240,25 @@ def retry_lesson_plan(plan_name):
     Retries a failed lesson plan by re-running the orchestrator with the same thread_id.
     LangGraph will automatically resume from the last successful checkpoint.
     """
-    plan_doc = frappe.get_doc("AI Lesson Plan", plan_name)
-    if plan_doc.status != "Failed":
-        frappe.throw("Chỉ có thể thử lại các tiến trình đã thất bại.")
+    try:
+        from lms.lms.services.ai_rate_limit import check_and_record_usage
+        check_and_record_usage(frappe.session.user, "Lesson Plan", increment=1)
         
-    frappe.enqueue(
-        "lms.lms.services.lesson_planner.api.run_lesson_planner_orchestrator",
-        queue="long",
-        timeout=3600,
-        plan_name=plan_name
-    )
-    return True
+        plan_doc = frappe.get_doc("AI Lesson Plan", plan_name)
+        if plan_doc.status != "Failed":
+            frappe.throw("Chỉ có thể thử lại các tiến trình đã thất bại.")
+            
+        frappe.enqueue(
+            "lms.lms.services.lesson_planner.api.run_lesson_planner_orchestrator",
+            queue="long",
+            timeout=3600,
+            plan_name=plan_name
+        )
+        return True
+    except Exception as e:
+        if not isinstance(e, frappe.ValidationError):
+            frappe.log_error(frappe.get_traceback(), "Lesson Planner Retry API Error")
+        raise e
 
 @frappe.whitelist()
 def get_lesson_plan_status(plan_name):

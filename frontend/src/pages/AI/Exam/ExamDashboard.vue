@@ -173,23 +173,23 @@ const retryResource = createResource({
   onSuccess(data) {
     if (data.success) {
       if (window.frappe && window.frappe.show_alert) {
-        window.frappe.show_alert({ message: __('Đang bắt đầu tạo lại đề...'), indicator: 'blue' });
+        window.frappe.show_alert({ message: __('Starting regeneration...'), indicator: 'blue' });
       } else {
-        alert(__('Đang bắt đầu tạo lại đề...'));
+        alert(__('Starting regeneration...'));
       }
       examsResource.reload();
     } else {
       if (window.frappe && window.frappe.show_alert) {
-        window.frappe.show_alert({ message: __('Lỗi: ') + data.error, indicator: 'red' });
+        window.frappe.show_alert({ message: __('Error: ') + data.error, indicator: 'red' });
       } else {
-        alert(__('Lỗi: ') + data.error);
+        alert(__('Error: ') + data.error);
       }
     }
   }
 })
 
 const confirmRetry = (exam) => {
-  if (confirm(__('Bạn có chắc chắn muốn tạo lại đề thi này không?'))) {
+  if (confirm(__('Are you sure you want to regenerate this exam?'))) {
     retryResource.submit({ exam_name: exam.name })
   }
 }
@@ -202,16 +202,16 @@ const deleteResource = createResource({
       examsResource.fetch()
     } else {
       if (window.frappe && window.frappe.show_alert) {
-        window.frappe.show_alert({ message: __('Lỗi: ') + data.error, indicator: 'red' });
+        window.frappe.show_alert({ message: __('Error: ') + data.error, indicator: 'red' });
       } else {
-        alert(__('Lỗi: ') + data.error);
+        alert(__('Error: ') + data.error);
       }
     }
   }
 })
 
 const confirmDelete = (exam) => {
-  if (confirm(__('Bạn có chắc chắn muốn xóa bài kiểm tra này không? Mọi dữ liệu liên quan sẽ bị xóa vĩnh viễn!'))) {
+  if (confirm(__('Are you sure you want to delete this exam? All associated data will be permanently deleted!'))) {
     deleteResource.submit({ exam_name: exam.name })
   }
 }

@@ -42,9 +42,9 @@ def create_exam_request(
         })
         doc.insert()
         
-        # Enqueue Phase 1
+        # Enqueue Phase 1 (run the LangGraph workflow)
         frappe.enqueue(
-            "lms.lms.agents.exam.orchestrator.process_phase_1",
+            "lms.lms.agents.exam.orchestrator.run_exam_graph",
             exam_name=doc.name,
             queue="long",
             timeout=1500
@@ -136,8 +136,9 @@ def send_exam_review_reminder_and_auto_approve():
         if started_at <= auto_approve_threshold:
             frappe.logger().info(f"[AI Exam] Auto-approving {exam.name} after {auto_approve_minutes}-minute timeout.")
             frappe.enqueue(
-                "lms.lms.agents.exam.orchestrator.process_phase_2",
+                "lms.lms.agents.exam.orchestrator.run_exam_graph",
                 exam_name=exam.name,
+                resume_action="approve",
                 queue="long",
                 timeout=3000,
             )
@@ -194,13 +195,16 @@ def send_exam_review_reminder_and_auto_approve():
 @frappe.whitelist()
 def retry_exam_generation(exam_name: str):
     try:
+        from lms.lms.services.ai_rate_limit import check_and_record_usage
+        check_and_record_usage(frappe.session.user, 'Exam Gen', increment=1)
+        
         doc = frappe.get_doc("AI Exam", exam_name)
         if doc.status not in ["Failed", "Draft"]:
             return {"success": False, "error": "Only Failed or Draft exams can be retried."}
             
         # Retry starts from Phase 1
         frappe.enqueue(
-            "lms.lms.agents.exam.orchestrator.process_phase_1",
+            "lms.lms.agents.exam.orchestrator.run_exam_graph",
             exam_name=doc.name,
             queue="long",
             timeout=1500
@@ -225,10 +229,16 @@ def get_exam_blueprint(exam_name: str):
 @frappe.whitelist()
 def regenerate_blueprint(exam_name: str, feedback: str):
     try:
+        from lms.lms.agents.exam.orchestrator import load_state_from_file
+        state_values = load_state_from_file(exam_name)
+        regenerate_count = state_values.get("regenerate_count", 0) if state_values else 0
+        if regenerate_count >= 3:
+            frappe.throw(frappe._("Bạn đã đạt giới hạn điều chỉnh đề thi tối đa 3 lần. Vui lòng duyệt bản thiết kế hiện tại."))
+
         frappe.enqueue(
-            "lms.lms.agents.exam.orchestrator.process_phase_1_5_regenerate",
+            "lms.lms.agents.exam.orchestrator.run_exam_graph",
             exam_name=exam_name,
-            feedback=feedback,
+            resume_action=feedback,
             queue="long",
             timeout=1500
         )
@@ -237,11 +247,13 @@ def regenerate_blueprint(exam_name: str, feedback: str):
         return {"success": False, "error": str(e)}
 
 @frappe.whitelist()
-def approve_blueprint(exam_name: str):
+def approve_blueprint(exam_name: str, modified_blueprint: str = None):
     try:
         frappe.enqueue(
-            "lms.lms.agents.exam.orchestrator.process_phase_2",
+            "lms.lms.agents.exam.orchestrator.run_exam_graph",
             exam_name=exam_name,
+            resume_action="approve",
+            modified_blueprint=modified_blueprint,
             queue="long",
             timeout=3000
         )

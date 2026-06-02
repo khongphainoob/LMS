@@ -79,7 +79,21 @@ def submit_game_session(session_id, raw_score, metadata=None):
 		
 	cached = frappe.cache().get_value(f"game_session:{session_id}")
 	if not cached:
-		frappe.throw(_("Session expired or invalid."))
+		# Production Hardening: Fallback to database session record if Redis evicted the cache key
+		if frappe.db.exists("LMS Game Session", session_id):
+			session_db = frappe.get_doc("LMS Game Session", session_id)
+			if session_db.member == frappe.session.user and session_db.status == "Started":
+				game_type = frappe.db.get_value("LMS Game",
+					frappe.db.get_value("LMS Class Game", session_db.class_game, "game"), "game_type")
+				cached = {
+					"member": session_db.member,
+					"started_at": session_db.started_at,
+					"game_type": game_type,
+					"max_score": MAX_SCORE_PER_GAME.get(game_type, 1000)
+				}
+				
+		if not cached:
+			frappe.throw(_("Session expired or invalid."))
 		
 	max_score = cached.get("max_score", 1000)
 	raw_score = min(cint(raw_score), max_score)
@@ -116,8 +130,10 @@ def update_game_progress(session):
 	class_game = frappe.get_doc("LMS Class Game", session.class_game)
 	game = frappe.get_doc("LMS Game", class_game.game)
 	
+	# Row-level locking to prevent race conditions during concurrent clicks
 	progress_name = frappe.db.get_value("LMS Game Progress",
-		{"class_game": session.class_game, "member": session.member})
+		{"class_game": session.class_game, "member": session.member},
+		"name", for_update=True)
 		
 	if progress_name:
 		progress = frappe.get_doc("LMS Game Progress", progress_name)

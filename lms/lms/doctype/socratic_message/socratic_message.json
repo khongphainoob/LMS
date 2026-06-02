@@ -24,7 +24,8 @@
       "options": "Socratic Session",
       "reqd": 1,
       "label": "Session",
-      "in_list_view": 1
+      "in_list_view": 1,
+      "search_index": 1
     },
     {
       "fieldname": "role",

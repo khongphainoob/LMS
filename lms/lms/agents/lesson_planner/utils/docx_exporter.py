@@ -1,155 +1,33 @@
-import re
+import os
+import tempfile
+import pypandoc
 from docx import Document
-from docx.shared import Pt, Cm, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
 
 def create_docx_from_markdown(content: str, topic: str, is_draft: bool = False) -> Document:
-    doc = Document()
+    # Build proper markdown content with headers
+    md_text = f"**TRƯỜNG: ....................................** \t\t\t **CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM**  \n"
+    md_text += f"**TỔ: ...........................................** \t\t\t **Độc lập - Tự do - Hạnh phúc**  \n\n"
+    md_text += f"---\n\n"
+    md_text += f"<h1 style='text-align:center;'>KẾ HOẠCH BÀI DẠY</h1>\n\n"
     
-    # Page setup (A4)
-    section = doc.sections[0]
-    section.page_width = Cm(21)
-    section.page_height = Cm(29.7)
-    section.top_margin = Cm(2.0)
-    section.bottom_margin = Cm(2.0)
-    section.left_margin = Cm(2.5)
-    section.right_margin = Cm(2.0)
-    
-    # Set default font
-    style = doc.styles['Normal']
-    font = style.font
-    font.name = 'Times New Roman'
-    font.size = Pt(13)
-    
-    # Clean up standard header
-    header = section.header
-    header_para = header.paragraphs[0]
-    header_para.text = ""
-    
-    # Add formal CV5512 Header table at the top of the document
-    header_table = doc.add_table(rows=1, cols=2)
-    header_table.autofit = True
-    
-    cell_left = header_table.rows[0].cells[0]
-    p_left = cell_left.paragraphs[0]
-    p_left.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run_l1 = p_left.add_run("TRƯỜNG: ....................................\n")
-    run_l1.bold = True
-    run_l2 = p_left.add_run("TỔ: ...........................................")
-    run_l2.bold = True
-    
-    cell_right = header_table.rows[0].cells[1]
-    p_right = cell_right.paragraphs[0]
-    p_right.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run_r1 = p_right.add_run("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\n")
-    run_r1.bold = True
-    run_r2 = p_right.add_run("Độc lập - Tự do - Hạnh phúc")
-    run_r2.bold = True
-    run_r2.underline = True
-    
-    doc.add_paragraph("") # Spacing
-    
-    # Formal Title
-    title_para = doc.add_paragraph()
-    title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    title_run = title_para.add_run("KẾ HOẠCH BÀI DẠY")
-    title_run.bold = True
-    title_run.font.size = Pt(16)
-    
-    doc.add_paragraph("") # Spacing    
-    # Watermark for draft
     if is_draft:
-        # Since true watermarks require complex OXML, we will just add a centered red text at the top
-        draft_para = doc.add_paragraph()
-        draft_run = draft_para.add_run("BẢN NHÁP AI - CHƯA PHÊ DUYỆT")
-        draft_run.font.color.rgb = RGBColor(255, 0, 0)
-        draft_run.font.size = Pt(16)
-        draft_run.bold = True
-        draft_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    # Parse markdown body
-    lines = content.split('\n')
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
+        md_text += f"<h3 style='color:red; text-align:center;'>BẢN NHÁP AI - CHƯA PHÊ DUYỆT</h3>\n\n"
         
-        if not line:
-            i += 1
-            continue
-            
-        # Headings
-        if line.startswith('#'):
-            level = len(line) - len(line.lstrip('#'))
-            text = line.lstrip('#').strip()
-            doc.add_heading(text, level=min(level, 9))
-            
-        # Lists
-        elif line.startswith('- ') or line.startswith('* '):
-            p = doc.add_paragraph(style='List Bullet')
-            _parse_inline_markdown(p, line[2:])
-            
-        # Tables
-        elif line.startswith('|'):
-            # simple table parser
-            headers = [c.strip() for c in line.split('|') if c.strip()]
-            i += 1
-            if i < len(lines) and lines[i].strip().startswith('|---'):
-                i += 1
-                table = doc.add_table(rows=1, cols=len(headers))
-                table.style = 'Table Grid'
-                hdr_cells = table.rows[0].cells
-                for j, h in enumerate(headers):
-                    hdr_cells[j].text = h
-                
-                while i < len(lines) and lines[i].strip().startswith('|'):
-                    row_line = lines[i].strip()
-                    cols = row_line.split('|')
-                    if row_line.startswith('|'): cols = cols[1:]
-                    if row_line.endswith('|'): cols = cols[:-1]
-                    
-                    if cols:
-                        row_cells = table.add_row().cells
-                        for j in range(min(len(cols), len(headers))):
-                            _parse_inline_markdown(row_cells[j].paragraphs[0], cols[j])
-                            
-            continue # Already incremented i in the while loop
-            
-        # Code blocks (Skip or add as text)
-        elif line.startswith('```'):
-            code_lines = []
-            i += 1
-            while i < len(lines) and not lines[i].strip().startswith('```'):
-                code_lines.append(lines[i])
-                i += 1
-            code_text = "\\n".join(code_lines)
-            p = doc.add_paragraph(code_text)
-            p.style = 'Macro Text'
-            
-        # Normal paragraphs
-        else:
-            p = doc.add_paragraph()
-            _parse_inline_markdown(p, line)
-            
-        i += 1
-        
-    return doc
+    # Replace checkboxes with proper unicode so pandoc doesn't just print text
+    content = content.replace("[ ]", "☐").replace("[x]", "☑").replace("[X]", "☑")
+    
+    md_text += content
 
-def _parse_inline_markdown(paragraph, text: str):
-    """
-    Very basic inline markdown parsing for **bold** and *italic*.
-    """
-    # Quick hack: split by **
-    parts = text.split('**')
-    for idx, part in enumerate(parts):
-        is_bold = (idx % 2 != 0)
-        # Check italic within part
-        italic_parts = part.split('*')
-        for jdx, ipart in enumerate(italic_parts):
-            is_italic = (jdx % 2 != 0)
-            if ipart:
-                run = paragraph.add_run(ipart)
-                if is_bold:
-                    run.bold = True
-                if is_italic:
-                    run.italic = True
+    with tempfile.NamedTemporaryFile(suffix=".md", delete=False) as temp_md:
+        temp_md.write(md_text.encode('utf-8'))
+        md_path = temp_md.name
+        
+    docx_path = md_path.replace(".md", ".docx")
+    try:
+        # Convert using pypandoc without --mathjax to ensure DOCX format compatibility
+        pypandoc.convert_file(md_path, 'docx', outputfile=docx_path)
+        doc = Document(docx_path)
+        return doc
+    finally:
+        if os.path.exists(md_path): os.remove(md_path)
+        if os.path.exists(docx_path): os.remove(docx_path)

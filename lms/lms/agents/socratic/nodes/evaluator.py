@@ -33,10 +33,8 @@ def evaluator_node(state: dict) -> dict:
     """
     frappe.logger("socratic").info("=== [evaluator] START ===")
     
-    from ...provider import get_llm, get_agent_config
-    llm, _, _ = get_llm("socratic_evaluator", temperature=0.3)
-    config = get_agent_config("socratic_evaluator")
-    model_name = config["model"]
+    from ...provider import get_llm
+    llm, model_name, _ = get_llm("socratic_evaluator", temperature=0.3)
     
     processed = state.get("processed_content", "")
     context = state.get("context", "")

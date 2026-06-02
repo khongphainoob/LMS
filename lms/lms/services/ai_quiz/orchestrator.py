@@ -51,12 +51,15 @@ Language: {quiz_doc.language}
 Target Composition:
 {req_text}
 
-Output format must be a clean JSON matching the requested schema."""
+MANDATORY RULES:
+- Output format must be a clean JSON matching the requested schema.
+- Verify that there is EXACTLY ONE correct answer per question.
+- All options must be mutually exclusive (no overlapping correct answers)."""
 
         user_prompt = f"Requirements/Context: {quiz_doc.additional_prompt or 'General quiz'}\n\n[CONTENT]\n{source_content}"
 
         # 3. Call AI Agent
-        llm, model_name, cost_info = get_llm("quiz_generator")
+        llm, model_name, cost_info = get_llm("quiz_generator", temperature=0.3)
         
         # In langchain with_structured_output we might lose raw usage. We will try to extract it from response if possible
         # However, to track tokens, we can use a token counter callback if needed. But for simple tracking,
