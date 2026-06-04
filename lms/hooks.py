@@ -159,7 +159,12 @@ scheduler_events = {
 	],
 }
 
-fixtures = ["Custom Field", "Function", "Industry", "LMS Category"]
+fixtures = [
+	"Custom Field", "Function", "Industry", "LMS Category",
+	"Custom Field",
+    "Property Setter",
+    "Custom DocPerm"
+	]
 
 # Testing
 # -------

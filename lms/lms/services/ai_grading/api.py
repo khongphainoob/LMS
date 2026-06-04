@@ -88,7 +88,7 @@ def create_ai_grading_session(data):
 		data = json.loads(data)
 	doc = frappe.new_doc("AI Grading Session")
 	doc.route_slug = _slugify_ai_grading_session_name(data.get("session_name", ""))
-	allowed_fields = ["session_name", "batch", "assignment", "rubric", "grading_type", "subject", "level", "custom_instructions", "max_score", "min_word_count", "max_word_count"]
+	allowed_fields = ["session_name", "batch", "course", "reference_doc_type", "reference_doc", "rubric", "grading_type", "subject", "level", "custom_instructions", "max_score", "min_word_count", "max_word_count", "ai_notes", "status"]
 	safe_data = {k: v for k, v in data.items() if k in allowed_fields}
 	doc.update(safe_data)
 	doc.insert()
@@ -191,7 +191,11 @@ def sync_ai_grading_submissions(session):
 		for sub in submissions:
 			if valid_members is not None and sub.member not in valid_members:
 				continue
-			if not frappe.db.exists("AI Grading Submission", {"session": session, "student": sub.member}):
+			existing = frappe.get_all("AI Grading Submission", filters={"session": session, "student": sub.member}, limit=1)
+			if existing:
+				frappe.db.set_value("AI Grading Submission", existing[0].name, "lms_assignment_submission", sub.name)
+				synced_count += 1
+			else:
 				new_sub = frappe.get_doc({
 					"doctype": "AI Grading Submission",
 					"session": session,
@@ -212,7 +216,11 @@ def sync_ai_grading_submissions(session):
 		for sub in submissions:
 			if valid_members is not None and sub.member not in valid_members:
 				continue
-			if not frappe.db.exists("AI Grading Submission", {"session": session, "student": sub.member}):
+			existing = frappe.get_all("AI Grading Submission", filters={"session": session, "student": sub.member}, limit=1)
+			if existing:
+				frappe.db.set_value("AI Grading Submission", existing[0].name, "lms_quiz_submission", sub.name)
+				synced_count += 1
+			else:
 				new_sub = frappe.get_doc({
 					"doctype": "AI Grading Submission",
 					"session": session,
@@ -276,6 +284,23 @@ def _get_ai_grading_inputs(submission_name, primary_image=None):
 					images.append(url)
 				elif not _is_ai_grading_image_file(url) and url not in file_urls:
 					file_urls.append(url)
+					
+			lms_sub_files = frappe.get_all(
+				"File",
+				filters={
+					"attached_to_doctype": "LMS Assignment Submission",
+					"attached_to_name": sub_doc.lms_assignment_submission,
+				},
+				fields=["file_url"],
+				order_by="creation asc",
+			)
+			for file_doc in lms_sub_files:
+				url = getattr(file_doc, "file_url", None)
+				if url:
+					if _is_ai_grading_image_file(url) and url not in images:
+						images.append(url)
+					elif not _is_ai_grading_image_file(url) and url not in file_urls:
+						file_urls.append(url)
 		except Exception:
 			pass
 
