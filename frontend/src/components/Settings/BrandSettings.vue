@@ -26,7 +26,7 @@
 			</div>
 		</div>
 		<div class="overflow-y-auto">
-			<SettingFields :sections="sections" :data="branding.data" />
+			<SettingFields v-if="branding.data" :sections="sections" :data="branding.data" />
 		</div>
 	</div>
 </template>
