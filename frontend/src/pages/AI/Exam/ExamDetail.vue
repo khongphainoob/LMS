@@ -225,7 +225,6 @@
                       
                       <!-- Answer & Solution (Hidden by default, shown on hover/click in UI) -->
                       <div class="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50 hidden group-hover:block transition-all shadow-[0_4px_20px_rgba(16,185,129,0.05)]">
-                        <p class="text-sm font-bold text-emerald-800 dark:text-emerald-400 mb-1 flex items-center gap-2"><span class="text-emerald-500">✨</span> {{ __('Answer') }}: {{ q.correct_answer }}</p>
                         <div class="text-sm text-emerald-700 dark:text-emerald-300/80 leading-relaxed markdown-content" v-html="renderMarkdown(q.explanation || q.solution)"></div>
                       </div>
                     </div>
@@ -235,6 +234,13 @@
             </div>
 
             </div>
+            
+            <AIFeedbackWidget 
+              v-if="examResource.data?.status === 'Completed'"
+              serviceType="AI Exam"
+              :referenceId="examResource.data.name"
+              class="mt-8 mx-auto"
+            />
           </div>
 
         </div>
@@ -248,7 +254,9 @@ import { inject, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { createResource, Button, Badge, Spinner, call } from 'frappe-ui'
 import MarkdownIt from 'markdown-it'
+import DOMPurify from 'dompurify'
 import 'katex/dist/katex.min.css'
+import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -260,7 +268,8 @@ const nfc = (text) => text ? String(text).normalize('NFC') : ''
 
 const renderMarkdown = (text) => {
   if (!text) return ''
-  return md.render(nfc(text))
+  const rawHtml = md.render(nfc(text))
+  return DOMPurify.sanitize(rawHtml)
 }
 
 const cleanOptionText = (opt) => {

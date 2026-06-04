@@ -152,6 +152,14 @@
               </div>
             </div>
           </div>
+
+          <div class="flex justify-center mt-6">
+            <AIFeedbackWidget 
+              v-if="messages.length > 0 && !isAwaitingResponse"
+              serviceType="Socratic Tutor"
+              :referenceId="sessionKey"
+            />
+          </div>
         </div>
 
         <!-- Input Area -->
@@ -194,6 +202,7 @@ import { sessionStore } from '@/stores/session'
 import * as icons from 'lucide-vue-next'
 import markdownit from 'markdown-it'
 import DOMPurify from 'dompurify'
+import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 
 const props = defineProps({
   sessionKey: {

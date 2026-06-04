@@ -13,9 +13,13 @@ class QdrantVectorStore:
 		self.config = config
 		from qdrant_client import QdrantClient
 		
-		# Embedded persistent mode
+		# Connection mode: Remote or Embedded persistent
 		try:
-			self.client = QdrantClient(path=config.qdrant_path)
+			if getattr(config, "qdrant_url", None):
+				frappe.logger("rag").info(f"Connecting to remote Qdrant at {config.qdrant_url}")
+				self.client = QdrantClient(url=config.qdrant_url)
+			else:
+				self.client = QdrantClient(path=config.qdrant_path)
 			self._ensure_collection()
 		except Exception as e:
 			frappe.log_error(f"Failed to initialize Qdrant: {e}", "RAG Vector Store")

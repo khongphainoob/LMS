@@ -7,7 +7,7 @@ def get_student_course_info(student_name: str, course_name: Optional[str] = None
 	"""
 	Tra cuu thong tin co ban cua hoc sinh trong pham vi mot khoa hoc cu the.
 	Thong tin bao gom: Ho ten, ngay tham gia khoa hoc, va tien do hoan thanh khoa hoc.
-	Su dung tool nay khi ban can biet hoc sinh la ai hoac ho dang hoc den dau de tra loi than thien hon.
+	LƯU Ý QUAN TRỌNG: CHỈ sử dụng tool này khi bạn KHÔNG CÓ thông tin về khóa học hoặc học sinh trong ngữ cảnh (system prompt). Nếu người dùng đã chọn khóa học/lớp học, thông tin đã được nạp sẵn, KHÔNG ĐƯỢC GỌI TOOL NÀY.
 	"""
 	info_parts = []
 	

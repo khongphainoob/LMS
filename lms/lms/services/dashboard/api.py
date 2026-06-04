@@ -132,11 +132,56 @@ def get_ai_usage_stats(days=7):
         ORDER BY date ASC
     """, (start_date.date(),), as_dict=True)
     
+    # 5. Get Evaluation Stats
+    eval_stats_raw = frappe.db.sql("""
+        SELECT service_type, AVG(rating) as avg_rating, COUNT(name) as total_reviews
+        FROM `tabAI Evaluation`
+        WHERE creation >= %s
+        GROUP BY service_type
+    """, (start_date,), as_dict=True)
+
+    recent_feedbacks = frappe.db.sql("""
+        SELECT service_type, user, rating, feedback, creation, reference_id
+        FROM `tabAI Evaluation`
+        WHERE feedback IS NOT NULL AND feedback != ''
+        ORDER BY creation DESC
+        LIMIT 10
+    """, as_dict=True)
+
     return {
         "agent_stats": agent_logs,
         "error_stats": error_logs,
         "daily_trend": daily_trend,
-        "recent_errors": recent_errors
+        "recent_errors": recent_errors,
+        "evaluation_stats": eval_stats_raw,
+        "recent_feedbacks": recent_feedbacks
     }
+
+@frappe.whitelist()
+def submit_ai_evaluation(service_type, reference_id, rating, feedback=None):
+    if not frappe.session.user or frappe.session.user == "Guest":
+        frappe.throw("Vui lòng đăng nhập để gửi đánh giá.")
+        
+    # Check if already submitted
+    existing = frappe.db.exists("AI Evaluation", {
+        "service_type": service_type,
+        "reference_id": reference_id,
+        "user": frappe.session.user
+    })
+    
+    if existing:
+        return "Already submitted"
+        
+    doc = frappe.get_doc({
+        "doctype": "AI Evaluation",
+        "service_type": service_type,
+        "reference_id": reference_id,
+        "user": frappe.session.user,
+        "rating": int(rating),
+        "feedback": feedback
+    })
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
+    return "Success"
 
 

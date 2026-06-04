@@ -1,47 +1,100 @@
 {
- "actions": [],
- "allow_rename": 1,
- "creation": "2026-05-31 07:01:11.866837",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "section_title",
-  "section_instructions",
-  "num_questions"
- ],
- "fields": [
-  {
-   "fieldname": "section_title",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Section Title"
-  },
-  {
-   "fieldname": "section_instructions",
-   "fieldtype": "Text",
-   "label": "Instructions"
-  },
-  {
-   "fieldname": "num_questions",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Number of Questions"
-  }
- ],
- "grid_page_length": 50,
- "index_web_pages_for_search": 1,
- "istable": 1,
- "links": [],
- "modified": "2026-05-31 11:47:40.315096",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "AI Exam Section",
- "owner": "Administrator",
- "permissions": [],
- "row_format": "Dynamic",
- "rows_threshold_for_grid_search": 20,
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2026-05-31 07:01:11.866837",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "section_title",
+        "section_instructions",
+        "num_questions"
+    ],
+    "fields": [
+        {
+            "fieldname": "section_title",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Section Title"
+        },
+        {
+            "fieldname": "section_instructions",
+            "fieldtype": "Text",
+            "label": "Instructions"
+        },
+        {
+            "fieldname": "num_questions",
+            "fieldtype": "Int",
+            "in_list_view": 1,
+            "label": "Number of Questions"
+        }
+    ],
+    "grid_page_length": 50,
+    "index_web_pages_for_search": 1,
+    "istable": 1,
+    "links": [],
+    "modified": "2026-05-31 11:47:40.315096",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "AI Exam Section",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Course Creator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Moderator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "row_format": "Dynamic",
+    "rows_threshold_for_grid_search": 20,
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
 }

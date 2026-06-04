@@ -111,7 +111,7 @@ def create_lms_game_session():
 		make_perm("System Manager"),
 		make_perm("Moderator"),
 		make_perm("Course Creator", write=0, delete=0),
-		make_perm("LMS Student", delete=0)
+		make_perm("LMS Student", write=0, create=0, delete=0)
 	]
 	create_doctype("LMS Game Session", fields, perms)
 

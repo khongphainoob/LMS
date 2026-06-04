@@ -254,17 +254,49 @@ def get_job_opportunities(filters=None, orFilters=None):
 @frappe.whitelist(allow_guest=True)
 def get_chart_details():
 	details = frappe._dict()
-	details.enrollments = frappe.db.count("LMS Enrollment")
-	details.courses = frappe.db.count(
-		"LMS Course",
-		{
-			"published": 1,
-			"upcoming": 0,
-		},
-	)
-	details.users = frappe.db.count("User", {"enabled": 1, "name": ["not in", ("Administrator", "Guest")]})
-	details.completions = frappe.db.count("LMS Enrollment", {"progress": ["like", "%100%"]})
-	details.certifications = frappe.db.count("LMS Certificate", {"published": 1})
+	roles = frappe.get_roles(frappe.session.user)
+	is_admin_or_mod = "Administrator" in roles or "Moderator" in roles or "System Manager" in roles
+	
+	if is_admin_or_mod or frappe.session.user == "Guest":
+		details.enrollments = frappe.db.count("LMS Enrollment")
+		details.courses = frappe.db.count(
+			"LMS Course",
+			{
+				"published": 1,
+				"upcoming": 0,
+			},
+		)
+		details.users = frappe.db.count("User", {"enabled": 1, "name": ["not in", ("Administrator", "Guest")]})
+		details.completions = frappe.db.count("LMS Enrollment", {"progress": ["like", "%100%"]})
+		details.certifications = frappe.db.count("LMS Certificate", {"published": 1})
+	else:
+		my_courses = frappe.get_all("LMS Course", filters={"owner": frappe.session.user}, pluck="name")
+		instructed_courses = frappe.get_all("Course Instructor", filters={"instructor": frappe.session.user, "parenttype": "LMS Course"}, pluck="parent")
+		all_my_courses = list(set(my_courses + instructed_courses))
+		
+		if all_my_courses:
+			details.enrollments = frappe.db.count("LMS Enrollment", {"course": ["in", all_my_courses]})
+			
+			# Count published courses
+			pub_courses = frappe.get_all("LMS Course", filters={"name": ["in", all_my_courses], "published": 1, "upcoming": 0})
+			details.courses = len(pub_courses)
+			
+			members = frappe.get_all("LMS Enrollment", filters={"course": ["in", all_my_courses]}, pluck="member", distinct=True)
+			details.users = len(members)
+			
+			details.completions = frappe.db.count("LMS Enrollment", {"course": ["in", all_my_courses], "progress": ["like", "%100%"]})
+			
+			if members:
+				details.certifications = frappe.db.count("LMS Certificate", {"member": ["in", members], "published": 1})
+			else:
+				details.certifications = 0
+		else:
+			details.enrollments = 0
+			details.courses = 0
+			details.users = 0
+			details.completions = 0
+			details.certifications = 0
+			
 	return details
 
 
@@ -451,8 +483,8 @@ def get_rubric_templates():
 @frappe.whitelist()
 def get_rubric_stats():
 	return {
-		"total": frappe.db.count("LMS Rubric Template"),
-		"active": frappe.db.count("LMS Rubric Template", {"is_active": 1})
+		"total": len(frappe.get_list("LMS Rubric Template", limit_page_length=0)),
+		"active": len(frappe.get_list("LMS Rubric Template", filters={"is_active": 1}, limit_page_length=0))
 	}
 
 
@@ -950,8 +982,9 @@ def get_announcements(batch):
 	)
 	is_moderator = "Moderator" in roles
 	is_evaluator = "Batch Evaluator" in roles
+	is_instructor = "Course Creator" in roles or "Instructor" in roles
 
-	if not (is_batch_student or is_moderator or is_evaluator):
+	if not (is_batch_student or is_moderator or is_evaluator or is_instructor):
 		frappe.throw(
 			_("You do not have permission to access announcements for this batch."), frappe.PermissionError
 		)
@@ -2166,9 +2199,11 @@ def get_hours_spent(member=None):
 	if not member:
 		member = frappe.session.user
 
-	total_seconds = frappe.db.get_value(
-		"LMS Video Watch Duration", {"member": member}, "SUM(CAST(watch_time AS DECIMAL(16,2)))"
-	) or 0
+	total_seconds_result = frappe.db.sql(
+		"SELECT SUM(CAST(watch_time AS DECIMAL(16,2))) FROM `tabLMS Video Watch Duration` WHERE member = %s",
+		[member]
+	)
+	total_seconds = total_seconds_result[0][0] if total_seconds_result and total_seconds_result[0][0] else 0
 
 	total_seconds = flt(total_seconds)
 	total_hours = round(total_seconds / 3600, 1)
@@ -2203,14 +2238,15 @@ def get_hours_spent(member=None):
 def get_admin_performance_stats():
 	"""Get aggregate performance stats for admin's batches."""
 	roles = frappe.get_roles()
-	is_moderator = "Moderator" in roles
+	is_admin = "System Manager" in roles or frappe.session.user == "Administrator" or "Moderator" in roles
 
-	# Get batches where current user is instructor
 	batches = []
-	if is_moderator:
-		batches = frappe.get_all("LMS Batch", pluck="name")
+	if is_admin:
+		batches = frappe.get_list("LMS Batch", pluck="name", limit_page_length=0)
 	else:
-		batches = frappe.get_all("Course Instructor", {"instructor": frappe.session.user}, pluck="parent")
+		my_batches = frappe.get_all("LMS Batch", filters={"owner": frappe.session.user}, pluck="name")
+		instructed_batches = frappe.get_all("Course Instructor", filters={"instructor": frappe.session.user, "parenttype": "LMS Batch"}, pluck="parent")
+		batches = list(set(my_batches + instructed_batches))
 
 	if not batches:
 		return {
@@ -2726,7 +2762,7 @@ def get_lesson_plans(start=0, limit=20, search=None):
 	if search:
 		filters["title"] = ["like", f"%{search}%"]
 	
-	plans = frappe.get_all(
+	plans = frappe.get_list(
 		"LMS Lesson Plan",
 		filters=filters,
 		fields=["name", "title", "course", "status", "scheduled_date", "creation", "owner"],
@@ -2740,16 +2776,29 @@ def get_lesson_plans(start=0, limit=20, search=None):
 @frappe.whitelist()
 def get_lesson_plan_stats():
 	"""Get basic statistics for Lesson Plans."""
+	from frappe.utils import add_days, now
+	
+	# Fetch all allowed lesson plans (get_list handles Role Permissions)
+	plans = frappe.get_list("LMS Lesson Plan", fields=["name", "creation", "plan_type"], limit_page_length=0)
+	
+	total = len(plans)
+	
+	thirty_days_ago = add_days(now(), -30)
+	# Safely compare datetime string
+	this_month = sum(1 for p in plans if str(p.creation) > str(thirty_days_ago))
+	
+	by_type_dict = {}
+	for p in plans:
+		ptype = p.plan_type or "Unknown"
+		by_type_dict[ptype] = by_type_dict.get(ptype, 0) + 1
+		
+	by_type_list = [{"label": k, "count": v} for k, v in by_type_dict.items()]
+	
 	return {
-		"total": frappe.db.count("LMS Lesson Plan"),
-		"this_month": frappe.db.count("LMS Lesson Plan", {"creation": [">", add_days(now(), -30)]}),
-		"by_type": frappe.db.sql("""
-			select plan_type as label, count(*) as count 
-			from `tabLMS Lesson Plan` 
-			group by plan_type
-		""", as_dict=1)
+		"total": total,
+		"this_month": this_month,
+		"by_type": by_type_list
 	}
-
 
 @frappe.whitelist()
 def get_documents(course=None, category=None, start=0, limit=20, search=None):

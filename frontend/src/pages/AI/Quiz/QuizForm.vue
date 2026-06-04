@@ -314,6 +314,7 @@ const generateQuiz = async () => {
   if (file.value) {
     const formData = new FormData()
     formData.append('file', file.value)
+    formData.append('is_private', 1)
 
     try {
       const token = window.csrf_token || (window.frappe && window.frappe.csrf_token)

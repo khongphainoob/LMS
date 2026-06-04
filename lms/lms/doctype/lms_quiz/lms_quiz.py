@@ -89,6 +89,8 @@ class LMSQuiz(Document):
 			return result[0]
 
 
+
+
 def set_total_marks(questions):
 	marks = 0
 	for question in questions:

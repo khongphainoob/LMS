@@ -15,7 +15,7 @@ def tikz_node(state: LessonPlanState) -> dict:
     TikZ Visual Agent.
     Generates LaTeX-native TikZ code for Math and Physics.
     """
-    llm, model_name, cost_info = get_llm("lesson_planner")
+    llm, model_name, cost_info = get_llm("lesson_planner", max_tokens=8192)
 
     content = state.get("lesson_content") or ""
     topic = state.get("topic") or ""

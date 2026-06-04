@@ -27,6 +27,11 @@ class ViRankerReranker:
 				self._load_model()
 				
 	def _load_model(self):
+		if self.config.reranker_provider.lower() == "cohere":
+			frappe.logger("rag").info("Using Cohere API for Reranking. Skipping local model load.")
+			self.model = "cohere_api"
+			return
+			
 		try:
 			from transformers import AutoModelForSequenceClassification, AutoTokenizer
 			frappe.logger("rag").info(f"Loading Reranker model: {self.config.reranker_model}")
@@ -41,6 +46,9 @@ class ViRankerReranker:
 		"""Rerank documents by relevance to query."""
 		if not self.model or not documents:
 			return documents[:top_k]
+			
+		if self.config.reranker_provider.lower() == "cohere":
+			return self._rerank_cohere(query, documents, top_k)
 			
 		import torch
 		
@@ -63,6 +71,41 @@ class ViRankerReranker:
 			]
 		except Exception as e:
 			frappe.log_error(f"Reranking error: {e}", "RAG Reranker")
+			return documents[:top_k]
+			
+	def _rerank_cohere(self, query: str, documents: List[Dict[str, Any]], top_k: int) -> List[Dict[str, Any]]:
+		import requests
+		api_key = self.config.reranker_api_key
+		if not api_key:
+			frappe.log_error("Missing API Key for Cohere Rerank", "RAG Reranker")
+			return documents[:top_k]
+			
+		docs_texts = [doc["text"] for doc in documents]
+		headers = {
+			"Authorization": f"Bearer {api_key}",
+			"Content-Type": "application/json"
+		}
+		data = {
+			"model": "rerank-multilingual-v3.0",
+			"query": query,
+			"documents": docs_texts,
+			"top_n": top_k
+		}
+		
+		try:
+			response = requests.post("https://api.cohere.com/v1/rerank", headers=headers, json=data, timeout=15)
+			response.raise_for_status()
+			res_data = response.json()
+			
+			reranked = []
+			for item in res_data.get("results", []):
+				idx = item["index"]
+				doc = documents[idx].copy()
+				doc["rerank_score"] = item["relevance_score"]
+				reranked.append(doc)
+			return reranked
+		except Exception as e:
+			frappe.log_error(f"Cohere API Reranking error: {e}", "RAG Reranker")
 			return documents[:top_k]
 
 
@@ -105,7 +148,7 @@ class RAGRetriever:
 		return self._format_context_with_citations(results)
 		
 	def retrieve_public(self, query: str, top_k: int = None) -> List[Dict[str, Any]]:
-		"""Retrieve only public documents (for Socratic Agent)."""
+		"""Retrieve public + Community scope documents (for Socratic Agent)."""
 		return self.retrieve(query, top_k=top_k, is_public_only=True)
 		
 	def retrieve_public_with_context(self, query: str, top_k: int = None) -> str:

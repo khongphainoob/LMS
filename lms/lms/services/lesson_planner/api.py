@@ -284,9 +284,9 @@ def get_planner_stats():
     """
     Whitelisted API endpoint to return analytical dashboard counters.
     """
-    total = frappe.db.count("AI Lesson Plan")
-    completed = frappe.db.count("AI Lesson Plan", {"status": "Completed"})
-    review = frappe.db.count("AI Lesson Plan", {"status": "Review"})
+    total = len(frappe.get_list("AI Lesson Plan", limit_page_length=0))
+    completed = len(frappe.get_list("AI Lesson Plan", filters={"status": "Completed"}, limit_page_length=0))
+    review = len(frappe.get_list("AI Lesson Plan", filters={"status": "Review"}, limit_page_length=0))
     
     # Simple metric: 1 lesson plan saves ~2.5 hours of manual work
     hours_saved = int(completed * 2.5)

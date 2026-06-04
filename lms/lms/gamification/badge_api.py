@@ -3,6 +3,11 @@ from frappe import _
 
 @frappe.whitelist()
 def get_user_badges(member=None):
+	if member and member != frappe.session.user:
+		user_roles = frappe.get_roles(frappe.session.user)
+		if not ("System Manager" in user_roles or "Course Creator" in user_roles or "Instructor" in user_roles or "Moderator" in user_roles):
+			frappe.throw(_("Not permitted to view other users' badges"), frappe.PermissionError)
+
 	if not member:
 		member = frappe.session.user
 

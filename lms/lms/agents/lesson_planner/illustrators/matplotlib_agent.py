@@ -14,7 +14,7 @@ def matplotlib_node(state: LessonPlanState) -> dict:
     Matplotlib Visual Agent.
     Generates exact code-driven scientific plots, functions, and mathematical charts.
     """
-    llm, model_name, cost_info = get_llm("lesson_planner")
+    llm, model_name, cost_info = get_llm("lesson_planner", max_tokens=8192)
 
     content = state.get("lesson_content") or ""
     topic = state.get("topic") or ""

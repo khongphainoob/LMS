@@ -16,11 +16,20 @@ services:
   redis:
     image: redis:alpine
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
   frappe:
     image: frappe/bench:latest
     command: bash /workspace/init.sh
     environment:
       - SHELL=/bin/bash
+      - RAG_QDRANT_URL=http://qdrant:6333
     working_dir: /home/frappe
     volumes:
       - .:/workspace
@@ -30,3 +39,4 @@ services:
 
 volumes:
   mariadb-data:
+  qdrant-data:

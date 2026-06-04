@@ -972,6 +972,7 @@ Install Frappe Learning,Cài đặt Frappe Learning
 Instructor,Giảng viên
 Instructor Notes,Ghi chú của người hướng dẫn
 Instructors,Giảng viên
+Instructor Dashboard, Bảng điều khiển giảng viên
 Interest,Mối quan tâm
 Internet-Based Test (iBT),Internet-Based Test (iBT)
 Introduction,Giới thiệu
@@ -980,7 +981,7 @@ Issue a Certificate,Cấp giấy chứng nhận
 Issue Date,Ngày phát hành
 Issued On,Ngày phát hành
 Issued on,Phát hành vào ngày
-JavaScript,JavaScript
+JavaScript,JavaScript   
 Job,Công việc
 Job Details,Chi tiết công việc
 Job Openings,Cơ hội việc làm
@@ -2571,3 +2572,5 @@ Starting regeneration...,Đang bắt đầu tạo lại đề...
 Error: ,Lỗi: 
 Are you sure you want to regenerate this exam?,Bạn có chắc chắn muốn tạo lại đề thi này không?
 Are you sure you want to delete this exam? All associated data will be permanently deleted!,Bạn có chắc chắn muốn xóa đề thi này không? Mọi dữ liệu liên quan sẽ bị xóa vĩnh viễn!
+Hide Document, Ẩn bài làm
+How was this AI response?, Bạn thấy AI phản hồi như thế nào ? 

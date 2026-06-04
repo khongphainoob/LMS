@@ -285,13 +285,13 @@ def _run_chatbot_job(user: str, lesson_name: str, request_id: str, initial_state
 
 
 @frappe.whitelist()
-def get_history(lesson_name: str = None, session_key: str = None):
+def get_history(lesson_name: str = None, session_key: str = None, limit: int = 20, offset: int = 0):
 	"""Retrieves chat history for the current session."""
 	student = frappe.session.user
 	_ensure_chatbot_access(student)
 	if not session_key:
 		session_key = get_or_create_session_key(student, lesson_name)
-	return get_chat_history(session_key)
+	return get_chat_history(session_key, int(limit), int(offset))
 
 
 @frappe.whitelist()
@@ -348,14 +348,16 @@ def _log_to_db(student, lesson_name, state):
 		return None
 
 @frappe.whitelist()
-def get_sessions():
+def get_sessions(limit: int = 20, offset: int = 0):
 	"""Returns all chat sessions for the current user with descriptive titles."""
 	student = frappe.session.user
 	_ensure_chatbot_access(student)
 	sessions = frappe.get_all("Chatbot Session",
 		filters={"student": student},
 		fields=["name", "session_key", "last_active", "lesson", "course", "batch", "total_tokens", "message_count"],
-		order_by="last_active desc"
+		order_by="last_active desc",
+		limit=int(limit),
+		limit_start=int(offset)
 	)
 	
 	# Optimize N+1 query: bulk fetch the earliest user message for all sessions
@@ -475,11 +477,29 @@ def create_session(course: str = None, batch: str = None, lesson: str = None):
 		"doctype": "Chatbot Session",
 		"student": student,
 		"course": course,
+		"batch": batch,
 		"lesson": lesson,
 		"session_key": session_key,
 		"last_active": frappe.utils.now_datetime()
 	})
 	doc.insert(ignore_permissions=True)
+	
+	# PRE-WARM CACHE (Chạy ngầm để nạp sẵn dữ liệu)
+	try:
+		frappe.enqueue(
+			"lms.lms.agents.chatbot.nodes.context.context_node",
+			queue="short",
+			state={
+				"student_name": student,
+				"course_name": course,
+				"batch_name": batch,
+				"lesson_name": lesson,
+				"session_key": session_key
+			}
+		)
+	except Exception as e:
+		frappe.logger("lms.chatbot").error(f"Failed to pre-warm cache: {e}")
+
 	return {"session_key": session_key}
 
 
@@ -497,31 +517,6 @@ def delete_session(session_key: str):
 	return "OK"
 
 
-@frappe.whitelist()
-def debug_user_name(search_name):
-	"""Tiện ích kiểm tra nhanh tên học sinh từ Terminal"""
-	user = frappe.session.user
-	if user != "Administrator" and not frappe.has_role("System Manager", user=user):
-		frappe.throw(_("You do not have permission to use this tool"))
 
-	user_id = frappe.db.get_value("User", {"full_name": ["like", f"%{search_name}%"]}, "name")
-	if user_id:
-		user_doc = frappe.get_doc("User", user_id)
-		return {"id": user_doc.name, "full_name": user_doc.full_name}
-def debug_recent_session():
-	session = frappe.get_all("Chatbot Session", order_by="creation desc", limit=1)[0]
-	session_name = session.name
-	session_key = frappe.db.get_value("Chatbot Session", session_name, "session_key")
-	print(f"Session: {session_name}")
-	messages = frappe.get_all("Chatbot Message", filters={"session": session_name}, fields=["role", "content"], order_by="creation asc")
-	print("--- DB MESSAGES ---")
-	for i, m in enumerate(messages):
-		print(f"{i+1}. [{m.role}] {m.content[:50]}")
-	
-	from lms.lms.services.chatbot.session import get_chat_history
-	hist = get_chat_history(session_key)
-	print("--- REDIS/GET_CHAT_HISTORY ---")
-	for i, m in enumerate(hist):
-		print(f"{i+1}. [{m.get('role')}] {m.get('content')[:50]}")
 
 

@@ -1,230 +1,258 @@
 {
- "actions": [],
- "allow_import": 1,
- "creation": "2024-03-23 21:30:00.000000",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "session",
-  "student",
-  "student_name",
-  "column_break_4",
-  "status",
-  "flag_reason",
-  "score",
-  "teacher_override_score",
-  "section_break_files",
-  "paper_image",
-  "lms_quiz_submission",
-  "lms_assignment_submission",
-  "section_break_ai",
-  "ai_feedback",
-  "teacher_feedback",
-  "ai_rating",
-  "dissatisfaction_reason",
-  "section_break_perf",
-  "grading_started_at",
-  "grading_completed_at",
-  "column_break_perf",
-  "input_tokens",
-  "output_tokens",
-  "estimated_cost_usd",
-  "retry_count",
-  "last_error"
- ],
- "fields": [
-  {
-   "fieldname": "session",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Session",
-   "options": "AI Grading Session",
-   "reqd": 1
-  },
-  {
-   "fieldname": "student",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Student",
-   "options": "User",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "student.full_name",
-   "fieldname": "student_name",
-   "fieldtype": "Data",
-   "label": "Student Name",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_4",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "Pending",
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Status",
-   "options": "Pending\nGrading\nDone\nFlagged\nFailed"
-  },
-  {
-   "depends_on": "eval:doc.status=='Flagged'",
-   "fieldname": "flag_reason",
-   "fieldtype": "Small Text",
-   "label": "Flag Reason"
-  },
-  {
-   "fieldname": "score",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "AI Score"
-  },
-  {
-   "fieldname": "teacher_override_score",
-   "fieldtype": "Float",
-   "label": "Teacher Override Score"
-  },
-  {
-   "fieldname": "section_break_files",
-   "fieldtype": "Section Break",
-   "label": "Submission Files"
-  },
-  {
-   "fieldname": "paper_image",
-   "fieldtype": "Attach Image",
-   "label": "Paper Photo / Image"
-  },
-  {
-   "fieldname": "lms_quiz_submission",
-   "fieldtype": "Link",
-   "label": "LMS Quiz Submission",
-   "options": "LMS Quiz Submission"
-  },
-  {
-   "fieldname": "lms_assignment_submission",
-   "fieldtype": "Link",
-   "label": "LMS Assignment Submission",
-   "options": "LMS Assignment Submission"
-  },
-  {
-   "fieldname": "section_break_ai",
-   "fieldtype": "Section Break",
-   "label": "AI Evaluation"
-  },
-  {
-   "fieldname": "ai_feedback",
-   "fieldtype": "Long Text",
-   "label": "AI Evaluation JSON"
-  },
-  {
-   "fieldname": "teacher_feedback",
-   "fieldtype": "Small Text",
-   "label": "Teacher Feedback"
-  },
-  {
-   "fieldname": "ai_rating",
-   "fieldtype": "Select",
-   "label": "AI Rating",
-   "options": "\nSatisfied\nDissatisfied"
-  },
-  {
-   "depends_on": "eval:doc.ai_rating == 'Dissatisfied'",
-   "fieldname": "dissatisfaction_reason",
-   "fieldtype": "Small Text",
-   "label": "Dissatisfaction Reason"
-  },
-  {
-   "fieldname": "section_break_perf",
-   "fieldtype": "Section Break",
-   "label": "Performance Tracking"
-  },
-  {
-   "fieldname": "grading_started_at",
-   "fieldtype": "Datetime",
-   "label": "Grading Started At"
-  },
-  {
-   "fieldname": "grading_completed_at",
-   "fieldtype": "Datetime",
-   "label": "Grading Completed At"
-  },
-  {
-   "fieldname": "column_break_perf",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "input_tokens",
-   "fieldtype": "Int",
-   "label": "Input Tokens"
-  },
-  {
-   "fieldname": "output_tokens",
-   "fieldtype": "Int",
-   "label": "Output Tokens"
-  },
-  {
-   "fieldname": "estimated_cost_usd",
-   "fieldtype": "Float",
-   "label": "Estimated Cost (USD)"
-  },
-  {
-   "fieldname": "retry_count",
-   "fieldtype": "Int",
-   "label": "Retry Count",
-   "default": "0"
-  },
-  {
-   "fieldname": "last_error",
-   "fieldtype": "Small Text",
-   "label": "Last Error"
-  }
- ],
- "modified": "2026-04-22 23:00:00.000000",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "AI Grading Submission",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Moderator",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Course Creator",
-   "share": 1,
-   "write": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+    "actions": [],
+    "allow_import": 1,
+    "creation": "2024-03-23 21:30:00.000000",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "session",
+        "student",
+        "student_name",
+        "column_break_4",
+        "status",
+        "flag_reason",
+        "score",
+        "teacher_override_score",
+        "section_break_files",
+        "paper_image",
+        "lms_quiz_submission",
+        "lms_assignment_submission",
+        "section_break_ai",
+        "ai_feedback",
+        "teacher_feedback",
+        "ai_rating",
+        "dissatisfaction_reason",
+        "section_break_perf",
+        "grading_started_at",
+        "grading_completed_at",
+        "column_break_perf",
+        "input_tokens",
+        "output_tokens",
+        "estimated_cost_usd",
+        "retry_count",
+        "last_error"
+    ],
+    "fields": [
+        {
+            "fieldname": "session",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Session",
+            "options": "AI Grading Session",
+            "reqd": 1
+        },
+        {
+            "fieldname": "student",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Student",
+            "options": "User",
+            "reqd": 1
+        },
+        {
+            "fetch_from": "student.full_name",
+            "fieldname": "student_name",
+            "fieldtype": "Data",
+            "label": "Student Name",
+            "read_only": 1
+        },
+        {
+            "fieldname": "column_break_4",
+            "fieldtype": "Column Break"
+        },
+        {
+            "default": "Pending",
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Status",
+            "options": "Pending\nGrading\nDone\nFlagged\nFailed"
+        },
+        {
+            "depends_on": "eval:doc.status=='Flagged'",
+            "fieldname": "flag_reason",
+            "fieldtype": "Small Text",
+            "label": "Flag Reason"
+        },
+        {
+            "fieldname": "score",
+            "fieldtype": "Float",
+            "in_list_view": 1,
+            "label": "AI Score"
+        },
+        {
+            "fieldname": "teacher_override_score",
+            "fieldtype": "Float",
+            "label": "Teacher Override Score"
+        },
+        {
+            "fieldname": "section_break_files",
+            "fieldtype": "Section Break",
+            "label": "Submission Files"
+        },
+        {
+            "fieldname": "paper_image",
+            "fieldtype": "Attach Image",
+            "label": "Paper Photo / Image"
+        },
+        {
+            "fieldname": "lms_quiz_submission",
+            "fieldtype": "Link",
+            "label": "LMS Quiz Submission",
+            "options": "LMS Quiz Submission"
+        },
+        {
+            "fieldname": "lms_assignment_submission",
+            "fieldtype": "Link",
+            "label": "LMS Assignment Submission",
+            "options": "LMS Assignment Submission"
+        },
+        {
+            "fieldname": "section_break_ai",
+            "fieldtype": "Section Break",
+            "label": "AI Evaluation"
+        },
+        {
+            "fieldname": "ai_feedback",
+            "fieldtype": "Long Text",
+            "label": "AI Evaluation JSON"
+        },
+        {
+            "fieldname": "teacher_feedback",
+            "fieldtype": "Small Text",
+            "label": "Teacher Feedback"
+        },
+        {
+            "fieldname": "ai_rating",
+            "fieldtype": "Select",
+            "label": "AI Rating",
+            "options": "\nSatisfied\nDissatisfied"
+        },
+        {
+            "depends_on": "eval:doc.ai_rating == 'Dissatisfied'",
+            "fieldname": "dissatisfaction_reason",
+            "fieldtype": "Small Text",
+            "label": "Dissatisfaction Reason"
+        },
+        {
+            "fieldname": "section_break_perf",
+            "fieldtype": "Section Break",
+            "label": "Performance Tracking"
+        },
+        {
+            "fieldname": "grading_started_at",
+            "fieldtype": "Datetime",
+            "label": "Grading Started At"
+        },
+        {
+            "fieldname": "grading_completed_at",
+            "fieldtype": "Datetime",
+            "label": "Grading Completed At"
+        },
+        {
+            "fieldname": "column_break_perf",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "input_tokens",
+            "fieldtype": "Int",
+            "label": "Input Tokens"
+        },
+        {
+            "fieldname": "output_tokens",
+            "fieldtype": "Int",
+            "label": "Output Tokens"
+        },
+        {
+            "fieldname": "estimated_cost_usd",
+            "fieldtype": "Float",
+            "label": "Estimated Cost (USD)"
+        },
+        {
+            "fieldname": "retry_count",
+            "fieldtype": "Int",
+            "label": "Retry Count",
+            "default": "0"
+        },
+        {
+            "fieldname": "last_error",
+            "fieldtype": "Small Text",
+            "label": "Last Error"
+        }
+    ],
+    "modified": "2026-04-22 23:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "AI Grading Submission",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Moderator",
+            "share": 1,
+            "write": 1,
+            "if_owner": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Course Creator",
+            "share": 1,
+            "write": 1,
+            "if_owner": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
 }

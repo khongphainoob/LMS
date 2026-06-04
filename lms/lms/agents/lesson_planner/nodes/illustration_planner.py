@@ -21,7 +21,7 @@ def illustration_planner_node(state: LessonPlanState) -> dict:
     Illustration Planner Node.
     Reads the lesson content and reasons about what diagrams/images need to be generated.
     """
-    llm, model_name, cost_info = get_llm("lesson_planner", temperature=0.4)
+    llm, model_name, cost_info = get_llm("lesson_planner", temperature=0.4, max_tokens=8192)
 
     content = state.get("lesson_content") or ""
     topic = state.get("topic") or ""

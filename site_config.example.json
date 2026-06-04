@@ -1,0 +1,25 @@
+{
+  "db_name": "lms_db",
+  "db_password": "your_db_password",
+  "developer_mode": 1,
+  
+  "default_provider": "OpenRouter",
+  "default_model": "perplexity/pplx-embed-v1-4b",
+  "default_api_key": "sk-or-v1-xxxxxx",
+  "default_base_url": "https://openrouter.ai/api/v1",
+  
+  "tavily_api_key": "tvly-xxxxxx",
+  
+  "langfuse_public_key": "pk-lf-xxxx",
+  "langfuse_secret_key": "sk-lf-xxxx",
+  
+  "max_cost_per_day": 50.0,
+  
+  "qdrant_url": "http://localhost:6333",
+  "qdrant_collection": "lms_documents",
+  
+  "enable_redis_cache": true,
+  "redis_cache": "redis://localhost:6379",
+  "redis_queue": "redis://localhost:6380",
+  "redis_socketio": "redis://localhost:6381"
+}

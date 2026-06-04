@@ -11,7 +11,7 @@ def assessment_node(state: LessonPlanState) -> dict:
     Assessment Designer Node.
     Generates educational quiz/exam assessment items based on the lesson content.
     """
-    llm, model_name, cost_info = get_llm("lesson_planner", temperature=0.4)
+    llm, model_name, cost_info = get_llm("lesson_planner", temperature=0.4, max_tokens=8192)
 
     content = state.get("lesson_content") or ""
     topic = state.get("topic")

@@ -155,28 +155,35 @@ const router = useRouter()
 const route = useRoute()
 const search = ref('')
 const readOnlyMode = window.read_only_mode
-const quizFilters = ref({})
+const quizFilters = computed(() => {
+	let filters = {}
+	if (user.data && !user.data.is_moderator) {
+		filters.owner = user.data.name
+	}
+	if (search.value) {
+		filters.title = ['like', `%${search.value}%`]
+	}
+	return filters
+})
 const showForm = ref(false)
 const title = ref('')
 
 onMounted(() => {
 	if (!user.data?.is_moderator && !user.data?.is_instructor) {
 		router.push({ name: 'Courses' })
-	} else if (!user.data?.is_moderator) {
-		quizFilters.value['owner'] = user.data?.name
 	}
+
 	if (route.query.new === 'true') {
 		showForm.value = true
 	}
 })
 
-watch(search, () => {
-	quizFilters.value['title'] = ['like', `%${search.value}%`]
+watch([search, () => user.data], () => {
 	quizzes.update({
 		filters: quizFilters.value,
 	})
 	quizzes.reload()
-})
+}, { deep: true })
 
 const quizzes = createListResource({
 	doctype: 'LMS Quiz',

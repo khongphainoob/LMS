@@ -2133,7 +2133,7 @@ def get_batches(filters=None, start=0, order_by="start_date"):
 		)
 		filters.update({"name": ["in", enrolled_batches]})
 		del filters["enrolled"]
-
+	
 	batches = frappe.get_all(
 		"LMS Batch",
 		filters=filters,
@@ -2299,6 +2299,8 @@ def validate_batch_access(batch):
 
 
 def can_modify_course(course):
+	if has_moderator_role() or has_course_instructor_role():
+		return True
 	is_instructor = frappe.db.exists(
 		"Course Instructor",
 		{"instructor": frappe.session.user, "parent": course, "parenttype": "LMS Course"},
@@ -2309,6 +2311,8 @@ def can_modify_course(course):
 
 
 def can_modify_batch(batch):
+	if has_moderator_role() or has_course_instructor_role() or has_evaluator_role():
+		return True
 	is_instructor = frappe.db.exists(
 		"Course Instructor",
 		{

@@ -148,6 +148,15 @@
 						</div>
 						<div class="flex items-center gap-2">
 							<button
+								class="flex items-center gap-1 rounded bg-white border border-gray-200 px-3 py-1 text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all"
+								@click="showDocument = !showDocument"
+								v-if="paperImages.length || currentSub?.text_content"
+							>
+								<icons.EyeOff v-if="showDocument" class="h-3 w-3" />
+								<icons.Eye v-else class="h-3 w-3" />
+								{{ showDocument ? __('Hide Document') : __('Show Document') }}
+							</button>
+							<button
 								class="flex items-center gap-1 rounded bg-blue-600 px-3 py-1 text-[10px] font-bold text-white hover:opacity-90 shadow-sm transition-opacity"
 								@click="approveAndNext"
 							>
@@ -164,7 +173,7 @@
 					</div>
 
 					<div class="flex-1 overflow-y-auto p-6 custom-scrollbar scroll-smooth">
-						<div v-if="paperImages.length || currentSub?.text_content" class="mx-auto max-w-5xl space-y-6">
+						<div v-show="showDocument" v-if="paperImages.length || currentSub?.text_content" class="mx-auto max-w-5xl space-y-6">
 							<!-- Image Viewer -->
 							<div v-if="paperImages.length" class="rounded-xl bg-white p-4 shadow-md border border-gray-100 relative">
 								<div class="absolute top-6 right-6 z-10">
@@ -207,11 +216,24 @@
 								</div>
 							</div>
 						</div>
+						
+						<!-- Evaluation Widget for each grading -->
+						<div class="mx-auto max-w-3xl mt-6 flex justify-center">
+							<AIFeedbackWidget 
+								v-if="currentSub && (currentSub.status === 'done' || currentSub.status === 'flag')"
+								serviceType="AI Grading"
+								:referenceId="currentSub.id"
+								:key="currentSub.id"
+							/>
+						</div>
 					</div>
 				</div>
 
 				<!-- RIGHT: Grade panel -->
-				<div class="flex w-80 flex-shrink-0 flex-col bg-white border-l border-gray-100">
+				<div 
+					class="flex flex-shrink-0 flex-col bg-white border-l border-gray-100 transition-all duration-300"
+					:class="showDocument ? 'w-80' : 'flex-1'"
+				>
 					<div class="p-6 border-b border-gray-100 bg-gray-50/30">
 						<div class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
 							{{ __('PROPOSED SCORE') }}
@@ -435,6 +457,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Dialog, Input, createResource } from 'frappe-ui'
 import * as icons from 'lucide-vue-next'
 import dayjs from '@/utils/dayjs'
+import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 
 const props = defineProps({
 	sessionSlug: { type: String, required: false, default: '' },
@@ -497,6 +520,7 @@ const isBatchGrading = ref(false)
 const isApproving = ref(false)
 const isSyncing = ref(false)
 const showAddStudentModal = ref(false)
+const showDocument = ref(true)
 const showEditStudentModal = ref(false)
 
 const newStudent = reactive({
@@ -756,8 +780,11 @@ const flagCount = computed(() => submissions.value.filter(s => s.status === 'fla
 const progressPercent = computed(() => submissions.value.length ? Math.round((approvedCount.value / submissions.value.length) * 100) : 0)
 
 const totalScore = computed(() => {
+	if (criteria.value && criteria.value.length > 0) {
+		return criteria.value.reduce((sum, c) => sum + (Number(c.score) || 0), 0)
+	}
 	if (parsedFeedback.value?.total_score != null) return parsedFeedback.value.total_score
-	return criteria.value.reduce((sum, c) => sum + (c.score || 0), 0)
+	return 0
 })
 
 const feedback = computed(() => {
@@ -774,6 +801,8 @@ function tagClass(status) {
 		done: 'bg-blue-600 text-white',
 		grading: 'bg-amber-100 text-amber-900 border border-amber-300',
 		flag: 'bg-rose-50 text-rose-700 border border-rose-200',
+		flagged: 'bg-rose-50 text-rose-700 border border-rose-200',
+		failed: 'bg-red-100 text-red-800 border border-red-300',
 		pending: 'bg-gray-100 text-gray-400',
 	}
 	return map[status] || map.pending
@@ -964,11 +993,26 @@ async function runBatchGrading() {
   if (isBatchGrading.value || !resolvedSessionId.value) return
   if (!confirm(__('Are you sure you want to grade THE ENTIRE work in this session?'))) return
   isBatchGrading.value = true
+  
+  // Hiển thị spinner ngay lập tức cho các bài đang pending/failed
+  submissions.value.forEach(s => {
+    if (['pending', 'failed', 'flagged'].includes(s.status)) {
+      s.status = 'grading'
+    }
+  })
+
   try {
-    await startBatchGradingResource.submit({ 
+    const res = await startBatchGradingResource.submit({ 
       session: resolvedSessionId.value 
     })
-    frappe.show_alert({ message: __('Batch marking in progress...'), indicator: 'blue' })
+    if (res && res.submission_ids && res.submission_ids.length > 0) {
+      frappe.show_alert({ message: __('Batch marking in progress...'), indicator: 'blue' })
+      res.submission_ids.forEach(id => pollGradingStatus(id))
+    } else if (res && res.message) {
+      frappe.show_alert({ message: res.message, indicator: 'orange' })
+    } else {
+      frappe.show_alert({ message: __('No pending papers found or limit reached.'), indicator: 'orange' })
+    }
     await loadSubmissions()
   } catch (e) {
     console.error(e)
@@ -1021,7 +1065,7 @@ async function flagCurrent() {
 			doctype: 'AI Grading Submission',
 			name: currentSub.value.id,
 			fieldname: 'status',
-			value: 'Flag'
+			value: 'Flagged'
 		})
 		await loadSubmissions()
 	} catch (e) {
@@ -1030,8 +1074,26 @@ async function flagCurrent() {
 }
 
 function exportGrades() {
-	// Implement CSV export if needed
-	frappe.msgprint(__('The export feature is under development.'))
+	if (!submissions.value || submissions.value.length === 0) {
+		frappe.msgprint(__('No data to export'))
+		return
+	}
+	let csv = '\uFEFF'
+	csv += 'ID,Họ và tên,Trạng thái,Điểm\n'
+	submissions.value.forEach(s => {
+		const score = s.score != null ? s.score : ''
+		const name = s.name ? s.name.replace(/"/g, '""') : ''
+		csv += `${s.id || ''},"${name}","${s.status || ''}",${score}\n`
+	})
+	const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+	const url = URL.createObjectURL(blob)
+	const link = document.createElement('a')
+	link.setAttribute('href', url)
+	link.setAttribute('download', `Grades_Essay_${sessionDoc.value?.name || 'export'}.csv`)
+	document.body.appendChild(link)
+	link.click()
+	document.body.removeChild(link)
+	URL.revokeObjectURL(url)
 }
 
 async function saveAllToDatabase() {

@@ -88,6 +88,19 @@
       <!-- Main Chat Area -->
       <main class="flex-1 flex flex-col bg-white/40 dark:bg-slate-900/40 relative border-x border-slate-50 dark:border-slate-800">
         <div ref="scrollContainer" class="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 scroll-smooth custom-scrollbar">
+          <!-- Load More History Button -->
+          <div v-if="hasMoreHistory && currentSessionKey && messages.length > 0" class="flex justify-center w-full pb-2">
+            <button 
+              @click="loadMoreHistory" 
+              :disabled="isLoadingMore"
+              class="px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2"
+            >
+              <icons.Loader2 v-if="isLoadingMore" class="h-3.5 w-3.5 animate-spin" />
+              <icons.Clock v-else class="h-3.5 w-3.5" />
+              {{ isLoadingMore ? __('Loading...') : __('Load older messages') }}
+            </button>
+          </div>
+
           <div
             v-for="(message, index) in messages"
             :key="index"
@@ -129,6 +142,14 @@
               <div class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse delay-100"></div>
               <div class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse delay-200"></div>
             </div>
+          </div>
+
+          <div class="flex justify-center mt-6">
+            <AIFeedbackWidget 
+              v-if="currentSessionKey && messages.length > 0 && !chatbotResource.loading"
+              serviceType="Chatbot"
+              :referenceId="currentSessionKey"
+            />
           </div>
         </div>
 
@@ -241,6 +262,7 @@ import { usePageMeta, createResource, Dialog } from 'frappe-ui'
 import { sessionStore } from '@/stores/session'
 import dayjs from '@/utils/dayjs'
 import * as icons from 'lucide-vue-next'
+import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 import markdownit from 'markdown-it'
 import DOMPurify from 'dompurify'
 import CourseBatchSelector from '@/components/ai/CourseBatchSelector.vue'
@@ -282,6 +304,11 @@ const currentSessionKey = ref(null)
 const currentLessonName = ref(null)
 const showNewSessionModal = ref(false)
 const showMobileHistory = ref(false)
+
+// Pagination State
+const historyOffset = ref(0)
+const hasMoreHistory = ref(false)
+const isLoadingMore = ref(false)
 
 const resizeTextarea = () => {
   if (!textareaRef.value) return
@@ -331,14 +358,25 @@ const historyResource = createResource({
   url: 'lms.lms.services.chatbot.api.get_history',
   onSuccess: (data) => {
     if (data && data.length > 0) {
-      messages.value = data.map(m => ({
+      const newMessages = data.map(m => ({
         role: m.role?.toLowerCase(),
         content: m.content
       }))
+      
+      if (historyOffset.value === 0) {
+        messages.value = newMessages
+        scrollToBottom()
+      } else {
+        messages.value = [...newMessages, ...messages.value]
+      }
+      hasMoreHistory.value = data.length === 20 // If 20 returned, might be more
     } else {
-      messages.value = [{ role: 'assistant', content: __('Hello! I am your AI learning assistant. What would you like to discuss today?') }]
+      if (historyOffset.value === 0) {
+        messages.value = [{ role: 'assistant', content: __('Hello! I am your AI learning assistant. What would you like to discuss today?') }]
+      }
+      hasMoreHistory.value = false
     }
-    scrollToBottom()
+    isLoadingMore.value = false
   }
 })
 
@@ -348,8 +386,30 @@ const studentContext = createResource({
 })
 
 onMounted(() => {
-  historyResource.fetch()
+  historyOffset.value = 0
+  historyResource.fetch({ offset: 0, limit: 20 })
 })
+
+const loadMoreHistory = () => {
+  if (!hasMoreHistory.value || isLoadingMore.value) return
+  isLoadingMore.value = true
+  
+  const oldScrollHeight = scrollContainer.value?.scrollHeight || 0
+  historyOffset.value += 20
+  
+  historyResource.fetch({ 
+    session_key: currentSessionKey.value, 
+    offset: historyOffset.value, 
+    limit: 20 
+  }).then(() => {
+    nextTick(() => {
+      if (scrollContainer.value) {
+        const newScrollHeight = scrollContainer.value.scrollHeight
+        scrollContainer.value.scrollTop = newScrollHeight - oldScrollHeight
+      }
+    })
+  })
+}
 
 function formatDate(date) { return date ? dayjs(date).format('DD/MM HH:mm') : '' }
 
@@ -377,9 +437,12 @@ const handleSend = () => {
 
 const selectSession = (session) => {
   messages.value = [] 
+  historyOffset.value = 0
+  hasMoreHistory.value = false
+  isLoadingMore.value = false
   currentSessionKey.value = session.session_key
   currentLessonName.value = session.lesson || session.course
-  historyResource.fetch({ session_key: session.session_key })
+  historyResource.fetch({ session_key: session.session_key, offset: 0, limit: 20 })
   showMobileHistory.value = false
 }
 
@@ -411,6 +474,8 @@ const createNewSession = () => {
       currentSessionKey.value = data.session_key
       currentLessonName.value = newSessionForm.lesson || courseBatchModel.value.course
       messages.value = []
+      historyOffset.value = 0
+      hasMoreHistory.value = false
       showNewSessionModal.value = false
       sessionsResource.fetch()
     }

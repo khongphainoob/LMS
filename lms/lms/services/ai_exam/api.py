@@ -53,21 +53,23 @@ def create_exam_request(
         return {"success": True, "exam_name": doc.name}
     except Exception as e:
         frappe.log_error(f"Failed to create AI Exam Request: {str(e)}", "AI Exam Creation")
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred."}
 
 @frappe.whitelist()
 def get_exam_details(exam_name: str):
     try:
         doc = frappe.get_doc("AI Exam", exam_name)
-        return {"success": True, "exam": doc.as_dict()}
+        if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+            frappe.throw(_("Không có quyền truy cập đề thi này."), frappe.PermissionError)
+        return {"success": True, "exam": doc.as_dict(no_default_fields=True)}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        frappe.log_error(f"Failed to get AI Exam Details: {str(e)}", "AI Exam Read")
+        return {"success": False, "error": _("Đã xảy ra lỗi khi lấy thông tin đề thi.")}
 
 @frappe.whitelist()
 def get_exam_list(start: int = 0, limit: int = 20):
     try:
-        exams = frappe.get_all(
-            "AI Exam",
+        exams = frappe.get_list("AI Exam",
             fields=["name", "title", "status", "subject", "grade_level", "creation", "total_questions"],
             order_by="creation desc",
             start=start,
@@ -75,35 +77,45 @@ def get_exam_list(start: int = 0, limit: int = 20):
         )
         return {"success": True, "exams": exams}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred."}
         
 @frappe.whitelist()
 def delete_exam(exam_name: str):
     try:
+        doc = frappe.get_doc("AI Exam", exam_name)
+        if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+            frappe.throw(_("Không có quyền xóa đề thi này."), frappe.PermissionError)
         frappe.delete_doc("AI Exam", exam_name)
         return {"success": True}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        frappe.log_error(f"Failed to delete AI Exam: {str(e)}", "AI Exam Delete")
+        return {"success": False, "error": _("Đã xảy ra lỗi khi xóa đề thi.")}
 
 @frappe.whitelist()
 def export_pdf(exam_name: str):
     try:
+        doc = frappe.get_doc("AI Exam", exam_name)
+        if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+            frappe.throw(_("Không có quyền xuất đề thi này."), frappe.PermissionError)
         from lms.lms.services.ai_exam.pdf_generator import generate_pdf
         file_url = generate_pdf(exam_name)
         return {"success": True, "file_url": file_url}
     except Exception as e:
         frappe.log_error(f"PDF Export Error: {str(e)}", "AI Exam Export")
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": _("Đã xảy ra lỗi khi xuất file PDF.")}
 
 @frappe.whitelist()
 def export_docx(exam_name: str):
     try:
+        doc = frappe.get_doc("AI Exam", exam_name)
+        if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+            frappe.throw(_("Không có quyền xuất đề thi này."), frappe.PermissionError)
         from lms.lms.services.ai_exam.docx_generator import generate_docx
         file_url = generate_docx(exam_name)
         return {"success": True, "file_url": file_url}
     except Exception as e:
         frappe.log_error(f"DOCX Export Error: {str(e)}", "AI Exam Export")
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": _("Đã xảy ra lỗi khi xuất file DOCX.")}
 
 
 def send_exam_review_reminder_and_auto_approve():
@@ -120,8 +132,7 @@ def send_exam_review_reminder_and_auto_approve():
 
     auto_approve_threshold = frappe.utils.add_to_date(now, minutes=-auto_approve_minutes)
 
-    stuck_exams = frappe.get_all(
-        "AI Exam",
+    stuck_exams = frappe.get_list("AI Exam",
         filters={"status": "Waiting for Review", "review_started_at": ["is", "set"]},
         fields=["name", "title", "owner_user", "review_started_at", "review_notified"],
     )
@@ -213,7 +224,7 @@ def retry_exam_generation(exam_name: str):
         return {"success": True, "exam_name": doc.name}
     except Exception as e:
         frappe.log_error(f"Failed to retry AI Exam Request: {str(e)}", "AI Exam Creation")
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred."}
 
 @frappe.whitelist()
 def get_exam_blueprint(exam_name: str):
@@ -224,7 +235,7 @@ def get_exam_blueprint(exam_name: str):
             return {"success": False, "error": "Blueprint not found"}
         return {"success": True, "blueprint": state["blueprint"]}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred."}
 
 @frappe.whitelist()
 def regenerate_blueprint(exam_name: str, feedback: str):
@@ -244,7 +255,7 @@ def regenerate_blueprint(exam_name: str, feedback: str):
         )
         return {"success": True}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred."}
 
 @frappe.whitelist()
 def approve_blueprint(exam_name: str, modified_blueprint: str = None):
@@ -259,7 +270,7 @@ def approve_blueprint(exam_name: str, modified_blueprint: str = None):
         )
         return {"success": True}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred."}
 
 @frappe.whitelist()
 def export_docx(exam_name: str):
@@ -268,4 +279,4 @@ def export_docx(exam_name: str):
         file_url = generate_docx(exam_name)
         return {"success": True, "file_url": file_url}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred."}

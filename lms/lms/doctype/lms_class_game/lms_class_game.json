@@ -1,97 +1,125 @@
 {
- "actions": [],
- "autoname": "autoincrement",
- "creation": "2026-05-17 07:57:45.677457",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "game",
-  "batch",
-  "weight_in_final_grade",
-  "max_attempts",
-  "available_from",
-  "available_until",
-  "settings"
- ],
- "fields": [
-  {
-   "fieldname": "game",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Game",
-   "options": "LMS Game",
-   "reqd": 1
-  },
-  {
-   "fieldname": "batch",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Batch",
-   "options": "LMS Batch",
-   "reqd": 1
-  },
-  {
-   "fieldname": "weight_in_final_grade",
-   "fieldtype": "Percent",
-   "label": "Weight in Final Grade"
-  },
-  {
-   "fieldname": "max_attempts",
-   "fieldtype": "Int",
-   "label": "Max Attempts"
-  },
-  {
-   "fieldname": "available_from",
-   "fieldtype": "Datetime",
-   "label": "Available From"
-  },
-  {
-   "fieldname": "available_until",
-   "fieldtype": "Datetime",
-   "label": "Available Until"
-  },
-  {
-   "fieldname": "settings",
-   "fieldtype": "JSON",
-   "label": "Settings"
-  }
- ],
- "links": [],
- "modified": "2026-05-31 11:47:41.531631",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "LMS Class Game",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "read": 1,
-   "role": "System Manager",
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "read": 1,
-   "role": "Moderator",
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "read": 1,
-   "role": "Course Creator",
-   "write": 1
-  },
-  {
-   "read": 1,
-   "role": "LMS Student"
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+    "actions": [],
+    "autoname": "autoincrement",
+    "creation": "2026-05-17 07:57:45.677457",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "game",
+        "batch",
+        "weight_in_final_grade",
+        "max_attempts",
+        "available_from",
+        "available_until",
+        "settings"
+    ],
+    "fields": [
+        {
+            "fieldname": "game",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Game",
+            "options": "LMS Game",
+            "reqd": 1
+        },
+        {
+            "fieldname": "batch",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Batch",
+            "options": "LMS Batch",
+            "reqd": 1
+        },
+        {
+            "fieldname": "weight_in_final_grade",
+            "fieldtype": "Percent",
+            "label": "Weight in Final Grade"
+        },
+        {
+            "fieldname": "max_attempts",
+            "fieldtype": "Int",
+            "label": "Max Attempts"
+        },
+        {
+            "fieldname": "available_from",
+            "fieldtype": "Datetime",
+            "label": "Available From"
+        },
+        {
+            "fieldname": "available_until",
+            "fieldtype": "Datetime",
+            "label": "Available Until"
+        },
+        {
+            "fieldname": "settings",
+            "fieldtype": "JSON",
+            "label": "Settings"
+        }
+    ],
+    "links": [],
+    "modified": "2026-05-31 11:47:41.531631",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "LMS Class Game",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "read": 1,
+            "role": "System Manager",
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "read": 1,
+            "role": "Moderator",
+            "write": 1,
+            "if_owner": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "read": 1,
+            "role": "Course Creator",
+            "write": 1,
+            "if_owner": 1
+        },
+        {
+            "read": 1,
+            "role": "LMS Student"
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "row_format": "Dynamic",
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
 }

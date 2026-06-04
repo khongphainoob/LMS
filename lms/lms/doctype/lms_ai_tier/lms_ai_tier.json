@@ -1,102 +1,154 @@
 {
- "actions": [],
- "allow_rename": 1,
- "autoname": "field:tier_name",
- "creation": "2026-05-29 09:12:44.984735",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "tier_name",
-  "is_default",
-  "column_break_1",
-  "billing_cycle",
-  "price",
-  "currency",
-  "section_break_limits",
-  "limits"
- ],
- "fields": [
-  {
-   "fieldname": "tier_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Tier Name",
-   "reqd": 1,
-   "unique": 1
-  },
-  {
-   "default": "0",
-   "description": "Used if user has no specific tier assigned",
-   "fieldname": "is_default",
-   "fieldtype": "Check",
-   "label": "Is Default Tier"
-  },
-  {
-   "fieldname": "column_break_1",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "Free",
-   "fieldname": "billing_cycle",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Billing Cycle",
-   "options": "Free\nMonthly\nYearly\nOne-time",
-   "reqd": 1
-  },
-  {
-   "depends_on": "eval:doc.billing_cycle != 'Free'",
-   "fieldname": "price",
-   "fieldtype": "Currency",
-   "label": "Price"
-  },
-  {
-   "depends_on": "eval:doc.billing_cycle != 'Free'",
-   "fieldname": "currency",
-   "fieldtype": "Link",
-   "label": "Currency",
-   "options": "Currency"
-  },
-  {
-   "fieldname": "section_break_limits",
-   "fieldtype": "Section Break",
-   "label": "Usage Limits"
-  },
-  {
-   "fieldname": "limits",
-   "fieldtype": "Table",
-   "label": "Service Limits",
-   "options": "LMS AI Tier Limit",
-   "reqd": 1
-  }
- ],
- "grid_page_length": 50,
- "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2026-05-31 11:47:40.767172",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "LMS AI Tier",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "rows_threshold_for_grid_search": 20,
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+    "actions": [],
+    "allow_rename": 1,
+    "autoname": "field:tier_name",
+    "creation": "2026-05-29 09:12:44.984735",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "tier_name",
+        "is_default",
+        "column_break_1",
+        "billing_cycle",
+        "price",
+        "currency",
+        "section_break_limits",
+        "limits"
+    ],
+    "fields": [
+        {
+            "fieldname": "tier_name",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Tier Name",
+            "reqd": 1,
+            "unique": 1
+        },
+        {
+            "default": "0",
+            "description": "Used if user has no specific tier assigned",
+            "fieldname": "is_default",
+            "fieldtype": "Check",
+            "label": "Is Default Tier"
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "default": "Free",
+            "fieldname": "billing_cycle",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Billing Cycle",
+            "options": "Free\nMonthly\nYearly\nOne-time",
+            "reqd": 1
+        },
+        {
+            "depends_on": "eval:doc.billing_cycle != 'Free'",
+            "fieldname": "price",
+            "fieldtype": "Currency",
+            "label": "Price"
+        },
+        {
+            "depends_on": "eval:doc.billing_cycle != 'Free'",
+            "fieldname": "currency",
+            "fieldtype": "Link",
+            "label": "Currency",
+            "options": "Currency"
+        },
+        {
+            "fieldname": "section_break_limits",
+            "fieldtype": "Section Break",
+            "label": "Usage Limits"
+        },
+        {
+            "fieldname": "limits",
+            "fieldtype": "Table",
+            "label": "Service Limits",
+            "options": "LMS AI Tier Limit",
+            "reqd": 1
+        }
+    ],
+    "grid_page_length": 50,
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2026-05-31 11:47:40.767172",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "LMS AI Tier",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Course Creator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Moderator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "row_format": "Dynamic",
+    "rows_threshold_for_grid_search": 20,
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
 }

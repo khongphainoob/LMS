@@ -59,6 +59,18 @@ services:
     networks:
       - lms_network_dev
 
+  # Qdrant Vector DB
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: lms_qdrant_dev
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data_dev:/qdrant/storage
+    networks:
+      - lms_network_dev
+
   # Frappe Backend (Development)
   frappe:
     build:
@@ -74,6 +86,7 @@ services:
       - REDIS_SOCKETIO=redis-socketio:6379
       - DEVELOPER_MODE=1
       - ALLOW_TESTS=1
+      - RAG_QDRANT_URL=http://qdrant:6333
     ports:
       - "8000:8000"
       - "9000:9000"
@@ -138,6 +151,7 @@ volumes:
   redis_queue_data_dev:
   redis_socketio_data_dev:
   frappe_sites_dev:
+  qdrant_data_dev:
 
 networks:
   lms_network_dev:

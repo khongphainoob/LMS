@@ -135,12 +135,7 @@ const isSubmitting = ref(false)
 
 // Data fetching
 const batchesResource = createResource({
-	url: 'frappe.client.get_list',
-	params: {
-		doctype: 'LMS Batch',
-		fields: ['name', 'title'],
-		// Ideally filtered by ownership/evaluator in a custom backend method
-	},
+	url: 'lms.lms.gamification.game_api.get_leaderboard_batches',
 	auto: true
 })
 const batches = computed(() => batchesResource.data || [])

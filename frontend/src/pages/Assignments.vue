@@ -110,12 +110,12 @@ onMounted(() => {
 		assignmentID.value = 'new'
 		showAssignmentForm.value = true
 	}
-	getAssignmentCount()
+	getAssignmentCount(assignmentFilter.value)
 	titleFilter.value = router.currentRoute.value.query.title
 	typeFilter.value = router.currentRoute.value.query.type
 })
 
-watch([titleFilter, typeFilter], () => {
+watch([titleFilter, typeFilter, () => user.data], () => {
 	router.push({
 		query: {
 			title: titleFilter.value,
@@ -123,7 +123,7 @@ watch([titleFilter, typeFilter], () => {
 		},
 	})
 	reloadAssignments()
-})
+}, { immediate: true })
 
 const reloadAssignments = () => {
 	assignments.update({
@@ -134,6 +134,9 @@ const reloadAssignments = () => {
 
 const assignmentFilter = computed(() => {
 	let filters = {}
+	if (user.data && !user.data.is_moderator) {
+		filters.owner = user.data.name
+	}
 	if (titleFilter.value) {
 		filters.title = ['like', `%${titleFilter.value}%`]
 	}
@@ -148,6 +151,7 @@ const assignments = createListResource({
 	fields: ['name', 'title', 'type', 'creation', 'question', 'course'],
 	orderBy: 'modified desc',
 	cache: ['assignments'],
+	auto: false,
 	transform(data) {
 		return data.map((row) => {
 			return {
@@ -180,9 +184,10 @@ const assignmentColumns = computed(() => {
 	]
 })
 
-const getAssignmentCount = () => {
+const getAssignmentCount = (filters = {}) => {
 	call('frappe.client.get_count', {
 		doctype: 'LMS Assignment',
+		filters: filters
 	}).then((data) => {
 		assignmentCount.value = data
 	})

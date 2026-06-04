@@ -19,7 +19,7 @@
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transform hover:scale-105 transition-transform duration-200">
         <div class="flex justify-between items-start">
           <div>
@@ -67,10 +67,22 @@
           </div>
         </div>
       </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transform hover:scale-105 transition-transform duration-200">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-sm font-medium text-gray-500 mb-1">Avg Rating</p>
+            <h3 class="text-2xl font-bold text-gray-800">{{ averageRating.toFixed(1) }} <span class="text-sm font-normal text-gray-400">/ 5</span></h3>
+          </div>
+          <div class="p-3 bg-amber-100 rounded-lg text-amber-500">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 class="text-lg font-bold text-gray-800 mb-4">Daily Token Usage</h3>
         <div ref="trendChart" class="w-full h-72"></div>
@@ -78,6 +90,10 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 class="text-lg font-bold text-gray-800 mb-4">Cost Distribution by Agent</h3>
         <div ref="pieChart" class="w-full h-72"></div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">User Rating by Service</h3>
+        <div ref="ratingChart" class="w-full h-72"></div>
       </div>
     </div>
     
@@ -113,6 +129,47 @@
         </table>
       </div>
     </div>
+
+    <!-- Recent Feedback Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-8">
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h3 class="text-lg font-bold text-gray-800">Recent User Feedbacks</h3>
+        <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">{{ recentFeedbacks.length }} Feedbacks</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs text-gray-500 uppercase bg-gray-50">
+            <tr>
+              <th class="px-6 py-3">Time</th>
+              <th class="px-6 py-3">User</th>
+              <th class="px-6 py-3">Service</th>
+              <th class="px-6 py-3">Rating</th>
+              <th class="px-6 py-3">Feedback</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="recentFeedbacks.length === 0">
+              <td colspan="5" class="px-6 py-8 text-center text-gray-500">No user feedback received yet.</td>
+            </tr>
+            <tr v-for="fb in recentFeedbacks" :key="fb.name" class="border-b hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ formatTime(fb.creation) }}</td>
+              <td class="px-6 py-4 text-gray-900 font-medium">{{ fb.owner }}</td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium border border-blue-100">{{ fb.service_type }}</span>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center">
+                  <svg v-for="i in 5" :key="i" class="w-4 h-4" :class="i <= fb.rating ? 'text-amber-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-gray-600 text-xs max-w-md truncate" :title="fb.feedback">{{ fb.feedback || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -129,8 +186,10 @@ const rawData = ref(null)
 
 const trendChart = ref(null)
 const pieChart = ref(null)
+const ratingChart = ref(null)
 let eTrend = null
 let ePie = null
+let eRating = null
 
 const fetchFrappeData = async () => {
   // Mock frappe call structure
@@ -170,7 +229,20 @@ const errorRate = computed(() => {
   return (errors / totalCalls.value) * 100
 })
 
+const averageRating = computed(() => {
+  if (!rawData.value?.evaluation_stats || rawData.value.evaluation_stats.length === 0) return 0
+  let totalRating = 0;
+  let totalCount = 0;
+  rawData.value.evaluation_stats.forEach(stat => {
+    totalRating += (stat.avg_rating || 0) * (stat.total_reviews || 0)
+    totalCount += (stat.total_reviews || 0)
+  })
+  return totalCount ? (totalRating / totalCount) : 0
+})
+
 const recentErrors = computed(() => rawData.value?.recent_errors || [])
+
+const recentFeedbacks = computed(() => rawData.value?.recent_feedbacks || [])
 
 const formatTime = (timeStr) => {
   if (!timeStr) return ''
@@ -243,6 +315,36 @@ const renderCharts = () => {
       ]
     })
   }
+
+  // Rating Chart
+  if (ratingChart.value) {
+    if (!eRating) eRating = echarts.init(ratingChart.value)
+    const stats = rawData.value.evaluation_stats || []
+    const categories = stats.map(s => s.service_type)
+    const ratings = stats.map(s => s.avg_rating)
+    
+    eRating.setOption({
+      tooltip: { trigger: 'axis' },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: { type: 'category', data: categories, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: 'value', min: 0, max: 5 },
+      series: [
+        {
+          name: 'Avg Rating',
+          type: 'bar',
+          barWidth: '40%',
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: '#FCD34D' },
+              { offset: 1, color: '#F59E0B' }
+            ]),
+            borderRadius: [4, 4, 0, 0]
+          },
+          data: ratings
+        }
+      ]
+    })
+  }
 }
 
 onMounted(async () => {
@@ -259,6 +361,7 @@ onMounted(async () => {
   window.addEventListener('resize', () => {
     if (eTrend) eTrend.resize()
     if (ePie) ePie.resize()
+    if (eRating) eRating.resize()
   })
 })
 </script>

@@ -12,6 +12,7 @@ declare module 'vue' {
     AIAnalyticsButton: typeof import('./src/components/AIGrading/AIAnalyticsButton.vue')['default']
     AIAnalyticsFeedbackTable: typeof import('./src/components/AIGrading/AIAnalyticsFeedbackTable.vue')['default']
     AIAnalyticsStatCard: typeof import('./src/components/AIGrading/AIAnalyticsStatCard.vue')['default']
+    AIFeedbackWidget: typeof import('./src/components/ai/AIFeedbackWidget.vue')['default']
     AIIntegrationPanel: typeof import('./src/components/Sidebar/AIIntegrationPanel.vue')['default']
     Annoucements: typeof import('./src/components/Annoucements.vue')['default']
     AnnouncementModal: typeof import('./src/components/Modals/AnnouncementModal.vue')['default']

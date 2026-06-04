@@ -420,7 +420,7 @@ const routes = [
 		component: () => import('@/pages/GameCenter.vue'),
 	},
 	{
-		path: '/game-center/:tab(overview|games|leaderboard|badges)',
+		path: '/game-center/:tab(overview|games|leaderboard|badges|manage)',
 		name: 'GameCenterTab',
 		component: () => import('@/pages/GameCenter.vue'),
 	},
@@ -500,6 +500,22 @@ router.beforeEach(async (to, from, next) => {
 		const settingKey = aiRouteMap[to.name]
 		if (parseInt(settings.data?.[settingKey]) === 0) {
 			return next({ name: 'Home' })
+		}
+
+		const instructorRoutes = [
+			'AIGrading', 'AIGradingHelp', 'AIGradingRubric', 'AIGradingObjective', 'MCQGradingWorkspace',
+			'AIGradingEssay', 'AIGradingEssayConfig', 'AIGradingEssayWorkspaceLegacy', 'AIGradingEssayWorkspace',
+			'AIGradingAdmin', 'AIGradingSessionStatistics', 'AIGradingRubricDetail', 'GradingBook',
+			'LessonPlanning',
+			'AIQuizDashboard', 'AIQuizForm', 'AIQuizDetail',
+			'ExamDashboard', 'ExamForm', 'ExamDetail', 'ExamExportPreview'
+		]
+
+		if (instructorRoutes.includes(to.name)) {
+			const hasAccess = userResource.data?.is_instructor || userResource.data?.is_moderator || userResource.data?.is_system_manager
+			if (!hasAccess) {
+				return next({ name: 'Home' })
+			}
 		}
 	}
 

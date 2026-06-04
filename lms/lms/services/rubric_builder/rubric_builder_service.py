@@ -126,9 +126,9 @@ class RubricBuilderService(BaseService):
 
     def get_rubric_stats(self) -> Dict[str, Any]:
         return {
-            "total_rubrics": frappe.db.count("LMS Rubric Template"),
-            "ai_generated_count": frappe.db.count("LMS Rubric Template"), # Simplified
-            "linked_to_sessions": frappe.db.count("AI Grading Session", filters={"rubric_template": ["is", "set"]})
+            "total_rubrics": len(frappe.get_list("LMS Rubric Template", limit_page_length=0)),
+            "ai_generated_count": len(frappe.get_list("LMS Rubric Template", limit_page_length=0)), # Simplified
+            "linked_to_sessions": len(frappe.get_list("AI Grading Session", filters={"rubric_template": ["is", "set"]}, limit_page_length=0))
         }
 
     def export_rubric(self, name: str) -> str:

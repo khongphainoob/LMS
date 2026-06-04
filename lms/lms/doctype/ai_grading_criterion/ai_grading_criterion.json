@@ -1,72 +1,125 @@
 {
- "actions": [],
- "allow_import": 1,
- "creation": "2026-04-22 23:00:00.000000",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "criterion_name",
-  "criterion_type",
-  "max_score",
-  "weight",
-  "column_break_1",
-  "description",
-  "performance_levels_json"
- ],
- "fields": [
-  {
-   "fieldname": "criterion_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Criterion Name",
-   "reqd": 1
-  },
-  {
-   "fieldname": "criterion_type",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Type",
-   "options": "STEM\nEssay\nCoding\nGeneral"
-  },
-  {
-   "fieldname": "max_score",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Max Score",
-   "reqd": 1
-  },
-  {
-   "fieldname": "weight",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Weight (%)",
-   "default": "100"
-  },
-  {
-   "fieldname": "column_break_1",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "description",
-   "fieldtype": "Small Text",
-   "label": "Grading Description / Key Points"
-  },
-  {
-   "fieldname": "performance_levels_json",
-   "fieldtype": "Code",
-   "label": "Performance Levels (JSON)",
-   "options": "JSON"
-  }
- ],
- "istable": 1,
- "modified": "2026-04-22 23:00:00.000000",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "AI Grading Criterion",
- "owner": "Administrator",
- "permissions": [],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+    "actions": [],
+    "allow_import": 1,
+    "creation": "2026-04-22 23:00:00.000000",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "criterion_name",
+        "criterion_type",
+        "max_score",
+        "weight",
+        "column_break_1",
+        "description",
+        "performance_levels_json"
+    ],
+    "fields": [
+        {
+            "fieldname": "criterion_name",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Criterion Name",
+            "reqd": 1
+        },
+        {
+            "fieldname": "criterion_type",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Type",
+            "options": "STEM\nEssay\nCoding\nGeneral"
+        },
+        {
+            "fieldname": "max_score",
+            "fieldtype": "Float",
+            "in_list_view": 1,
+            "label": "Max Score",
+            "reqd": 1
+        },
+        {
+            "fieldname": "weight",
+            "fieldtype": "Float",
+            "in_list_view": 1,
+            "label": "Weight (%)",
+            "default": "100"
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "description",
+            "fieldtype": "Small Text",
+            "label": "Grading Description / Key Points"
+        },
+        {
+            "fieldname": "performance_levels_json",
+            "fieldtype": "Code",
+            "label": "Performance Levels (JSON)",
+            "options": "JSON"
+        }
+    ],
+    "istable": 1,
+    "modified": "2026-04-22 23:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "AI Grading Criterion",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Course Creator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Moderator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
 }

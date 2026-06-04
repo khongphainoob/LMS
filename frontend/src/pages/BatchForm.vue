@@ -34,7 +34,7 @@
 							:label="__('Instructors')"
 							:required="true"
 							:onCreate="(close) => openSettings('Evaluators', close)"
-							:filters="{ ignore_user_type: 1 }"
+							
 						/>
 					</div>
 					<FormControl
@@ -391,6 +391,8 @@ const newBatch = createResource({
 					instructor: instructor,
 				})),
 				...batch,
+				start_time: batch.start_time || '23:58:00',
+				end_time: batch.end_time || '23:59:59',
 			},
 		}
 	},
@@ -450,6 +452,8 @@ const editBatch = createResource({
 					instructor: instructor,
 				})),
 				...batch,
+				start_time: batch.start_time || '23:58:00',
+				end_time: batch.end_time || '23:59:59',
 			},
 		}
 	},

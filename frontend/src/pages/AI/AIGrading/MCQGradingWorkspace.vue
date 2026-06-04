@@ -20,6 +20,13 @@
       <!-- Global Actions -->
 			<div class="ml-2 flex items-center justify-end gap-2">
 				<button
+					class="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-opacity hover:bg-gray-50 active:scale-95"
+					@click="exportGrades"
+				>
+					<Download class="h-3.5 w-3.5" />
+					<span class="hidden sm:inline">{{ __('Export') }}</span>
+				</button>
+				<button
 					class="flex items-center gap-1.5 rounded-lg bg-[#1d4ed8] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#1d4ed8]/40"
 					@click="runBatchGrading"
           :disabled="isBatchGrading"
@@ -133,6 +140,15 @@
               🔍 {{ __('Zoom') }}
             </button>
             <button
+							class="rounded bg-white border border-gray-200 px-3 py-1 text-[10px] font-bold text-gray-600 hover:bg-gray-50 shadow-sm transition-all flex items-center gap-1"
+							@click="showDocument = !showDocument"
+							v-if="paperImages.length || currentSub?.text_content"
+						>
+							<EyeOff v-if="showDocument" class="h-3 w-3" />
+							<Eye v-else class="h-3 w-3" />
+							<span class="hidden sm:inline">{{ showDocument ? __('Hide Document') : __('Show Document') }}</span>
+						</button>
+            <button
 						  class="rounded bg-blue-600 px-3 py-1 text-[10px] font-semibold text-white hover:opacity-90 shadow-sm transition-opacity flex items-center gap-1"
 						  @click="approveAndNext"
 					  >
@@ -142,7 +158,7 @@
         </div>
 
 				<div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
-					<div v-if="paperImages.length" class="mx-auto max-w-5xl rounded bg-white p-4 shadow-md border border-gray-200/50 relative">
+					<div v-show="showDocument" v-if="paperImages.length" class="mx-auto max-w-5xl rounded bg-white p-4 shadow-md border border-gray-200/50 relative">
             <div v-if="paperImages.length > 1" class="absolute top-6 right-6 z-10 flex items-center gap-2 bg-white/80 p-1 rounded-lg shadow border">
               <button class="p-1 hover:bg-gray-100 rounded" @click="paperPageIndex = Math.max(0, paperPageIndex - 1)">←</button>
               <span class="text-[10px] font-bold">{{ paperPageIndex + 1 }} / {{ paperImages.length }}</span>
@@ -183,7 +199,10 @@
 			</div>
 
 			<!-- RIGHT: Grade panel -->
-			<div class="relative flex w-96 flex-shrink-0 flex-col bg-white overflow-hidden shadow-sm border-l border-gray-100">
+			<div 
+				class="relative flex flex-shrink-0 flex-col bg-white overflow-hidden shadow-sm border-l border-gray-100 transition-all duration-300"
+				:class="showDocument ? 'w-96' : 'flex-1'"
+			>
 				<!-- Loading Overlay -->
 				<div 
 					v-if="isGradingCurrent"
@@ -201,7 +220,7 @@
 						<div v-if="currentSub.status === 'done'">
 							<div class="flex items-center gap-1.5">
 								<span class="text-3xl font-black font-mono tracking-tighter text-blue-700">
-									{{ parsedFeedback?.total_score ?? currentSub.score }}
+									{{ totalScore }}
 								</span>
 								<span class="text-xs font-bold text-gray-400 mt-2">/ 10</span>
 							</div>
@@ -279,6 +298,16 @@
 
 								</div>
 							</div>
+						</div>
+
+						<!-- Evaluation Widget for each grading -->
+						<div class="mt-6 flex justify-center pb-4">
+							<AIFeedbackWidget 
+								v-if="currentSub.status === 'done' || currentSub.status === 'flag'"
+								serviceType="AI Grading"
+								:referenceId="currentSub.id"
+								:key="currentSub.id"
+							/>
 						</div>
 					</div>
 
@@ -499,7 +528,8 @@
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button, Dialog, Input, createResource } from 'frappe-ui'
-import { Search, UserPlus, Play, Trash2, Edit, RefreshCw, Maximize2, Square, Loader2 } from 'lucide-vue-next'
+import { Search, UserPlus, Play, Trash2, Edit, RefreshCw, Maximize2, Square, Loader2, Eye, EyeOff, Download } from 'lucide-vue-next'
+import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -526,12 +556,14 @@ const studentSearchQuery = ref('')
 const studentOptions = ref([])
 const showAddStudentModal = ref(false)
 const showEditStudentModal = ref(false)
+const showDocument = ref(true)
+
+const newStudent = reactive({ name: '', sbd: '', email: '', images: [] })
 const isAddingStudent = ref(false)
 const isBatchGrading = ref(false)
 const isGradingCurrent = ref(false)
 const paperInput = ref(null)
 
-const newStudent = reactive({ name: '', sbd: '', email: '', images: [] })
 const editingStudent = reactive({ name: '', sbd: '', id: '', images: [], newImages: [] })
 
 const showNewCamera = ref(false)
@@ -665,6 +697,31 @@ const parsedCriteria = computed(() => {
     } catch (e) {}
   }
   return []
+})
+
+const totalScore = computed(() => {
+  if (parsedCriteria.value && parsedCriteria.value.length > 0) {
+    let newTotal = 0
+    for (const q of parsedCriteria.value) {
+      let qScore = 0
+      if (q.details && q.details.length) {
+        for (const d of q.details) {
+          qScore += Number(d.score) || 0
+        }
+      } else {
+        qScore = Number(q.score) || 0
+      }
+      newTotal += qScore
+    }
+    if (parsedFeedback.value?.solution_results) {
+      for (const q of parsedFeedback.value.solution_results) {
+        newTotal += Number(q.score) || 0
+      }
+    }
+    return newTotal
+  }
+  if (parsedFeedback.value?.total_score != null) return parsedFeedback.value.total_score
+  return currentSub.value?.score || 0
 })
 
 async function deleteExistingImage(img) {
@@ -827,6 +884,8 @@ function statusBadgeClasses(status) {
 		done: 'bg-blue-600 text-white',
 		grading: 'bg-amber-100 text-amber-900 border border-amber-300',
 		flag: 'bg-rose-50 text-rose-700 border border-rose-200',
+		flagged: 'bg-rose-50 text-rose-700 border border-rose-200',
+		failed: 'bg-red-100 text-red-800 border border-red-300',
 		pending: 'bg-gray-100 text-gray-400',
 	}
 	return map[status] || 'bg-gray-100 text-gray-600'
@@ -1000,6 +1059,29 @@ async function saveManualScores() {
 	}
 }
 
+function exportGrades() {
+	if (!submissions.value || submissions.value.length === 0) {
+		frappe.msgprint(__('No data to export'))
+		return
+	}
+	let csv = '\uFEFF'
+	csv += 'ID,Họ và tên,SBD,Trạng thái,Điểm\n'
+	submissions.value.forEach(s => {
+		const score = s.score != null ? s.score : ''
+		const name = s.student_name ? s.student_name.replace(/"/g, '""') : ''
+		csv += `${s.name || ''},"${name}","${s.sbd || ''}","${s.status || ''}",${score}\n`
+	})
+	const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+	const url = URL.createObjectURL(blob)
+	const link = document.createElement('a')
+	link.setAttribute('href', url)
+	link.setAttribute('download', `Grades_MCQ_${sessionDoc.value?.session_name || 'export'}.csv`)
+	document.body.appendChild(link)
+	link.click()
+	document.body.removeChild(link)
+	URL.revokeObjectURL(url)
+}
+
 function handleEditSubmission(sub) {
   editingStudent.id = sub.id
   editingStudent.name = sub.student_name
@@ -1068,12 +1150,28 @@ function prevSub() {
 
 async function runBatchGrading() {
   if (isBatchGrading.value || !sessionDoc.value?.name) return
+  if (!confirm(__('Are you sure you want to grade THE ENTIRE work in this session?'))) return
   isBatchGrading.value = true
+  
+  // Hiển thị spinner ngay lập tức cho các bài đang pending/failed
+  submissions.value.forEach(s => {
+    if (['pending', 'failed', 'flagged'].includes(s.status)) {
+      s.status = 'grading'
+    }
+  })
+
   try {
-    await startBatchGradingResource.submit({ 
+    const res = await startBatchGradingResource.submit({ 
       session: sessionDoc.value.name 
     })
-    frappe.show_alert({ message: __('Batch marking in progress...'), indicator: 'blue' })
+    if (res && res.submission_ids && res.submission_ids.length > 0) {
+      frappe.show_alert({ message: __('Batch marking in progress...'), indicator: 'blue' })
+      res.submission_ids.forEach(id => pollGradingStatus(id))
+    } else if (res && res.message) {
+      frappe.show_alert({ message: res.message, indicator: 'orange' })
+    } else {
+      frappe.show_alert({ message: __('No pending papers found or limit reached.'), indicator: 'orange' })
+    }
     await loadSubmissions()
   } catch (e) {
     console.error(e)

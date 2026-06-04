@@ -1,101 +1,154 @@
 {
- "actions": [],
- "allow_import": 1,
- "creation": "2026-04-16 00:00:00.000000",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "criterion_name",
-  "max_score",
-  "weight",
-  "column_break_1",
-  "description",
-  "section_break_levels",
-  "level_excellent",
-  "level_good",
-  "column_break_levels",
-  "level_adequate",
-  "level_poor"
- ],
- "fields": [
-  {
-   "fieldname": "criterion_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Criterion Name",
-   "reqd": 1
-  },
-  {
-   "default": "1",
-   "fieldname": "max_score",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Max Score",
-   "non_negative": 1,
-   "reqd": 1
-  },
-  {
-   "default": "1.0",
-   "description": "Relative weight of this criterion. Use equal weights (1.0) for uniform scoring.",
-   "fieldname": "weight",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Weight",
-   "non_negative": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "column_break_1",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "description",
-   "fieldtype": "Small Text",
-   "label": "Description"
-  },
-  {
-   "fieldname": "section_break_levels",
-   "fieldtype": "Section Break",
-   "label": "Proficiency Level Descriptions"
-  },
-  {
-   "description": "9-10 points range",
-   "fieldname": "level_excellent",
-   "fieldtype": "Small Text",
-   "label": "Xu\u1ea5t s\u1eafc (Excellent)"
-  },
-  {
-   "description": "7-8 points range",
-   "fieldname": "level_good",
-   "fieldtype": "Small Text",
-   "label": "Gi\u1ecfi (Good)"
-  },
-  {
-   "fieldname": "column_break_levels",
-   "fieldtype": "Column Break"
-  },
-  {
-   "description": "5-6 points range",
-   "fieldname": "level_adequate",
-   "fieldtype": "Small Text",
-   "label": "\u0110\u1ea1t (Adequate)"
-  },
-  {
-   "description": "Below 5 points",
-   "fieldname": "level_poor",
-   "fieldtype": "Small Text",
-   "label": "Ch\u01b0a \u0111\u1ea1t (Poor)"
-  }
- ],
- "istable": 1,
- "modified": "2026-04-16 00:00:00.000000",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "LMS Rubric Criterion",
- "owner": "Administrator",
- "permissions": [],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+    "actions": [],
+    "allow_import": 1,
+    "creation": "2026-04-16 00:00:00.000000",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "criterion_name",
+        "max_score",
+        "weight",
+        "column_break_1",
+        "description",
+        "section_break_levels",
+        "level_excellent",
+        "level_good",
+        "column_break_levels",
+        "level_adequate",
+        "level_poor"
+    ],
+    "fields": [
+        {
+            "fieldname": "criterion_name",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Criterion Name",
+            "reqd": 1
+        },
+        {
+            "default": "1",
+            "fieldname": "max_score",
+            "fieldtype": "Float",
+            "in_list_view": 1,
+            "label": "Max Score",
+            "non_negative": 1,
+            "reqd": 1
+        },
+        {
+            "default": "1.0",
+            "description": "Relative weight of this criterion. Use equal weights (1.0) for uniform scoring.",
+            "fieldname": "weight",
+            "fieldtype": "Float",
+            "in_list_view": 1,
+            "label": "Weight",
+            "non_negative": 1,
+            "reqd": 1
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "description",
+            "fieldtype": "Small Text",
+            "label": "Description"
+        },
+        {
+            "fieldname": "section_break_levels",
+            "fieldtype": "Section Break",
+            "label": "Proficiency Level Descriptions"
+        },
+        {
+            "description": "9-10 points range",
+            "fieldname": "level_excellent",
+            "fieldtype": "Small Text",
+            "label": "Xu\u1ea5t s\u1eafc (Excellent)"
+        },
+        {
+            "description": "7-8 points range",
+            "fieldname": "level_good",
+            "fieldtype": "Small Text",
+            "label": "Gi\u1ecfi (Good)"
+        },
+        {
+            "fieldname": "column_break_levels",
+            "fieldtype": "Column Break"
+        },
+        {
+            "description": "5-6 points range",
+            "fieldname": "level_adequate",
+            "fieldtype": "Small Text",
+            "label": "\u0110\u1ea1t (Adequate)"
+        },
+        {
+            "description": "Below 5 points",
+            "fieldname": "level_poor",
+            "fieldtype": "Small Text",
+            "label": "Ch\u01b0a \u0111\u1ea1t (Poor)"
+        }
+    ],
+    "istable": 1,
+    "modified": "2026-04-16 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "LMS Rubric Criterion",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Course Creator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Moderator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
 }

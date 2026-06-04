@@ -390,6 +390,14 @@
 							<div class="rounded-2xl border border-slate-800 bg-slate-950 p-6 max-h-[600px] overflow-y-auto bg-slate-950 text-slate-200">
 								<div class="ProseMirror prose prose-table:table-fixed prose-td:p-2 prose-th:p-2 prose-td:border prose-th:border prose-td:border-outline-gray-2 prose-th:border-outline-gray-2 prose-td:relative prose-th:relative prose-th:bg-surface-gray-2 prose-sm max-w-none !whitespace-normal dark:prose-invert" v-html="renderMarkdown(viewPlanData.generated_content)"></div>
 							</div>
+							
+							<div class="px-6 pb-6">
+								<AIFeedbackWidget 
+									v-if="viewPlanData && viewPlanData.status === 'Completed'"
+									serviceType="AI Lesson Planner"
+									:referenceId="viewPlanData.name"
+								/>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -402,6 +410,7 @@
 import { ref, reactive, onMounted, inject, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createResource, Breadcrumbs, Dialog, usePageMeta } from 'frappe-ui'
+import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 import { CalendarCheck, Sparkles, Plus, CheckCircle, Upload, BookOpen, RefreshCw, Zap, Clock, Edit, FileText, Check, Loader2, Trash2 } from 'lucide-vue-next'
 import { sessionStore } from '@/stores/session'
 import MarkdownIt from 'markdown-it'

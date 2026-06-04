@@ -24,8 +24,8 @@
             <FormControl type="text" :label="__('Exam Title')" v-model="formData.title" required :placeholder="__('e.g., Midterm Exam - Grade 12 Math')" />
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormControl type="select" :label="__('Subject')" v-model="formData.subject" :options="['Math', 'Physics', 'Chemistry', 'Biology', 'English', 'Literature', 'History', 'Geography']" />
-              <FormControl type="select" :label="__('Grade Level')" v-model="formData.grade_level" :options="['Grade 10', 'Grade 11', 'Grade 12', 'University']" />
+              <FormControl type="select" :label="__('Subject')" v-model="formData.subject" :options="['Toán', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Ngữ văn', 'Lịch sử', 'Địa lý', 'Tin học', 'Giáo dục công dân']" />
+              <FormControl type="select" :label="__('Grade Level')" v-model="formData.grade_level" :options="['Lớp 1', 'Lớp 2', 'Lớp 3', 'Lớp 4', 'Lớp 5', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12', 'Đại học']" />
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -129,8 +129,8 @@ const router = useRouter()
 
 const formData = reactive({
   title: '',
-  subject: 'Math',
-  grade_level: 'Grade 12',
+  subject: 'Toán',
+  grade_level: 'Lớp 12',
   curriculum: 'Vietnamese National',
   exam_type: '45-Minute Test',
   duration_minutes: 45,

@@ -17,14 +17,16 @@ def search_public(query: str, top_k: int = 5):
 	retriever = RAGRetriever()
 	return retriever.retrieve_public(query, top_k=int(top_k))
 
+def _run_reindex_all():
+	from .indexer import DocumentIndexer
+	DocumentIndexer().reindex_all()
+
 @frappe.whitelist()
 def reindex_all():
 	"""Admin: Rebuild entire RAG index."""
 	if not frappe.has_permission("LMS AI Settings", "write"):
 		frappe.throw(_("Insufficient permissions"))
-	from .indexer import DocumentIndexer
-	indexer = DocumentIndexer()
-	frappe.enqueue(indexer.reindex_all, queue="long", timeout=3600)
+	frappe.enqueue("lms.lms.services.rag.api._run_reindex_all", queue="long", timeout=3600)
 	return {"status": "queued"}
 
 @frappe.whitelist()

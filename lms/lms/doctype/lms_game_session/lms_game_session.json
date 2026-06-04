@@ -1,122 +1,150 @@
 {
- "actions": [],
- "autoname": "autoincrement",
- "creation": "2026-05-17 07:57:45.765722",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "class_game",
-  "member",
-  "attempt_no",
-  "status",
-  "started_at",
-  "completed_at",
-  "duration_seconds",
-  "raw_score",
-  "normalized_score",
-  "metadata"
- ],
- "fields": [
-  {
-   "fieldname": "class_game",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Class Game",
-   "options": "LMS Class Game",
-   "reqd": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "member",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Member",
-   "options": "User",
-   "reqd": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "attempt_no",
-   "fieldtype": "Int",
-   "label": "Attempt No"
-  },
-  {
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Status",
-   "options": "Started\nCompleted\nAbandoned",
-   "reqd": 1
-  },
-  {
-   "fieldname": "started_at",
-   "fieldtype": "Datetime",
-   "label": "Started At"
-  },
-  {
-   "fieldname": "completed_at",
-   "fieldtype": "Datetime",
-   "label": "Completed At",
-   "search_index": 1
-  },
-  {
-   "fieldname": "duration_seconds",
-   "fieldtype": "Int",
-   "label": "Duration (Seconds)"
-  },
-  {
-   "fieldname": "raw_score",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Raw Score"
-  },
-  {
-   "fieldname": "normalized_score",
-   "fieldtype": "Float",
-   "label": "Normalized Score"
-  },
-  {
-   "fieldname": "metadata",
-   "fieldtype": "JSON",
-   "label": "Metadata"
-  }
- ],
- "links": [],
- "modified": "2026-05-31 11:47:42.535145",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "LMS Game Session",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "read": 1,
-   "role": "System Manager",
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "read": 1,
-   "role": "Moderator",
-   "write": 1
-  },
-  {
-   "create": 1,
-   "read": 1,
-   "role": "Course Creator"
-  },
-  {
-   "create": 1,
-   "read": 1,
-   "role": "LMS Student",
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+    "actions": [],
+    "autoname": "autoincrement",
+    "creation": "2026-05-17 07:57:45.765722",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "class_game",
+        "member",
+        "attempt_no",
+        "status",
+        "started_at",
+        "completed_at",
+        "duration_seconds",
+        "raw_score",
+        "normalized_score",
+        "metadata"
+    ],
+    "fields": [
+        {
+            "fieldname": "class_game",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Class Game",
+            "options": "LMS Class Game",
+            "reqd": 1,
+            "search_index": 1
+        },
+        {
+            "fieldname": "member",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Member",
+            "options": "User",
+            "reqd": 1,
+            "search_index": 1
+        },
+        {
+            "fieldname": "attempt_no",
+            "fieldtype": "Int",
+            "label": "Attempt No"
+        },
+        {
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Status",
+            "options": "Started\nCompleted\nAbandoned",
+            "reqd": 1
+        },
+        {
+            "fieldname": "started_at",
+            "fieldtype": "Datetime",
+            "label": "Started At"
+        },
+        {
+            "fieldname": "completed_at",
+            "fieldtype": "Datetime",
+            "label": "Completed At",
+            "search_index": 1
+        },
+        {
+            "fieldname": "duration_seconds",
+            "fieldtype": "Int",
+            "label": "Duration (Seconds)"
+        },
+        {
+            "fieldname": "raw_score",
+            "fieldtype": "Int",
+            "in_list_view": 1,
+            "label": "Raw Score"
+        },
+        {
+            "fieldname": "normalized_score",
+            "fieldtype": "Float",
+            "label": "Normalized Score"
+        },
+        {
+            "fieldname": "metadata",
+            "fieldtype": "JSON",
+            "label": "Metadata"
+        }
+    ],
+    "links": [],
+    "modified": "2026-05-31 11:47:42.535145",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "LMS Game Session",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "read": 1,
+            "role": "System Manager",
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "read": 1,
+            "role": "Moderator",
+            "write": 1,
+            "if_owner": 1
+        },
+        {
+            "create": 1,
+            "read": 1,
+            "role": "Course Creator",
+            "if_owner": 1
+        },
+        {
+            "create": 1,
+            "read": 1,
+            "role": "LMS Student",
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "row_format": "Dynamic",
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
 }

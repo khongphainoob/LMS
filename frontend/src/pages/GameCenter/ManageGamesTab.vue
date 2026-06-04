@@ -91,6 +91,13 @@
 			</div>
 		</div>
 
+		<!-- Load More -->
+		<div v-if="games.length >= listLimit" class="flex justify-center pt-4 pb-8">
+			<Button variant="subtle" @click="loadMore" :loading="gamesResource.loading">
+				{{ __("Load More") }}
+			</Button>
+		</div>
+
 		<!-- Edit Modal -->
 		<GameFormModal
 			v-if="editingGame"
@@ -112,19 +119,27 @@ const emit = defineEmits(['create'])
 const deletingId = ref(null)
 const editingGame = ref(null)
 const showEditModal = ref(false)
+const listLimit = ref(20)
 
 const gamesResource = createResource({
 	url: 'frappe.client.get_list',
-	params: {
-		doctype: 'LMS Game',
-		fields: ['name', 'title', 'game_type', 'max_score', 'scoring_model', 'delivery_mode', 'is_active', 'configuration'],
-		order_by: 'creation desc',
-		limit: 50,
+	makeParams() {
+		return {
+			doctype: 'LMS Game',
+			fields: ['name', 'title', 'game_type', 'max_score', 'scoring_model', 'delivery_mode', 'is_active', 'configuration'],
+			order_by: 'creation desc',
+			limit: listLimit.value,
+		}
 	},
 	auto: true,
 })
 
 const games = computed(() => gamesResource.data || [])
+
+function loadMore() {
+	listLimit.value += 20
+	gamesResource.submit(gamesResource.makeParams())
+}
 
 function editGame(game) {
 	editingGame.value = game

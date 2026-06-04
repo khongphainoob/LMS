@@ -27,7 +27,7 @@
 								v-model="instructors"
 								doctype="User"
 								:label="__('Instructors')"
-								:filters="{ ignore_user_type: 1 }"
+								
 								:onCreate="(close) => openSettings('Members', close)"
 								:required="true"
 								@update:modelValue="makeFormDirty()"

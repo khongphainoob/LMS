@@ -49,7 +49,8 @@ class DocumentIndexer:
 				"course_id": doc.course or "",
 				"scope": doc.scope,
 				"category": doc.category or "",
-				"is_public": bool(doc.is_public),
+				# Community-scope docs are always public (accessible to all users / Socratic)
+				"is_public": bool(doc.is_public) or (doc.scope == "Community"),
 				"file_type": file_type,
 				"indexed_at": frappe.utils.now(),
 			}

@@ -182,6 +182,12 @@
               </div>
             </div>
           </div>
+          <AIFeedbackWidget 
+            v-if="quiz.status && quiz.status.toLowerCase().includes('complete')"
+            serviceType="AI Quiz"
+            :referenceId="quiz.name"
+            class="mt-8"
+          />
         </div>
       </div>
     </div>
@@ -251,6 +257,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createResource, call } from 'frappe-ui'
 import * as icons from 'lucide-vue-next'
+import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 
 const props = defineProps(['quizID'])
 const router = useRouter()

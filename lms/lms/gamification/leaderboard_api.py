@@ -4,9 +4,10 @@ from frappe.utils import flt, cint
 from lms.lms.gamification.utils import get_streak_info
 
 def calculate_composite_score(member, batch=None):
-	W_QUIZ = 0.30
-	W_ASSIGNMENT = 0.25
-	W_COMPLETION = 0.25
+	W_QUIZ = 0.25
+	W_ASSIGNMENT = 0.20
+	W_GAME = 0.20
+	W_COMPLETION = 0.15
 	W_STREAK = 0.10
 	W_HOURS = 0.10
 	STREAK_CAP = 30
@@ -47,12 +48,16 @@ def calculate_composite_score(member, batch=None):
 	) or 0
 	total_hours = flt(total_seconds) / 3600
 
+	game_data = frappe.db.get_all("LMS Game Progress", filters={"member": member}, fields=["progress_percentage"])
+	avg_game_score = sum(flt(g.progress_percentage) for g in game_data) / len(game_data) if game_data else 0
+
 	streak_score = min(current_streak / STREAK_CAP, 1) * 100
 	hours_score = min(total_hours / HOURS_CAP, 1) * 100
 
 	composite_score = round(
 		(W_QUIZ * avg_quiz_pct)
 		+ (W_ASSIGNMENT * avg_assignment_pct)
+		+ (W_GAME * avg_game_score)
 		+ (W_COMPLETION * completion_pct)
 		+ (W_STREAK * streak_score)
 		+ (W_HOURS * hours_score),
@@ -63,6 +68,7 @@ def calculate_composite_score(member, batch=None):
 		"composite_score": composite_score,
 		"avg_quiz_score": round(avg_quiz_pct, 1),
 		"avg_assignment_score": round(avg_assignment_pct, 1),
+		"avg_game_score": round(avg_game_score, 1),
 		"completion_pct": round(completion_pct, 1),
 		"streak_days": current_streak,
 		"hours_spent": round(total_hours, 1),
@@ -115,9 +121,10 @@ def calculate_composite_score_batch(members, batch=None):
 	if not members:
 		return {}
 
-	W_QUIZ = 0.30
-	W_ASSIGNMENT = 0.25
-	W_COMPLETION = 0.25
+	W_QUIZ = 0.25
+	W_ASSIGNMENT = 0.20
+	W_GAME = 0.20
+	W_COMPLETION = 0.15
 	W_STREAK = 0.10
 	W_HOURS = 0.10
 	STREAK_CAP = 30
@@ -137,6 +144,22 @@ def calculate_composite_score_batch(members, batch=None):
 	member_quizzes = {}
 	for q in quiz_data:
 		member_quizzes.setdefault(q.member, []).append(flt(q.percentage))
+
+	# Fetch game progress in batch
+	game_filters = {"member": ["in", members]}
+	if batch:
+		# Find which class games belong to this batch
+		class_games = frappe.get_all("LMS Class Game", filters={"batch": batch}, pluck="name")
+		if class_games:
+			game_filters["class_game"] = ["in", class_games]
+		else:
+			# If there are no games in this batch, make sure we return 0 for games
+			game_filters["class_game"] = "no_games_in_batch"
+			
+	game_data = frappe.db.get_all("LMS Game Progress", filters=game_filters, fields=["member", "progress_percentage"])
+	member_games = {}
+	for g in game_data:
+		member_games.setdefault(g.member, []).append(flt(g.progress_percentage))
 
 	# Fetch assignments in batch
 	assign_filters = {"member": ["in", members], "status": ["in", ["Pass", "Fail"]]}
@@ -164,13 +187,16 @@ def calculate_composite_score_batch(members, batch=None):
 		member_enrollments.setdefault(e.member, []).append(flt(e.progress))
 
 	# Fetch video watch times in batch
-	watch_data = frappe.db.sql("""
-		SELECT member, SUM(watch_time) as total_seconds
-		FROM `tabLMS Video Watch Duration`
-		WHERE member IN %(members)s
-		GROUP BY member
-	""", {"members": members}, as_dict=True)
-	member_watch = {w.member: w.total_seconds for w in watch_data}
+	if not members:
+		member_watch = {}
+	else:
+		watch_data = frappe.get_all(
+			"LMS Video Watch Duration",
+			filters={"member": ["in", members]},
+			fields=["member", "SUM(watch_time) as total_seconds"],
+			group_by="member"
+		)
+		member_watch = {w.member: w.total_seconds for w in watch_data}
 
 	# Fetch streaks in batch
 	streak_data = get_streak_info_batch(members)
@@ -182,6 +208,9 @@ def calculate_composite_score_batch(members, batch=None):
 
 		assignments = member_assignments.get(m, [])
 		avg_assignment_pct = sum(assignments) / len(assignments) if assignments else 0
+
+		games = member_games.get(m, [])
+		avg_game_score = sum(games) / len(games) if games else 0
 
 		enrollments = member_enrollments.get(m, [])
 		completion_pct = sum(enrollments) / len(enrollments) if enrollments else 0
@@ -197,6 +226,7 @@ def calculate_composite_score_batch(members, batch=None):
 		composite_score = round(
 			(W_QUIZ * avg_quiz_pct)
 			+ (W_ASSIGNMENT * avg_assignment_pct)
+			+ (W_GAME * avg_game_score)
 			+ (W_COMPLETION * completion_pct)
 			+ (W_STREAK * streak_score)
 			+ (W_HOURS * hours_score),
@@ -207,6 +237,7 @@ def calculate_composite_score_batch(members, batch=None):
 			"composite_score": composite_score,
 			"avg_quiz_score": round(avg_quiz_pct, 1),
 			"avg_assignment_score": round(avg_assignment_pct, 1),
+			"avg_game_score": round(avg_game_score, 1),
 			"completion_pct": round(completion_pct, 1),
 			"streak_days": current_streak,
 			"hours_spent": round(total_hours, 1),
@@ -218,18 +249,20 @@ def calculate_composite_score_batch(members, batch=None):
 def get_leaderboard(batch=None, period="all_time", limit=25):
 	limit = cint(limit)
 
-	if batch:
-		user_roles = frappe.get_roles()
-		is_privileged = any(r in user_roles for r in [
-			'System Manager', 'Administrator', 'Moderator',
-			'Course Creator', 'Course Evaluator', 'Instructor', 'LMS Moderator'
-		])
-		if not is_privileged:
-			if not frappe.db.exists("LMS Batch Enrollment", {"member": frappe.session.user, "batch": batch}):
-				frappe.throw(_("You are not enrolled in this batch."))
-		members = frappe.get_all("LMS Batch Enrollment", {"batch": batch}, pluck="member")
+	# Restrict visibility using the same logic as the dropdown
+	from lms.lms.gamification.game_api import get_leaderboard_batches
+	allowed_batches_data = get_leaderboard_batches()
+	allowed_batches = [b.get("name") for b in allowed_batches_data]
+	
+	if batch and batch not in allowed_batches:
+		frappe.throw(_("You are not allowed to view this batch's leaderboard."), frappe.PermissionError)
+
+	target_batches = [batch] if batch else allowed_batches
+
+	if target_batches:
+		members = frappe.get_all("LMS Batch Enrollment", filters={"batch": ["in", target_batches]}, pluck="member", distinct=True, ignore_permissions=True)
 	else:
-		members = frappe.get_all("LMS Enrollment", group_by="member", pluck="member")
+		members = []
 
 	if not members:
 		return []
@@ -261,6 +294,7 @@ def get_leaderboard(batch=None, period="all_time", limit=25):
 				"composite_score": 0,
 				"avg_quiz_score": 0,
 				"avg_assignment_score": 0,
+				"avg_game_score": 0,
 				"completion_pct": 0,
 				"streak_days": 0,
 				"hours_spent": 0

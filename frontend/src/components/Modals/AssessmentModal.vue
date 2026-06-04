@@ -22,9 +22,11 @@
 					:label="__('Type')"
 				/>
 				<Link
+					v-if="assessmentType"
 					v-model="assessment"
 					:doctype="assessmentType"
 					:label="__('Assessment')"
+					:filters="getAssessmentFilters"
 					:onCreate="
 						(value, close) => {
 							close()
@@ -50,12 +52,21 @@
 <script setup>
 import { Dialog, FormControl, createResource, toast } from 'frappe-ui'
 import Link from '@/components/Controls/Link.vue'
-import { computed, ref } from 'vue'
+import { computed, ref, inject } from 'vue'
 import { useRouter } from 'vue-router'
 
 const show = defineModel()
-const assessmentType = ref(null)
+const assessmentType = ref('LMS Quiz')
 const assessment = ref(null)
+const user = inject('$user')
+
+const getAssessmentFilters = computed(() => {
+	let filters = {}
+	if (user.data && !user.data.is_moderator) {
+		filters.owner = user.data.name
+	}
+	return filters
+})
 const assessments = defineModel('assessments')
 const router = useRouter()
 

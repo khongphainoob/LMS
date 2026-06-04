@@ -11,7 +11,7 @@ from lms.lms.services.ai_rate_limit import check_and_record_usage
 @frappe.whitelist()
 def get_rubric_templates():
 	"""Returns a list of available rubric templates."""
-	return frappe.get_all("LMS Rubric Template", fields=["name", "title", "description", "is_active"])
+	return frappe.get_list("LMS Rubric Template", fields=["name", "title", "description", "is_active"])
 
 @frappe.whitelist()
 def get_rubric_stats():
@@ -44,15 +44,14 @@ def export_rubric(name):
 @frappe.whitelist()
 def get_ai_grading_sessions(grading_type=None, start=0, limit=20, search=None):
 	"""Get all AI Grading Sessions for current user with pagination and search."""
-	filters = {}
+	filters = {"owner": frappe.session.user}
 	if grading_type:
 		filters["grading_type"] = grading_type
 	
 	if search:
 		filters["session_name"] = ["like", f"%{search}%"]
 
-	return frappe.get_all(
-		"AI Grading Session",
+	return frappe.get_list("AI Grading Session",
 		filters=filters,
 		fields=["name", "session_name", "route_slug", "grading_type", "subject", "level", "status", "modified"],
 		order_by="modified desc",
@@ -65,12 +64,21 @@ def get_ai_grading_stats():
 	"""Get statistics for AI Grading dashboard."""
 	from frappe.utils import getdate, now
 	stats = frappe._dict()
-	stats.gradedToday = frappe.db.count(
+	
+	# Using get_list to inherently respect Role Permissions (owner isolation)
+	graded_today = frappe.get_list(
 		"AI Grading Submission",
-		{"status": "Done", "modified": [">", f"{getdate(now())} 00:00:00"]},
+		filters={"status": "Done", "owner": frappe.session.user, "modified": [">", f"{getdate(now())} 00:00:00"]},
+		limit_page_length=0
 	)
-	stats.needReview = frappe.db.count("AI Grading Submission", {"status": "Flagged"})
-	stats.openSessions = frappe.db.count("AI Grading Session", {"status": "Open"})
+	stats.gradedToday = len(graded_today)
+	
+	need_review = frappe.get_list("AI Grading Submission", filters={"status": "Flagged", "owner": frappe.session.user}, limit_page_length=0)
+	stats.needReview = len(need_review)
+	
+	open_sessions = frappe.get_list("AI Grading Session", filters={"status": "Open", "owner": frappe.session.user}, limit_page_length=0)
+	stats.openSessions = len(open_sessions)
+	
 	return stats
 
 @frappe.whitelist()
@@ -80,7 +88,9 @@ def create_ai_grading_session(data):
 		data = json.loads(data)
 	doc = frappe.new_doc("AI Grading Session")
 	doc.route_slug = _slugify_ai_grading_session_name(data.get("session_name", ""))
-	doc.update(data)
+	allowed_fields = ["session_name", "batch", "assignment", "rubric", "grading_type", "subject", "level", "custom_instructions", "max_score", "min_word_count", "max_word_count"]
+	safe_data = {k: v for k, v in data.items() if k in allowed_fields}
+	doc.update(safe_data)
 	doc.insert()
 
 	if doc.batch:
@@ -473,19 +483,19 @@ def get_ai_grading_analytics():
 	from frappe.utils import getdate, now
 	today = getdate(now())
 	return {
-		"total_sessions": frappe.db.count("AI Grading Session"),
-		"total_submissions": frappe.db.count("AI Grading Submission"),
-		"graded_today": frappe.db.count("AI Grading Submission", {"status": "Done", "modified": [">=", f"{today} 00:00:00"]}),
+		"total_sessions": len(frappe.get_list("AI Grading Session", limit_page_length=0)),
+		"total_submissions": len(frappe.get_list("AI Grading Submission", limit_page_length=0)),
+		"graded_today": len(frappe.get_list("AI Grading Submission", filters={"status": "Done", "modified": [">=", f"{today} 00:00:00"]}, limit_page_length=0)),
 	}
 
 @frappe.whitelist()
 def get_ai_grading_dissatisfaction_feed(limit=20):
 	frappe.only_for("Moderator")
-	return frappe.get_all("AI Grading Submission", filters={"ai_rating": "Dissatisfied"}, fields=["name", "session", "student_name", "score", "modified"], order_by="modified desc", limit_page_length=limit)
+	return frappe.get_list("AI Grading Submission", filters={"ai_rating": "Dissatisfied"}, fields=["name", "session", "student_name", "score", "modified"], order_by="modified desc", limit_page_length=limit)
 
 @frappe.whitelist()
 def get_ai_grading_session_statistics(session):
-	submissions = frappe.get_all("AI Grading Submission", filters={"session": session}, fields=["name", "score", "status"])
+	submissions = frappe.get_list("AI Grading Submission", filters={"session": session}, fields=["name", "score", "status"])
 	graded = [s for s in submissions if s.status == "Done"]
 	return {
 		"total": len(submissions),
@@ -531,13 +541,17 @@ def _ai_grading_job_id_key(submission: str) -> str:
 def _ensure_ai_grading_access_for_submission(submission: str, ptype: str = "write") -> None:
 	if not submission:
 		frappe.throw(_("Submission is required."))
-	frappe.has_permission("AI Grading Submission", doc=submission, ptype=ptype, throw=True)
+	doc = frappe.get_doc("AI Grading Submission", submission)
+	if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+		frappe.throw(_("Không có quyền thực hiện trên Submission này."), frappe.PermissionError)
 
 
 def _ensure_ai_grading_access_for_session(session: str, ptype: str = "write") -> None:
 	if not session:
 		frappe.throw(_("Session is required."))
-	frappe.has_permission("AI Grading Session", doc=session, ptype=ptype, throw=True)
+	doc = frappe.get_doc("AI Grading Session", session)
+	if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+		frappe.throw(_("Không có quyền thực hiện trên Session này."), frappe.PermissionError)
 
 
 def _set_submission_status(submission: str, status: str, extra: dict | None = None) -> None:
@@ -585,8 +599,6 @@ def start_ai_grading_sync(submission: str):
 	_ensure_ai_grading_access_for_submission(submission, ptype="write")
 	
 	doc = frappe.get_doc("AI Grading Submission", submission)
-	if (doc.retry_count or 0) >= 2:
-		frappe.throw(_("Bài thi này đã đạt giới hạn chấm AI tối đa (2 lần) để tiết kiệm chi phí."))
 		
 	check_and_record_usage(frappe.session.user, "AI Grading", increment=1)
 
@@ -597,7 +609,7 @@ def start_ai_grading_sync(submission: str):
 		{
 			"grading_started_at": now_datetime(),
 			"last_error": None,
-			"retry_count": (doc.retry_count or 0) + 1
+			"retry_count": 0  # Reset retry_count when explicitly graded
 		},
 	)
 
@@ -632,9 +644,6 @@ def start_batch_ai_grading(session: str):
 
 	submission_ids = []
 	for sub in submissions:
-		if (sub.retry_count or 0) >= 2:
-			continue
-		
 		# Synchronously set status to "Grading" so the UI immediately reflects it
 		_set_submission_status(
 			sub.name, 
@@ -642,7 +651,7 @@ def start_batch_ai_grading(session: str):
 			{
 				"grading_started_at": now_datetime(), 
 				"last_error": None, 
-				"retry_count": (sub.retry_count or 0) + 1
+				"retry_count": 0  # Reset retry_count when explicitly batch-graded
 			}
 		)
 		frappe.cache().delete_value(_ai_grading_stop_key(sub.name))

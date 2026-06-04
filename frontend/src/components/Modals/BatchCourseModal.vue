@@ -19,6 +19,7 @@
 				v-model="course"
 				:label="__('Course')"
 				:required="true"
+				:filters="getCourseFilters"
 				:onCreate="
 					(value, close) => {
 						close()
@@ -54,6 +55,15 @@ const user = inject('$user')
 const courses = defineModel('courses')
 const router = useRouter()
 const { updateOnboardingStep } = useOnboarding('learning')
+import { computed } from 'vue'
+
+const getCourseFilters = computed(() => {
+	let filters = {}
+	if (user.data && !user.data.is_moderator) {
+		filters.owner = user.data.name
+	}
+	return filters
+})
 
 const props = defineProps({
 	batch: {

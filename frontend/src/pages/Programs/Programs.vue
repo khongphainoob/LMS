@@ -72,9 +72,14 @@ onMounted(() => {
 	if (!user.data) {
 		window.location.href = '/login'
 	}
-	if (user.data?.is_moderator || user.data?.is_instructor) {
-		programs.reload()
+})
+
+const programFilter = computed(() => {
+	let filters = {}
+	if (user.data && !user.data.is_moderator) {
+		filters.owner = user.data.name
 	}
+	return filters
 })
 
 const programs = createListResource({
@@ -88,7 +93,8 @@ const programs = createListResource({
 		'published',
 		'enforce_course_order',
 	],
-	auto: false,
+	filters: programFilter,
+	auto: true,
 	orderBy: 'creation desc',
 })
 

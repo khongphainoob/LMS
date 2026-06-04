@@ -105,20 +105,26 @@ def context_node(state: ChatbotState) -> dict:
 		except Exception as e:
 			print(f"--- [ERROR] Chatbot Context (Student): {e} ---")
 
-	
 	# 3. Fetch RAG Context
 	try:
-		from lms.lms.services.rag.api import search
+		from lms.lms.services.rag.retriever import RAGRetriever
 		messages = state.get("messages", [])
 		if messages:
 			last_msg = messages[-1].content if hasattr(messages[-1], 'content') else messages[-1].get('content', '')
 			if last_msg:
-				rag_results = search(last_msg, course=course_name, top_k=3)
+				retriever = RAGRetriever()
+				rag_results = retriever.retrieve(last_msg, course_id=course_name, top_k=3)
 				if rag_results:
-					# Format RAG results
-					rag_text = "\n\n".join([f"Source: {res.get('metadata', {}).get('document_id', 'Unknown')}\n{res.get('content', '')}" for res in rag_results])
-					updates["rag_context"] = rag_text
-					print(f"--- [NODE: CONTEXT] RAG Retrieval Success: {len(rag_results)} chunks ---")
+					# Format RAG results using correct keys from RAGRetriever
+					parts = []
+					for i, res in enumerate(rag_results, 1):
+						source = res.get('document_title') or res.get('document_id', 'Unknown')
+						text = res.get('text', '')
+						if text:
+							parts.append(f"[{i}] Nguồn: {source}\n{text}")
+					if parts:
+						updates["rag_context"] = "\n\n".join(parts)
+						print(f"--- [NODE: CONTEXT] RAG Retrieval Success: {len(rag_results)} chunks ---")
 	except Exception as e:
 		print(f"--- [ERROR] Chatbot Context (RAG): {e} ---")
 

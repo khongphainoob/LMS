@@ -167,6 +167,13 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Load More -->
+			<div v-if="games.length >= listLimit" class="flex justify-center pt-4 pb-8">
+				<Button variant="subtle" @click="loadMore" :loading="gamesResource.loading">
+					{{ __("Load More") }}
+				</Button>
+			</div>
 		</div>
 
 		<div v-else-if="apiError" class="text-center py-12 border border-dashed border-red-200 rounded-xl bg-red-50">
@@ -194,6 +201,7 @@ const socket = inject('$socket')
 const { userResource } = usersStore()
 const apiError = ref(null)
 const deletingId = ref(null)
+const listLimit = ref(20)
 
 // Track live game class IDs reactively
 const liveClassGameIds = ref(new Set())
@@ -207,6 +215,11 @@ const isInstructor = computed(() => {
 
 const gamesResource = createResource({
 	url: 'lms.lms.gamification.game_api.get_available_games',
+	makeParams() {
+		return {
+			limit: listLimit.value
+		}
+	},
 	auto: true,
 	onSuccess(data) {
 		apiError.value = null
@@ -230,6 +243,11 @@ const liveGames = computed(() =>
 const normalGames = computed(() =>
 	games.value.filter(g => !liveClassGameIds.value.has(g.class_game) && !g.is_live)
 )
+
+function loadMore() {
+	listLimit.value += 20
+	gamesResource.submit(gamesResource.makeParams())
+}
 
 // Socket listeners
 onMounted(() => {

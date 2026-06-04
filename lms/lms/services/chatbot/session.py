@@ -10,13 +10,14 @@ def get_or_create_session_key(student: str, lesson_name: str = None) -> str:
     return f"chatbot:{student}:{lesson_id}"
 
 
-def get_chat_history(session_key: str, limit: int = 20) -> list:
-    """Retrieves history from Redis."""
+def get_chat_history(session_key: str, limit: int = 20, offset: int = 0) -> list:
+    """Retrieves history from Redis or DB."""
     try:
-        # 1. Try Redis first (fast)
-        history_json = frappe.cache().get_value(session_key)
-        if history_json:
-            return json.loads(history_json)
+        # 1. Try Redis first (fast) ONLY if requesting the first page
+        if offset == 0:
+            history_json = frappe.cache().get_value(session_key)
+            if history_json:
+                return json.loads(history_json)
             
         # 2. Fallback to MariaDB (permanent)
         session_name = frappe.db.get_value("Chatbot Session", {"session_key": session_key}, "name")
@@ -25,7 +26,8 @@ def get_chat_history(session_key: str, limit: int = 20) -> list:
                 filters={"session": session_name},
                 fields=["role", "content"],
                 order_by="creation desc, name desc",
-                limit=limit
+                limit=limit,
+                limit_start=offset
             )
             if messages:
                 messages.reverse()  # Reverse so oldest is first, newest is last
@@ -33,8 +35,9 @@ def get_chat_history(session_key: str, limit: int = 20) -> list:
                 # Cần cast kết quả từ _dict của Frappe sang dict thường để dump JSON không bị lỗi
                 clean_messages = [{"role": msg.role, "content": msg.content} for msg in messages]
                 
-                # Cache it back to Redis for future fast access
-                frappe.cache().set_value(session_key, json.dumps(clean_messages), expires_in_sec=3600 * 2)
+                # Cache it back to Redis for future fast access (ONLY first page)
+                if offset == 0:
+                    frappe.cache().set_value(session_key, json.dumps(clean_messages), expires_in_sec=3600 * 2)
                 return clean_messages
     except Exception:
         pass

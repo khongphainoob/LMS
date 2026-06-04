@@ -11,7 +11,7 @@ def writer_node(state: LessonPlanState) -> dict:
     Writer Node.
     Writes the full lesson plan markdown based on the outline.
     """
-    llm, model_name, cost_info = get_llm("lesson_planner", temperature=0.4)
+    llm, model_name, cost_info = get_llm("lesson_planner", temperature=0.4, max_tokens=8192)
     
     topic = state.get("topic")
     subject = state.get("subject")

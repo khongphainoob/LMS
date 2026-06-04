@@ -42,14 +42,14 @@
 				<FormControl
 					v-model="titleFilter"
 					:placeholder="__('Search by Title')"
-					@input="updateList"
+					
 				/>
 				<FormControl
 					v-model="languageFilter"
 					type="select"
 					:options="languages"
 					:placeholder="__('Type')"
-					@update:modelValue="updateList"
+					
 				/>
 			</div>
 		</div>
@@ -125,7 +125,7 @@
 	/>
 </template>
 <script setup lang="ts">
-import { computed, getCurrentInstance, inject, onMounted, ref } from 'vue'
+import { computed, getCurrentInstance, inject, onMounted, ref, watch } from 'vue'
 import {
 	Breadcrumbs,
 	Button,
@@ -190,25 +190,11 @@ const getExerciseCount = (filters: any = {}) => {
 		})
 }
 
-const exercises = createListResource({
-	doctype: 'LMS Programming Exercise',
-	cache: ['programmingExercises'],
-	fields: ['name', 'title', 'language', 'problem_statement', 'modified'],
-	auto: true,
-	orderBy: 'modified desc',
-})
-
-const updateList = () => {
-	let filters = getFilters()
-	exercises.update({
-		filters: filters,
-	})
-	exercises.reload()
-	getExerciseCount(filters)
-}
-
-const getFilters = () => {
+const exerciseFilter = computed(() => {
 	let filters: any = {}
+	if (user.data && !user.data.is_moderator) {
+		filters.owner = user.data.name
+	}
 	if (titleFilter.value) {
 		filters['title'] = ['like', `%${titleFilter.value}%`]
 	}
@@ -216,7 +202,20 @@ const getFilters = () => {
 		filters['language'] = languageFilter.value
 	}
 	return filters
-}
+})
+
+const exercises = createListResource({
+	doctype: 'LMS Programming Exercise',
+	cache: ['programmingExercises'],
+	fields: ['name', 'title', 'language', 'problem_statement', 'modified'],
+	filters: exerciseFilter,
+	auto: true,
+	orderBy: 'modified desc',
+})
+
+watch(exerciseFilter, () => {
+	getExerciseCount(exerciseFilter.value)
+}, { immediate: true })
 
 const showDeleteConfirmation = (
 	selections: Set<string>,

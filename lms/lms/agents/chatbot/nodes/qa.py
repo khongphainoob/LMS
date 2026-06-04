@@ -8,7 +8,7 @@ from ..prompts.system import build_system_prompt
 
 def qa_node(state: ChatbotState) -> dict:
 	from lms.lms.agents.provider import get_llm, get_agent_config
-	from ..skills.student_skills import get_student_course_info, get_course_documents, read_course_document
+	from ..skills.student_skills import get_course_documents, read_course_document
 	from lms.lms.agents.tools.web_tools import search_web
 	
 	start_ms = int(time.time() * 1000)
@@ -17,15 +17,40 @@ def qa_node(state: ChatbotState) -> dict:
 	llm, model_name, _ = get_llm("chatbot", temperature=0)
 	
 	# Bind tool
-	llm_with_tools = llm.bind_tools([get_student_course_info, get_course_documents, read_course_document, search_web])
+	llm_with_tools = llm.bind_tools([get_course_documents, read_course_document, search_web])
 
 	system_prompt = build_system_prompt(state)
+	
+	# --- CONTEXT TOKEN PRUNER ---
+	def estimate_tokens(text):
+		try:
+			import tiktoken
+			return len(tiktoken.get_encoding("cl100k_base").encode(str(text)))
+		except Exception:
+			return len(str(text)) // 4
+			
+	max_context_tokens = 6000
+	system_tokens = estimate_tokens(system_prompt)
+	user_tokens = estimate_tokens(state["user_message"])
+	available_tokens = max_context_tokens - system_tokens - user_tokens
+	
+	history = state.get("chat_history", [])
+	pruned_history = []
+	
+	# Traverse history backwards to keep the most recent messages
+	for msg in reversed(history):
+		msg_tokens = estimate_tokens(msg.get("content", ""))
+		if available_tokens - msg_tokens > 0:
+			pruned_history.insert(0, msg) # Prepend
+			available_tokens -= msg_tokens
+		else:
+			print(f"--- [NODE: QA] Token Limit Reached! Pruned older messages. ---")
+			break
+
 	print(f"--- [DEBUG] Full System Prompt Sent to AI ---\n{system_prompt}\n---")
 	messages = [SystemMessage(content=system_prompt)]
 
-	# History
-	history = state.get("chat_history", [])[-10:]
-	for msg in history:
+	for msg in pruned_history:
 		role = msg.get("role", "").lower()
 		if role == "user":
 			messages.append(HumanMessage(content=msg["content"]))
@@ -47,7 +72,6 @@ def qa_node(state: ChatbotState) -> dict:
 	while response.tool_calls and iterations < max_iterations:
 		iterations += 1
 		available_tools = {
-			"get_student_course_info": get_student_course_info,
 			"get_course_documents": get_course_documents,
 			"read_course_document": read_course_document,
 			"search_web": search_web

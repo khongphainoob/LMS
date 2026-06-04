@@ -18,6 +18,17 @@ def start_game_session(class_game):
 		
 	# Daily cap
 	cg = frappe.get_doc("LMS Class Game", class_game)
+	
+	if not frappe.db.exists("LMS Batch Enrollment", {"batch": cg.batch, "member": member}):
+		frappe.throw(_("You are not enrolled in this batch."))
+		
+	from frappe.utils import get_datetime
+	now_dt = get_datetime(now_datetime())
+	if cg.available_from and now_dt < get_datetime(cg.available_from):
+		frappe.throw(_("Game is not available yet."))
+	if cg.available_until and now_dt > get_datetime(cg.available_until):
+		frappe.throw(_("Game is no longer available."))
+
 	game_type = frappe.db.get_value("LMS Game", cg.game, "game_type")
 
 	daily_count = frappe.db.count("LMS Game Session", {
@@ -69,46 +80,61 @@ def start_game_session(class_game):
 
 @frappe.whitelist()
 def submit_game_session(session_id, raw_score, metadata=None):
-	session = frappe.get_doc("LMS Game Session", session_id)
+	lock_key = f"lock:submit_game:{session_id}"
+	if frappe.cache().get_value(lock_key):
+		frappe.throw(_("Đang xử lý, vui lòng không thao tác quá nhanh."), frappe.ValidationError)
 	
-	if session.member != frappe.session.user:
-		frappe.throw(_("Unauthorized."), frappe.PermissionError)
+	frappe.cache().set_value(lock_key, 1, expires_in_sec=5)
+	
+	try:
+		session = frappe.get_doc("LMS Game Session", session_id)
 		
-	if session.status == "Completed":
-		frappe.throw(_("Session already submitted."))
-		
-	cached = frappe.cache().get_value(f"game_session:{session_id}")
-	if not cached:
-		# Production Hardening: Fallback to database session record if Redis evicted the cache key
-		if frappe.db.exists("LMS Game Session", session_id):
-			session_db = frappe.get_doc("LMS Game Session", session_id)
-			if session_db.member == frappe.session.user and session_db.status == "Started":
-				game_type = frappe.db.get_value("LMS Game",
-					frappe.db.get_value("LMS Class Game", session_db.class_game, "game"), "game_type")
-				cached = {
-					"member": session_db.member,
-					"started_at": session_db.started_at,
-					"game_type": game_type,
-					"max_score": MAX_SCORE_PER_GAME.get(game_type, 1000)
-				}
-				
+		if session.member != frappe.session.user:
+			frappe.throw(_("Unauthorized."), frappe.PermissionError)
+			
+		if session.status == "Completed":
+			frappe.throw(_("Session already submitted."))
+			
+		cached = frappe.cache().get_value(f"game_session:{session_id}")
 		if not cached:
-			frappe.throw(_("Session expired or invalid."))
+			# Production Hardening: Fallback to database session record if Redis evicted the cache key
+			if frappe.db.exists("LMS Game Session", session_id):
+				session_db = frappe.get_doc("LMS Game Session", session_id)
+				if session_db.member == frappe.session.user and session_db.status == "Started":
+					game_type = frappe.db.get_value("LMS Game",
+						frappe.db.get_value("LMS Class Game", session_db.class_game, "game"), "game_type")
+					cached = {
+						"member": session_db.member,
+						"started_at": session_db.started_at,
+						"game_type": game_type,
+						"max_score": MAX_SCORE_PER_GAME.get(game_type, 1000)
+					}
+					
+			if not cached:
+				frappe.throw(_("Session expired or invalid."))
+			
+		max_score = cached.get("max_score", 1000)
+		raw_score = min(cint(raw_score), max_score)
 		
-	max_score = cached.get("max_score", 1000)
-	raw_score = min(cint(raw_score), max_score)
-	
-	session.raw_score = raw_score
-	session.normalized_score = round(raw_score / max_score * 100, 1) if max_score > 0 else 0
-	session.status = "Completed"
-	session.completed_at = now_datetime()
-	session.duration_seconds = time_diff_in_seconds(session.completed_at, session.started_at)
-	session.metadata = json.dumps(metadata) if metadata else None
-	session.save(ignore_permissions=True)
-	
-	update_game_progress(session)
-	
-	frappe.cache().delete_value(f"game_session:{session_id}")
+		session.raw_score = raw_score
+		session.normalized_score = round(raw_score / max_score * 100, 1) if max_score > 0 else 0
+		session.status = "Completed"
+		session.completed_at = now_datetime()
+		session.duration_seconds = time_diff_in_seconds(session.completed_at, session.started_at)
+		if metadata:
+			metadata_str = json.dumps(metadata)
+			if len(metadata_str) > 10240:  # 10KB max limit
+				frappe.throw(_("Metadata payload is too large."))
+			session.metadata = metadata_str
+		else:
+			session.metadata = None
+		session.save(ignore_permissions=True)
+		
+		update_game_progress(session)
+		
+		frappe.cache().delete_value(f"game_session:{session_id}")
+	finally:
+		frappe.cache().delete_value(lock_key)
 
 	# Get updated progress for response
 	progress = frappe.db.get_value("LMS Game Progress",
@@ -339,12 +365,14 @@ def get_my_game_rank(class_game):
 
 
 @frappe.whitelist()
-def get_available_games(batch=None):
+def get_available_games(batch=None, limit_start=0, limit=20):
 	"""Get games available for the current user.
 	- Students see only games from batches they are enrolled in.
 	- Instructors/Moderators see all active class games.
 	"""
 	member = frappe.session.user
+	limit_start = frappe.utils.cint(limit_start)
+	limit = frappe.utils.cint(limit)
 
 	# Instructors and moderators see everything (including admin roles)
 	user_roles = frappe.get_roles(member)
@@ -361,14 +389,43 @@ def get_available_games(batch=None):
 	)
 
 	if is_admin:
-		# Show all class games (optionally filtered by batch param)
+		is_super_admin = member in ('Administrator', 'admin') or any(r in user_roles for r in ['System Manager', 'Administrator'])
 		filters = {}
 		if batch:
 			filters["batch"] = batch
+
+		if not is_super_admin:
+			# Instructors only see games for batches they manage or own
+			managed_batches = frappe.get_all("Course Instructor", 
+				filters={"instructor": member, "parenttype": "LMS Batch"}, 
+				pluck="parent", 
+				ignore_permissions=True
+			)
+			managed_courses = frappe.get_all("Course Instructor", 
+				filters={"instructor": member, "parenttype": "LMS Course"}, 
+				pluck="parent", 
+				ignore_permissions=True
+			)
+			if managed_courses:
+				managed_batches.extend(frappe.get_all("Batch Course", filters={"course": ["in", managed_courses]}, pluck="parent", ignore_permissions=True))
+
+			owned_batches = frappe.get_all("LMS Batch", filters={"owner": member}, pluck="name", ignore_permissions=True)
+			allowed_batches = list(set(managed_batches + owned_batches))
+			if not allowed_batches:
+				return []
+			if batch and batch not in allowed_batches:
+				return []
+			filters["batch"] = ["in", allowed_batches]
+			if batch:
+				filters["batch"] = batch
+
+		# Show allowed class games
 		class_games = frappe.get_all("LMS Class Game",
 			filters=filters,
 			fields=["name", "game", "batch", "max_attempts", "available_from", "available_until"],
 			ignore_permissions=True,
+			limit_start=limit_start,
+			limit=limit,
 		)
 	else:
 		# Students: find their enrolled batches first
@@ -389,6 +446,8 @@ def get_available_games(batch=None):
 			filters=filters,
 			fields=["name", "game", "batch", "max_attempts", "available_from", "available_until"],
 			ignore_permissions=True,
+			limit_start=limit_start,
+			limit=limit,
 		)
 
 	# Show each class game assignment as a separate entry (no deduplication)
@@ -476,7 +535,7 @@ def get_game_questions(game_type, category=None, difficulty=None, limit=10):
 	questions = frappe.get_all("LMS Gamification Question Bank",
 		filters=filters,
 		fields=["name", "question_text", "question_type", "options",
-				"correct_answer", "hint", "category", "difficulty", "sort_items"],
+				"hint", "category", "difficulty", "sort_items"],
 		order_by="RAND()",
 		limit=cint(limit),
 	)
@@ -494,6 +553,15 @@ def get_game_questions(game_type, category=None, difficulty=None, limit=10):
 @frappe.whitelist()
 def save_game_settings(class_game, max_attempts=None, max_score=1000):
 	"""Updates game settings and broadcasts a real-time event to notify students to reload."""
+	member = frappe.session.user
+	user_roles = frappe.get_roles(member)
+	is_instructor = (
+		member == 'Administrator' or
+		any(r in user_roles for r in ['System Manager', 'Moderator', 'Course Creator', 'Course Evaluator'])
+	)
+	if not is_instructor:
+		frappe.throw(_("Only instructors can save game settings."), frappe.PermissionError)
+
 	cg = frappe.get_doc("LMS Class Game", class_game)
 	
 	# Update max_attempts
@@ -530,10 +598,33 @@ def get_leaderboard_batches():
 	])
 	
 	if is_moderator_or_instructor:
-		# Instructors/Admins see all batches
+		is_super_admin = member in ('Administrator', 'admin') or any(r in user_roles for r in ['System Manager', 'Administrator'])
+		filters = {"published": 1}
+
+		if not is_super_admin:
+			managed_batches = frappe.get_all("Course Instructor", 
+				filters={"instructor": member, "parenttype": "LMS Batch"}, 
+				pluck="parent", 
+				ignore_permissions=True
+			)
+			managed_courses = frappe.get_all("Course Instructor", 
+				filters={"instructor": member, "parenttype": "LMS Course"}, 
+				pluck="parent", 
+				ignore_permissions=True
+			)
+			if managed_courses:
+				managed_batches.extend(frappe.get_all("Batch Course", filters={"course": ["in", managed_courses]}, pluck="parent", ignore_permissions=True))
+
+			owned_batches = frappe.get_all("LMS Batch", filters={"owner": member}, pluck="name", ignore_permissions=True)
+			allowed_batches = list(set(managed_batches + owned_batches))
+			if not allowed_batches:
+				return []
+			filters["name"] = ["in", allowed_batches]
+
+		# Instructors/Admins see their batches
 		batches = frappe.get_all("LMS Batch",
 			fields=["name", "title"],
-			filters={"disabled": 0},
+			filters=filters,
 			ignore_permissions=True,
 		)
 	else:

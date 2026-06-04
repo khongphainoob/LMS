@@ -38,7 +38,7 @@
 							{{ __('Hey') }}, {{ user.data?.full_name }}
 						</div>
 						<div>
-							<TabButtons v-if="isAdmin" v-model="currentTab" :buttons="tabs" />
+							<div v-if="isAdmin" class="text-sm font-medium text-ink-gray-5 mt-1">{{ __("Instructor Dashboard") }}</div>
 							<div
 								v-else
 								@click="showStreakModal = true"

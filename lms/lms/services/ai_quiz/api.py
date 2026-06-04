@@ -54,10 +54,15 @@ def get_quiz_stats():
     """
     Returns aggregated stats for the Quiz Dashboard.
     """
+    # Use get_list to respect Role Permissions
+    total = len(frappe.get_list("AI Quiz", limit_page_length=0))
+    completed = len(frappe.get_list("AI Quiz", filters={"status": "Completed"}, limit_page_length=0))
+    processing = len(frappe.get_list("AI Quiz", filters={"status": "Processing"}, limit_page_length=0))
+    
     return {
-        "total": frappe.db.count("AI Quiz"),
-        "completed": frappe.db.count("AI Quiz", {"status": "Completed"}),
-        "processing": frappe.db.count("AI Quiz", {"status": "Processing"}),
+        "total": total,
+        "completed": completed,
+        "processing": processing,
         "accuracy": "98%"
     }
 

@@ -14,7 +14,7 @@ def planner_node(state: LessonPlanState) -> dict:
     Creates a high-level lesson outline in structured JSON format.
     """
     # Get standard LLM (Gemini or similar)
-    llm, model_name, cost_info = get_llm("lesson_planner", temperature=0.4)
+    llm, model_name, cost_info = get_llm("lesson_planner", temperature=0.4, max_tokens=8192)
 
     topic = state.get("topic")
     subject = state.get("subject")

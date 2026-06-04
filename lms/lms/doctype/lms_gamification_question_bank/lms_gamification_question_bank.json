@@ -1,104 +1,132 @@
 {
- "actions": [],
- "autoname": "autoincrement",
- "creation": "2026-05-17 07:57:45.937301",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "question_text",
-  "question_type",
-  "options",
-  "correct_answer",
-  "hint",
-  "category",
-  "difficulty",
-  "sort_items"
- ],
- "fields": [
-  {
-   "fieldname": "question_text",
-   "fieldtype": "Small Text",
-   "in_list_view": 1,
-   "label": "Question Text",
-   "reqd": 1
-  },
-  {
-   "fieldname": "question_type",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Question Type",
-   "options": "mcq\nword_scramble\nsort_order",
-   "reqd": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "options",
-   "fieldtype": "JSON",
-   "label": "Options"
-  },
-  {
-   "fieldname": "correct_answer",
-   "fieldtype": "Data",
-   "label": "Correct Answer"
-  },
-  {
-   "fieldname": "hint",
-   "fieldtype": "Data",
-   "label": "Hint"
-  },
-  {
-   "fieldname": "category",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Category",
-   "options": "Tech\nScience\nMath\nArt\nGeneral\nHistory\nNature",
-   "search_index": 1
-  },
-  {
-   "fieldname": "difficulty",
-   "fieldtype": "Select",
-   "label": "Difficulty",
-   "options": "Easy\nMedium\nHard",
-   "search_index": 1
-  },
-  {
-   "fieldname": "sort_items",
-   "fieldtype": "JSON",
-   "label": "Sort Items"
-  }
- ],
- "links": [],
- "modified": "2026-05-31 11:47:41.250651",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "LMS Gamification Question Bank",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "read": 1,
-   "role": "System Manager",
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "read": 1,
-   "role": "Moderator",
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "read": 1,
-   "role": "Course Creator",
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+    "actions": [],
+    "autoname": "autoincrement",
+    "creation": "2026-05-17 07:57:45.937301",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "question_text",
+        "question_type",
+        "options",
+        "correct_answer",
+        "hint",
+        "category",
+        "difficulty",
+        "sort_items"
+    ],
+    "fields": [
+        {
+            "fieldname": "question_text",
+            "fieldtype": "Small Text",
+            "in_list_view": 1,
+            "label": "Question Text",
+            "reqd": 1
+        },
+        {
+            "fieldname": "question_type",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Question Type",
+            "options": "mcq\nword_scramble\nsort_order",
+            "reqd": 1,
+            "search_index": 1
+        },
+        {
+            "fieldname": "options",
+            "fieldtype": "JSON",
+            "label": "Options"
+        },
+        {
+            "fieldname": "correct_answer",
+            "fieldtype": "Data",
+            "label": "Correct Answer"
+        },
+        {
+            "fieldname": "hint",
+            "fieldtype": "Data",
+            "label": "Hint"
+        },
+        {
+            "fieldname": "category",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Category",
+            "options": "Tech\nScience\nMath\nArt\nGeneral\nHistory\nNature",
+            "search_index": 1
+        },
+        {
+            "fieldname": "difficulty",
+            "fieldtype": "Select",
+            "label": "Difficulty",
+            "options": "Easy\nMedium\nHard",
+            "search_index": 1
+        },
+        {
+            "fieldname": "sort_items",
+            "fieldtype": "JSON",
+            "label": "Sort Items"
+        }
+    ],
+    "links": [],
+    "modified": "2026-05-31 11:47:41.250651",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "LMS Gamification Question Bank",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "read": 1,
+            "role": "System Manager",
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "read": 1,
+            "role": "Moderator",
+            "write": 1,
+            "if_owner": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "read": 1,
+            "role": "Course Creator",
+            "write": 1,
+            "if_owner": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "row_format": "Dynamic",
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
 }

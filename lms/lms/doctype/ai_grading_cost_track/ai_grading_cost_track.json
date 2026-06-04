@@ -1,82 +1,134 @@
 {
- "actions": [],
- "allow_import": 1,
- "creation": "2026-04-22 13:18:00.000000",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "cost_date",
-  "ai_provider",
-  "ai_model",
-  "column_break_4",
-  "session",
-  "total_tokens",
-  "total_cost"
- ],
- "fields": [
-  {
-   "fieldname": "cost_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Cost Date",
-   "reqd": 1
-  },
-  {
-   "fieldname": "ai_provider",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "AI Provider",
-   "options": "Google\nOpenAI\nAnthropic\nKyma\nLocal",
-   "reqd": 1
-  },
-  {
-   "fieldname": "ai_model",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "AI Model"
-  },
-  {
-   "fieldname": "column_break_4",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "session",
-   "fieldtype": "Link",
-   "label": "Session",
-   "options": "AI Grading Session"
-  },
-  {
-   "fieldname": "total_tokens",
-   "fieldtype": "Int",
-   "label": "Total Tokens"
-  },
-  {
-   "fieldname": "total_cost",
-   "fieldtype": "Currency",
-   "label": "Total Cost"
-  }
- ],
- "modified": "2026-04-22 13:18:00.000000",
- "modified_by": "Administrator",
- "module": "LMS",
- "name": "AI Grading Cost Track",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+    "actions": [],
+    "allow_import": 1,
+    "creation": "2026-04-22 13:18:00.000000",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "cost_date",
+        "ai_provider",
+        "ai_model",
+        "column_break_4",
+        "session",
+        "total_tokens",
+        "total_cost"
+    ],
+    "fields": [
+        {
+            "fieldname": "cost_date",
+            "fieldtype": "Date",
+            "in_list_view": 1,
+            "label": "Cost Date",
+            "reqd": 1
+        },
+        {
+            "fieldname": "ai_provider",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "AI Provider",
+            "options": "Google\nOpenAI\nAnthropic\nKyma\nLocal",
+            "reqd": 1
+        },
+        {
+            "fieldname": "ai_model",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "AI Model"
+        },
+        {
+            "fieldname": "column_break_4",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "session",
+            "fieldtype": "Link",
+            "label": "Session",
+            "options": "AI Grading Session"
+        },
+        {
+            "fieldname": "total_tokens",
+            "fieldtype": "Int",
+            "label": "Total Tokens"
+        },
+        {
+            "fieldname": "total_cost",
+            "fieldtype": "Currency",
+            "label": "Total Cost"
+        }
+    ],
+    "modified": "2026-04-22 13:18:00.000000",
+    "modified_by": "Administrator",
+    "module": "LMS",
+    "name": "AI Grading Cost Track",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Course Creator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Moderator",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Instructor",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "if_owner": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Batch Evaluator",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
 }

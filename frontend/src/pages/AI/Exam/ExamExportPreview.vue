@@ -102,6 +102,7 @@ import { inject, onMounted, onUpdated, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { createResource, Button, call } from 'frappe-ui'
 import MarkdownIt from 'markdown-it'
+import DOMPurify from 'dompurify'
 
 const md = new MarkdownIt({ html: true, breaks: true })
 
@@ -109,7 +110,8 @@ const nfc = (text) => text ? String(text).normalize('NFC') : ''
 
 const renderMarkdown = (text) => {
   if (!text) return ''
-  return md.render(nfc(text))
+  const rawHtml = md.render(nfc(text))
+  return DOMPurify.sanitize(rawHtml)
 }
 
 const cleanOptionText = (opt) => {
