@@ -73,7 +73,7 @@ def formatter_node(state: LessonPlanState) -> dict:
             frappe_file_tex = frappe.get_doc({
                 "doctype": "File",
                 "file_name": filename_tex,
-                "content": latex_content.encode('utf-8'),
+                "content": b'\xef\xbb\xbf' + latex_content.encode('utf-8'),
                 "is_private": 1
             })
             frappe_file_tex.insert()
