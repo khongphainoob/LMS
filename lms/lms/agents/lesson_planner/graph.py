@@ -87,7 +87,7 @@ def build_lesson_planner_graph():
     import sqlite3
     import os
     
-    db_path = "/home/huyhoang/frappe-bench/sites/lms.localhost/private/langgraph_checkpoints.sqlite"
+    db_path = "__PLACEHOLDER__"
     # Ensure directory exists
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     
