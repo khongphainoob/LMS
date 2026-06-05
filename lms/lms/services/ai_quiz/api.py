@@ -6,14 +6,15 @@ def create_quiz_request(title, bloom_level, language, prompt=None, file_url=None
     """
     Creates a new AI Quiz record and enqueues the generation process.
     """
+    frappe.only_for(["Course Creator", "Moderator", "System Manager", "Instructor"])
     from lms.lms.services.ai_rate_limit import check_and_record_usage
     check_and_record_usage(frappe.session.user, "Quiz Gen", increment=1)
     
     # Resilient mapping for bloom_level from frontend to valid Frappe options
     bloom_map = {
         "apply/analyze": "Analyze",
-        "apply": "Áp dụng",
-        "create": "Tạo",
+        "apply": "Apply",
+        "create": "Create",
         "remember": "Remember",
         "understand": "Understand",
         "analyze": "Analyze",
@@ -54,10 +55,11 @@ def get_quiz_stats():
     """
     Returns aggregated stats for the Quiz Dashboard.
     """
+    frappe.only_for(["Course Creator", "Moderator", "System Manager", "Instructor"])
     # Use get_list to respect Role Permissions
-    total = len(frappe.get_list("AI Quiz", limit_page_length=0))
-    completed = len(frappe.get_list("AI Quiz", filters={"status": "Completed"}, limit_page_length=0))
-    processing = len(frappe.get_list("AI Quiz", filters={"status": "Processing"}, limit_page_length=0))
+    total = len(frappe.get_list("AI Quiz", filters={"owner": frappe.session.user}, limit_page_length=0))
+    completed = len(frappe.get_list("AI Quiz", filters={"owner": frappe.session.user, "status": "Completed"}, limit_page_length=0))
+    processing = len(frappe.get_list("AI Quiz", filters={"owner": frappe.session.user, "status": "Processing"}, limit_page_length=0))
     
     return {
         "total": total,
@@ -71,6 +73,8 @@ def retry_quiz(quiz_id):
     """
     Retries a failed AI Quiz by re-enqueuing the orchestrator.
     """
+    from lms.lms.services._permissions import ensure_doc_ownership
+    ensure_doc_ownership("AI Quiz", quiz_id)
     quiz_doc = frappe.get_doc("AI Quiz", quiz_id)
     if quiz_doc.status != "Failed":
         frappe.throw("Chỉ có thể thử lại các Quiz đã thất bại.")
@@ -89,6 +93,7 @@ def upload_source_file():
     """
     Hardened custom upload handler with extension and size validation.
     """
+    frappe.only_for(["Course Creator", "Moderator", "System Manager", "Instructor"])
     try:
         from lms.lms.services.ai_rate_limit import check_and_record_usage
         check_and_record_usage(frappe.session.user, "Document Upload", increment=1)
@@ -112,10 +117,13 @@ def upload_source_file():
 
         # 3. Security: Validate Size (Max 100MB)
         MAX_SIZE = 100 * 1024 * 1024 # 100MB
-        content = file.read()
-        if len(content) > MAX_SIZE:
+        file.seek(0, 2) # Seek to end
+        file_size = file.tell()
+        file.seek(0)
+        if file_size > MAX_SIZE:
             frappe.throw("File is too large. Maximum size allowed is 100MB.")
         
+        content = file.read()
         if not content:
             frappe.throw("File content is empty.")
 
@@ -124,7 +132,7 @@ def upload_source_file():
             "doctype": "File",
             "file_name": file_name,
             "content": content,
-            "is_private": 0,
+            "is_private": 1,
             "folder": "Home/Attachments"
         })
         file_doc.insert(ignore_permissions=True)
@@ -143,6 +151,8 @@ def save_quiz_changes(quiz_id, questions):
     """
     Updates the questions in an AI Quiz record.
     """
+    from lms.lms.services._permissions import ensure_doc_ownership
+    ensure_doc_ownership("AI Quiz", quiz_id)
     if isinstance(questions, str):
         import json
         questions = json.loads(questions)
@@ -179,6 +189,8 @@ def sync_to_lms(quiz_id):
     """
     Syncs an AI Quiz to a real LMS Quiz with LMS Questions.
     """
+    from lms.lms.services._permissions import ensure_doc_ownership
+    ensure_doc_ownership("AI Quiz", quiz_id)
     try:
         ai_quiz = frappe.get_doc("AI Quiz", quiz_id)
         

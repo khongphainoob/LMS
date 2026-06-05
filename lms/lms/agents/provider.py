@@ -11,11 +11,12 @@ from lms.lms.agents.provider_adapter import get_provider
 from langchain_core.callbacks import BaseCallbackHandler
 
 class AICostCallbackHandler(BaseCallbackHandler):
-    def __init__(self, agent_name, cost_info, provider_name, model_name):
+    def __init__(self, agent_name, cost_info, provider_name, model_name, site_name=None):
         self.agent_name = agent_name
         self.cost_info = cost_info
         self.provider_name = provider_name
         self.model_name = model_name
+        self.site_name = site_name or (frappe.local.site if getattr(frappe.local, "site", None) else None)
 
     def on_llm_end(self, response, **kwargs):
         try:
@@ -45,15 +46,28 @@ class AICostCallbackHandler(BaseCallbackHandler):
             
             cost = (prompt_tokens * cost_in) + (completion_tokens * cost_out)
             if cost > 0:
-                from lms.lms.services.cost_tracking import track_agent_cost
-                track_agent_cost(
-                    self.agent_name, 
-                    cost, 
-                    tokens=prompt_tokens + completion_tokens,
-                    provider=self.provider_name,
-                    model=self.model_name
-                )
-        except Exception:
+                # In background threads (LangGraph), frappe.db might not exist.
+                db_connected_here = False
+                if not getattr(frappe.local, "db", None) and self.site_name:
+                    frappe.init(site=self.site_name)
+                    frappe.connect()
+                    db_connected_here = True
+                    
+                try:
+                    from lms.lms.services.cost_tracking import track_agent_cost
+                    track_agent_cost(
+                        self.agent_name, 
+                        cost, 
+                        tokens=prompt_tokens + completion_tokens,
+                        provider=self.provider_name,
+                        model=self.model_name
+                    )
+                finally:
+                    # Clean up the DB connection if we created it in this thread
+                    if db_connected_here:
+                        frappe.destroy()
+        except Exception as e:
+            print(f"Cost Callback Error: {e}")
             pass
 
 def get_llm(task_name: str, temperature: float = 0.3, max_tokens: int = 2048, **kwargs):

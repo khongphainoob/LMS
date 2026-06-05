@@ -59,7 +59,7 @@ def create_exam_request(
 def get_exam_details(exam_name: str):
     try:
         doc = frappe.get_doc("AI Exam", exam_name)
-        if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+        if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
             frappe.throw(_("Không có quyền truy cập đề thi này."), frappe.PermissionError)
         return {"success": True, "exam": doc.as_dict(no_default_fields=True)}
     except Exception as e:
@@ -70,6 +70,7 @@ def get_exam_details(exam_name: str):
 def get_exam_list(start: int = 0, limit: int = 20):
     try:
         exams = frappe.get_list("AI Exam",
+            filters={"owner": frappe.session.user},
             fields=["name", "title", "status", "subject", "grade_level", "creation", "total_questions"],
             order_by="creation desc",
             start=start,
@@ -83,7 +84,7 @@ def get_exam_list(start: int = 0, limit: int = 20):
 def delete_exam(exam_name: str):
     try:
         doc = frappe.get_doc("AI Exam", exam_name)
-        if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+        if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
             frappe.throw(_("Không có quyền xóa đề thi này."), frappe.PermissionError)
         frappe.delete_doc("AI Exam", exam_name)
         return {"success": True}
@@ -95,7 +96,7 @@ def delete_exam(exam_name: str):
 def export_pdf(exam_name: str):
     try:
         doc = frappe.get_doc("AI Exam", exam_name)
-        if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+        if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
             frappe.throw(_("Không có quyền xuất đề thi này."), frappe.PermissionError)
         from lms.lms.services.ai_exam.pdf_generator import generate_pdf
         file_url = generate_pdf(exam_name)
@@ -108,7 +109,7 @@ def export_pdf(exam_name: str):
 def export_docx(exam_name: str):
     try:
         doc = frappe.get_doc("AI Exam", exam_name)
-        if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+        if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
             frappe.throw(_("Không có quyền xuất đề thi này."), frappe.PermissionError)
         from lms.lms.services.ai_exam.docx_generator import generate_docx
         file_url = generate_docx(exam_name)
@@ -210,6 +211,9 @@ def retry_exam_generation(exam_name: str):
         check_and_record_usage(frappe.session.user, 'Exam Gen', increment=1)
         
         doc = frappe.get_doc("AI Exam", exam_name)
+        if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
+            frappe.throw(_("Không có quyền truy cập đề thi này."), frappe.PermissionError)
+            
         if doc.status not in ["Failed", "Draft"]:
             return {"success": False, "error": "Only Failed or Draft exams can be retried."}
             
@@ -229,6 +233,10 @@ def retry_exam_generation(exam_name: str):
 @frappe.whitelist()
 def get_exam_blueprint(exam_name: str):
     try:
+        doc = frappe.get_doc("AI Exam", exam_name)
+        if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
+            frappe.throw(_("Không có quyền truy cập đề thi này."), frappe.PermissionError)
+            
         from lms.lms.agents.exam.orchestrator import load_state_from_file
         state = load_state_from_file(exam_name)
         if not state or not state.get("blueprint"):
@@ -240,6 +248,10 @@ def get_exam_blueprint(exam_name: str):
 @frappe.whitelist()
 def regenerate_blueprint(exam_name: str, feedback: str):
     try:
+        doc = frappe.get_doc("AI Exam", exam_name)
+        if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
+            frappe.throw(_("Không có quyền truy cập đề thi này."), frappe.PermissionError)
+            
         from lms.lms.agents.exam.orchestrator import load_state_from_file
         state_values = load_state_from_file(exam_name)
         regenerate_count = state_values.get("regenerate_count", 0) if state_values else 0
@@ -260,6 +272,10 @@ def regenerate_blueprint(exam_name: str, feedback: str):
 @frappe.whitelist()
 def approve_blueprint(exam_name: str, modified_blueprint: str = None):
     try:
+        doc = frappe.get_doc("AI Exam", exam_name)
+        if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
+            frappe.throw(_("Không có quyền truy cập đề thi này."), frappe.PermissionError)
+            
         frappe.enqueue(
             "lms.lms.agents.exam.orchestrator.run_exam_graph",
             exam_name=exam_name,
@@ -272,11 +288,3 @@ def approve_blueprint(exam_name: str, modified_blueprint: str = None):
     except Exception as e:
         return {"success": False, "error": "An internal error occurred."}
 
-@frappe.whitelist()
-def export_docx(exam_name: str):
-    try:
-        from lms.lms.services.ai_exam.docx_generator import generate_docx
-        file_url = generate_docx(exam_name)
-        return {"success": True, "file_url": file_url}
-    except Exception as e:
-        return {"success": False, "error": "An internal error occurred."}

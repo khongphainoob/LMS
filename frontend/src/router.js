@@ -242,6 +242,11 @@ const routes = [
 		component: () => import('@/pages/AI/AIIntegration.vue'),
 	},
 	{
+		path: '/ai-help',
+		name: 'AIHelpCenter',
+		component: () => import('@/pages/AI/AIHelpCenter.vue'),
+	},
+	{
 		path: '/ai-helper',
 		name: 'StudentAIHelper',
 		component: () => import('@/pages/AI/Chatbot/StudentAIHelper.vue'),
@@ -279,7 +284,7 @@ const routes = [
 		redirect: { name: 'AIGradingEssay' },
 		children: [
 			{
-				path: 'help',
+				path: 'help-legacy',
 				name: 'AIGradingHelp',
 				component: () => import('@/pages/AI/AIGrading/AIGradingHelpCenter.vue'),
 			},

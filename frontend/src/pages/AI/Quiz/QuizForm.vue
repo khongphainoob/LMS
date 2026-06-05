@@ -19,11 +19,13 @@
         <button 
           @click="generateQuiz"
           :disabled="loading"
-          class="group flex items-center gap-4 px-10 py-5 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(56,189,248,0.6)] transition-all active:scale-95 shadow-lg shadow-sky-400/20 disabled:opacity-50"
+          class="group flex items-center gap-4 px-10 py-5 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(56,189,248,0.6)] transition-all active:scale-95 shadow-lg shadow-sky-400/20 disabled:opacity-50 min-w-[200px] justify-center"
         >
           <icons.Zap v-if="!loading" class="h-5 w-5" />
           <icons.Loader2 v-else class="h-5 w-5 animate-spin" />
-          {{ loading ? __('Processing...') : __('Start creating') }}
+          <span v-if="!loading">{{ __('Start creating') }}</span>
+          <span v-else-if="uploadProgress > 0 && uploadProgress < 100">{{ __('Uploading') }} {{ uploadProgress }}%</span>
+          <span v-else>{{ __('Processing...') }}</span>
         </button>
       </div>
     </div>
@@ -261,6 +263,7 @@ const file = ref(null)
 const dragOver = ref(false)
 const loading = ref(false)
 const success = ref(false)
+const uploadProgress = ref(0)
 
 const config = reactive({
   title: '',
@@ -318,17 +321,29 @@ const generateQuiz = async () => {
 
     try {
       const token = window.csrf_token || (window.frappe && window.frappe.csrf_token)
-      console.log('Uploading using direct fetch. CSRF:', !!token)
       
-      const response = await fetch('/api/method/lms.lms.services.ai_quiz.api.upload_source_file', {
-        method: 'POST',
-        headers: {
-          'X-Frappe-CSRF-Token': token,
-        },
-        body: formData,
+      const result = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', '/api/method/lms.lms.services.ai_quiz.api.upload_source_file', true)
+        if (token) xhr.setRequestHeader('X-Frappe-CSRF-Token', token)
+        
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            uploadProgress.value = Math.round((e.loaded / e.total) * 100)
+          }
+        }
+        
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText))
+          } else {
+            reject(new Error(xhr.responseText))
+          }
+        }
+        
+        xhr.onerror = () => reject(new Error('Network error'))
+        xhr.send(formData)
       })
-      const result = await response.json()
-      console.log('Upload Result:', result)
       
       if (result.message && result.message.file_url) {
         file_url = result.message.file_url
@@ -338,6 +353,7 @@ const generateQuiz = async () => {
     } catch (e) {
       console.error('Upload Error:', e)
       loading.value = false
+      uploadProgress.value = 0
       return
     }
   }

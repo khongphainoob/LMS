@@ -254,7 +254,7 @@
 							:placeholder="__('e.g. Midterm II — 2024–2025')"
 						/>
 					</div>
-					<div class="flex flex-col gap-1">
+					<div v-if="type !== 'exam'" class="flex flex-col gap-1">
 						<CourseBatchSelector v-model="newSessionModel" :context="aiContext" />
 					</div>
 
@@ -334,7 +334,7 @@
 							:placeholder="__('Enter subject')"
 						/>
 					</div>
-					<div class="flex flex-col gap-1">
+					<div v-if="type !== 'exam'" class="flex flex-col gap-1">
 						<CourseBatchSelector v-model="editSessionModel" :context="aiContext" />
 					</div>
 					<div class="flex flex-col gap-1 mt-2">
@@ -608,7 +608,7 @@ const sessionsResource = createResource({
 				name: s.session_name,
 				meta: `${s.subject || ''} ${s.level || ''}`,
 				id: s.name,
-				routeSlug: s.route_slug || toRouteSlug(s.session_name || s.name),
+				routeSlug: s.name,
 				status: s.status,
 				progress: s.status || __('Open'),
 				color: ['#2d6a4f', '#1d4ed8', '#b45309', '#9f1239'][Math.abs(s.name.split('').reduce((a,b)=>a+b.charCodeAt(0),0)) % 4],
@@ -803,9 +803,9 @@ async function createSession() {
 
 	if (res) {
 		const sessionDoc = typeof res === 'string'
-			? { name: res, route_slug: toRouteSlug(newSession.name) }
+			? { name: res }
 			: res
-		const newSessionSlug = sessionDoc.route_slug || toRouteSlug(newSession.name)
+		const newSessionSlug = sessionDoc.name
 		showNewSessionModal.value = false
 		newSession.name = ''
 		newSession.className = ''
@@ -976,9 +976,9 @@ async function proceed() {
 	
 	if (res) {
 		const sessionDoc = typeof res === 'string'
-			? { route_slug: toRouteSlug(quickSessionName) }
+			? { name: res }
 			: res
-		enterSession(sessionDoc.route_slug || toRouteSlug(quickSessionName))
+		enterSession(sessionDoc.name)
 	}
 }
 </script>

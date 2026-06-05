@@ -26,7 +26,7 @@ def notify_teacher(
         instructors = [u.parent for u in users_with_role]
 
     # Lấy tên học sinh
-    student_name = frappe.db.get_value("User", student, "full_name") or student
+    student_name = frappe.db.get_value("User", student, "full_name") if student else "Học sinh ẩn danh"
 
     # 2. Tạo HITL Alert
     alert = frappe.get_doc({
@@ -58,7 +58,7 @@ def notify_teacher(
     notification = frappe._dict({
         "subject": subject,
         "email_content": email_content,
-        "from_user": student,
+        "from_user": student or "Administrator",
         "type": "Alert",
         "document_type": "HITL Alert",
         "document_name": alert.name,

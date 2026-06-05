@@ -26,8 +26,7 @@
         "section_break_6",
         "status",
         "ai_notes",
-        "section_break_8",
-        "members"
+        "ai_notes"
     ],
     "fields": [
         {
@@ -142,17 +141,6 @@
             "fieldname": "ai_notes",
             "fieldtype": "Small Text",
             "label": "AI Grading Notes"
-        },
-        {
-            "fieldname": "section_break_8",
-            "fieldtype": "Section Break",
-            "label": "Members"
-        },
-        {
-            "fieldname": "members",
-            "fieldtype": "Table",
-            "label": "Grading Members",
-            "options": "AI Grading Member"
         }
     ],
     "modified": "2026-04-22 23:00:00.000000",

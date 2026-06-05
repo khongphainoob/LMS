@@ -37,7 +37,7 @@ def get_chat_history(session_key: str, limit: int = 20, offset: int = 0) -> list
                 
                 # Cache it back to Redis for future fast access (ONLY first page)
                 if offset == 0:
-                    frappe.cache().set_value(session_key, json.dumps(clean_messages), expires_in_sec=3600 * 2)
+                    frappe.cache().set_value(session_key, json.dumps(clean_messages), expires_in_sec=3600 * 24)
                 return clean_messages
     except Exception:
         pass
@@ -56,7 +56,7 @@ def save_message_to_history(session_key: str, role: str, content: str, session_n
         history = history[-20:]
 
     # Update Redis
-    frappe.cache().set_value(session_key, json.dumps(history), expires_in_sec=3600 * 2)
+    frappe.cache().set_value(session_key, json.dumps(history), expires_in_sec=3600 * 24)
 
     # Update DB if session_name is available
     if session_name:
@@ -89,3 +89,7 @@ def save_message_to_history(session_key: str, role: str, content: str, session_n
 def clear_session(session_key: str):
     """Clears the session history."""
     frappe.cache().delete_value(session_key)
+    
+    session_name = frappe.db.get_value("Chatbot Session", {"session_key": session_key}, "name")
+    if session_name:
+        frappe.db.delete("Chatbot Message", {"session": session_name})

@@ -36,6 +36,10 @@ def send_socratic_message(message: str, lesson_name: str = None, session_key: st
     _ensure_socratic_access(student)
     _apply_rate_limit(student)
 
+    if session_key:
+        from lms.lms.services._permissions import ensure_session_ownership
+        ensure_session_ownership(session_key, student, session_type="socratic")
+
     if not session_key:
         session_key = get_or_create_session_key(student, f"socratic_{lesson_name or 'general'}")
 
@@ -94,6 +98,10 @@ def send_socratic_message_async(message: str = None, lesson_name: str = None, se
     student = frappe.session.user
     _ensure_socratic_access(student)
     _apply_rate_limit(student)
+
+    if session_key:
+        from lms.lms.services._permissions import ensure_session_ownership
+        ensure_session_ownership(session_key, student, session_type="socratic")
 
     if not session_key:
         session_key = get_or_create_session_key(student, f"socratic_{lesson_name or 'general'}")
@@ -190,6 +198,11 @@ def send_socratic_message_async(message: str = None, lesson_name: str = None, se
 
 
 def _run_socratic_job(user: str, lesson_name: str, request_id: str, initial_state: dict) -> None:
+    import signal
+    def timeout_handler(signum, frame):
+        raise TimeoutError("AI processing timed out")
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(280)
     try:
         frappe.set_user(user)
         _ensure_socratic_access(user)
@@ -260,6 +273,20 @@ def _run_socratic_job(user: str, lesson_name: str, request_id: str, initial_stat
         )
         frappe.logger("socratic").info(f"[JOB] Published result for request_id={request_id}")
         
+    except TimeoutError:
+        frappe.log_error("Socratic processing timed out", "Socratic Async Job Timeout")
+        try:
+            _publish_socratic_result(
+                user,
+                {
+                    "status": "error",
+                    "request_id": request_id,
+                    "session_key": initial_state.get("session_key") if isinstance(initial_state, dict) else None,
+                    "error": _("Đã quá thời gian xử lý (Timeout). Vui lòng thử lại."),
+                },
+            )
+        except Exception:
+            pass
     except Exception:
         tb = frappe.get_traceback()
         frappe.log_error(tb, "Socratic Async Job Error")
@@ -276,11 +303,16 @@ def _run_socratic_job(user: str, lesson_name: str, request_id: str, initial_stat
             )
         except Exception:
             pass
+    finally:
+        signal.alarm(0)
 
 @frappe.whitelist()
 def get_socratic_history(lesson_name: str = None, session_key: str = None):
     student = frappe.session.user
     _ensure_socratic_access(student)
+    if session_key:
+        from lms.lms.services._permissions import ensure_session_ownership
+        ensure_session_ownership(session_key, student, session_type="socratic")
     if not session_key:
         session_key = get_or_create_session_key(student, f"socratic_{lesson_name or 'general'}")
     return get_chat_history(session_key)
@@ -289,6 +321,9 @@ def get_socratic_history(lesson_name: str = None, session_key: str = None):
 def reset_socratic_session(lesson_name: str = None, session_key: str = None):
     student = frappe.session.user
     _ensure_socratic_access(student)
+    if session_key:
+        from lms.lms.services._permissions import ensure_session_ownership
+        ensure_session_ownership(session_key, student, session_type="socratic")
     if not session_key:
         session_key = get_or_create_session_key(student, f"socratic_{lesson_name or 'general'}")
     clear_session(session_key)
@@ -449,6 +484,9 @@ def retry_analysis(session_key: str):
     """Re-trigger the initial analysis for an existing session."""
     student = frappe.session.user
     _ensure_socratic_access(student)
+    
+    from lms.lms.services._permissions import ensure_session_ownership
+    ensure_session_ownership(session_key, student, session_type="socratic")
     
     session = frappe.get_doc("Socratic Session", {"session_key": session_key, "student": student})
     

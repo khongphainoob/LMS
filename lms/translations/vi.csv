@@ -345,6 +345,7 @@ Chapter updated successfully,Chương được cập nhật thành công
 Chapters,chương
 Chatbot,Chatbot
 Check,Kiểm tra
+Flagged,Cần kiểm tra lại
 Check All Submissions,Kiểm tra tất cả các bài nộp
 Check flagged answers and low-confidence cases before publishing results.,Kiểm tra các câu trả lời được gắn cờ và các trường hợp có độ tin cậy thấp trước khi công bố kết quả.
 Check Submission,Kiểm tra việc gửi
@@ -2157,7 +2158,8 @@ Automatic Scoring,Chấm điểm tự động
 Automatically recognize work from photos or PDFs for instant grading.,Tự động nhận diện bài làm từ ảnh chụp hoặc PDF để chấm điểm tức thì.
 Automatically update Gradebook,Tự động cập nhật sổ điểm
 Average,Trung bình
-BROWSE & SAVE POINTS,XEM & LƯU ĐIỂM
+BROWSE & SAVE POINTS,Lưu điểm
+User Guide,Hướng dẫn sử dụng
 Batch marking in progress...,Đang tiến hành chấm điểm theo lớp...
 Batch:,Lớp học:
 Best Score,Điểm cao nhất
@@ -2233,7 +2235,7 @@ For manual scoring or non-visual custom exam question structures.,Dành cho ch�
 Form Dot Mode,Chế độ Chấm Form
 Full Screen,Toàn màn hình
 Full name,Họ và tên
-Full stop,Dấu chấm hết
+Full stop,Chấm toàn bộ bài làm
 GPT-4o model,Mô hình GPT-4o
 Game Control,Điều khiển trò chơi
 Game Title,Tiêu đề trò chơi
