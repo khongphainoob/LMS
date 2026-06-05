@@ -1988,6 +1988,10 @@ def get_created_courses():
 	results = query.run(as_dict=True)
 	courses = [row["name"] for row in results]
 
+	if courses:
+		courses = list(dict.fromkeys(courses))
+
+
 	for course in courses:
 		course_details = get_course_details(course)
 		created_courses.append(course_details)
