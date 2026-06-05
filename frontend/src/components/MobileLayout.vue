@@ -173,15 +173,29 @@ const addOtherLinks = () => {
 	}
 }
 
-watch(userResource, () => {
+const updateMobileSidebarLinks = () => {
+	sidebarLinks.value = getSidebarLinks()
+	destructureSidebarLinks()
+	if (sidebarSettings.data) {
+		filterLinksToShow(sidebarSettings.data)
+	}
+}
+
+watch(userResource, async () => {
+	if (userResource.promise) await userResource.promise
 	if (userResource.data) {
 		isModerator.value = userResource.data.is_moderator
 		isInstructor.value = userResource.data.is_instructor
+		
+		updateMobileSidebarLinks()
+		
 		addPrograms()
 		if (isModerator.value || isInstructor.value) {
-			addProgrammingExercises()
-			addQuizzes()
-			addAssignments()
+			if (!otherLinks.value.find(l => l.to === 'Quizzes')) {
+				addProgrammingExercises()
+				addQuizzes()
+				addAssignments()
+			}
 		}
 	}
 })
