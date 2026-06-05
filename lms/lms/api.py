@@ -1988,6 +1988,10 @@ def get_created_courses():
 	results = query.run(as_dict=True)
 	courses = [row["name"] for row in results]
 
+	if courses:
+		courses = list(dict.fromkeys(courses))
+
+
 	for course in courses:
 		course_details = get_course_details(course)
 		created_courses.append(course_details)
@@ -2085,6 +2089,9 @@ def get_admin_evals():
 def get_my_courses():
 	my_courses = []
 	courses = get_my_latest_courses()
+
+	if courses:
+		courses = list(dict.fromkeys(courses))
 
 	if not len(courses):
 		courses = get_featured_home_courses()
