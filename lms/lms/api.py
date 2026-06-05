@@ -2086,6 +2086,9 @@ def get_my_courses():
 	my_courses = []
 	courses = get_my_latest_courses()
 
+	if courses:
+		courses = list(dict.fromkeys(courses))
+
 	if not len(courses):
 		courses = get_featured_home_courses()
 
