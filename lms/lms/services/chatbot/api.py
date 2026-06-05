@@ -80,13 +80,16 @@ def send_message(message: str = None, lesson_name: str = None, session_key: str 
 
 	student = frappe.session.user
 	_ensure_chatbot_access(student)
-	_apply_rate_limit(student)
+
+	if session_key:
+		from lms.lms.services._permissions import ensure_session_ownership
+		ensure_session_ownership(session_key, student)
 
 	# Khởi tạo session_key ngay để trả lời FAQ nếu cần
 	if not session_key:
 		session_key = get_or_create_session_key(student, lesson_name)
 
-	# Kiểm tra FAQ
+	# Kiểm tra FAQ trước khi trừ limit
 	faq_ans = _try_faq(message)
 	if faq_ans:
 		return {
@@ -96,7 +99,10 @@ def send_message(message: str = None, lesson_name: str = None, session_key: str 
 			"tokens_used": 0,
 		}
 
-	# 1. Initialize session
+	# Gọi AI nên phải check quota
+	_apply_rate_limit(student)
+
+	# 1. Initialize session (nếu chưa có)
 	if not session_key:
 		session_key = get_or_create_session_key(student, lesson_name)
 
@@ -123,12 +129,13 @@ def send_message(message: str = None, lesson_name: str = None, session_key: str 
 		session_name = _log_to_db(student, lesson_name, final_state)
 		
 		# 4.5 HITL Flagging evaluation
-		session_doc = frappe.get_doc("Chatbot Session", session_name)
-		is_flagged, reason, priority = should_flag_chatbot(final_state, session_doc)
-		if is_flagged:
-			session_doc.status = "Flagged"
-			session_doc.flag_reason = reason
-			session_doc.save(ignore_permissions=True)
+		if session_name:
+			session_doc = frappe.get_doc("Chatbot Session", session_name)
+			is_flagged, reason, priority = should_flag_chatbot(final_state, session_doc)
+			if is_flagged:
+				session_doc.status = "Flagged"
+				session_doc.flag_reason = reason
+				session_doc.save(ignore_permissions=True)
 			notify_teacher(
 				event_type="Chatbot Flagged" if not final_state.get("is_blocked") else "Chatbot Blocked",
 				student=student,
@@ -168,7 +175,10 @@ def send_message_async(message: str = None, lesson_name: str = None, session_key
 
 	student = frappe.session.user
 	_ensure_chatbot_access(student)
-	_apply_rate_limit(student)
+
+	if session_key:
+		from lms.lms.services._permissions import ensure_session_ownership
+		ensure_session_ownership(session_key, student)
 
 	# Khởi tạo session_key sớm cho FAQ
 	if not session_key:
@@ -183,6 +193,8 @@ def send_message_async(message: str = None, lesson_name: str = None, session_key
 			"session_key": session_key,
 			"tokens_used": 0,
 		}
+
+	_apply_rate_limit(student)
 
 	if not session_key:
 		session_key = get_or_create_session_key(student, lesson_name)
@@ -219,6 +231,11 @@ def send_message_async(message: str = None, lesson_name: str = None, session_key
 
 def _run_chatbot_job(user: str, lesson_name: str, request_id: str, initial_state: dict) -> None:
 	"""Background worker entrypoint for chatbot."""
+	import signal
+	def timeout_handler(signum, frame):
+		raise TimeoutError("AI processing timed out")
+	signal.signal(signal.SIGALRM, timeout_handler)
+	signal.alarm(280)
 	try:
 		frappe.set_user(user)
 		_ensure_chatbot_access(user)
@@ -236,12 +253,13 @@ def _run_chatbot_job(user: str, lesson_name: str, request_id: str, initial_state
 		session_name = _log_to_db(user, lesson_name, final_state)
 		
 		# 4.5 HITL Flagging evaluation
-		session_doc = frappe.get_doc("Chatbot Session", session_name)
-		is_flagged, reason, priority = should_flag_chatbot(final_state, session_doc)
-		if is_flagged:
-			session_doc.status = "Flagged"
-			session_doc.flag_reason = reason
-			session_doc.save(ignore_permissions=True)
+		if session_name:
+			session_doc = frappe.get_doc("Chatbot Session", session_name)
+			is_flagged, reason, priority = should_flag_chatbot(final_state, session_doc)
+			if is_flagged:
+				session_doc.status = "Flagged"
+				session_doc.flag_reason = reason
+				session_doc.save(ignore_permissions=True)
 			notify_teacher(
 				event_type="Chatbot Flagged" if not final_state.get("is_blocked") else "Chatbot Blocked",
 				student=user,
@@ -268,6 +286,20 @@ def _run_chatbot_job(user: str, lesson_name: str, request_id: str, initial_state
 				"tokens_used": final_state.get("tokens_used", 0),
 			},
 		)
+	except TimeoutError:
+		frappe.log_error(frappe.get_traceback(), "Chatbot Async Job Timeout")
+		try:
+			_publish_chatbot_result(
+				user,
+				{
+					"status": "error",
+					"request_id": request_id,
+					"session_key": initial_state.get("session_key") if isinstance(initial_state, dict) else None,
+					"error": _("Đã quá thời gian xử lý (Timeout). Vui lòng thử lại."),
+				},
+			)
+		except Exception:
+			pass
 	except Exception:
 		frappe.log_error(frappe.get_traceback(), "Chatbot Async Job Error")
 		try:
@@ -282,6 +314,8 @@ def _run_chatbot_job(user: str, lesson_name: str, request_id: str, initial_state
 			)
 		except Exception:
 			pass
+	finally:
+		signal.alarm(0)
 
 
 @frappe.whitelist()
@@ -289,6 +323,9 @@ def get_history(lesson_name: str = None, session_key: str = None, limit: int = 2
 	"""Retrieves chat history for the current session."""
 	student = frappe.session.user
 	_ensure_chatbot_access(student)
+	if session_key:
+		from lms.lms.services._permissions import ensure_session_ownership
+		ensure_session_ownership(session_key, student)
 	if not session_key:
 		session_key = get_or_create_session_key(student, lesson_name)
 	return get_chat_history(session_key, int(limit), int(offset))
@@ -299,6 +336,9 @@ def reset_session(lesson_name: str = None, session_key: str = None):
 	"""Clears history for the current session."""
 	student = frappe.session.user
 	_ensure_chatbot_access(student)
+	if session_key:
+		from lms.lms.services._permissions import ensure_session_ownership
+		ensure_session_ownership(session_key, student)
 	if not session_key:
 		session_key = get_or_create_session_key(student, lesson_name)
 	clear_session(session_key)

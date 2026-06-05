@@ -436,37 +436,31 @@ class CostTrackingService(BaseService):
         """
         cutoff_date = date.today() - timedelta(days=days_to_keep)
 
-        old_records = frappe.get_all(
-            "AI Grading Cost Track",
-            filters={"cost_date": ["<", cutoff_date]},
-            pluck="name"
-        )
-
-        deleted = 0
-        for record_name in old_records:
-            try:
-                frappe.delete_doc("AI Grading Cost Track", record_name)
-                deleted += 1
-            except Exception:
-                pass
+        try:
+            # Bulk delete via SQL for performance
+            frappe.db.sql("DELETE FROM `tabAI Grading Cost Track` WHERE cost_date < %s", cutoff_date)
+            deleted = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
+        except Exception as e:
+            frappe.log_error(f"Error purging old records: {e}", "AI Cost Tracking")
+            deleted = 0
 
         return deleted
 
     def _get_max_cost_per_day(self) -> float:
         """Get max daily cost limit."""
-        return frappe.db.get_single_value(
+        val = frappe.db.get_single_value(
             "LMS AI Settings",
-            "max_cost_per_day",
-            default=self.DEFAULT_MAX_COST_PER_DAY
+            "max_cost_per_day"
         )
+        return float(val) if val is not None else self.DEFAULT_MAX_COST_PER_DAY
 
     def _get_max_cost_per_session(self) -> float:
         """Get max session cost limit."""
-        return frappe.db.get_single_value(
+        val = frappe.db.get_single_value(
             "LMS AI Settings",
-            "max_cost_per_session",
-            default=self.DEFAULT_MAX_COST_PER_SESSION
+            "max_cost_per_session"
         )
+        return float(val) if val is not None else self.DEFAULT_MAX_COST_PER_SESSION
         
     def get_exchange_rate(self) -> float:
         """Get USD to VND exchange rate from settings."""
@@ -486,19 +480,19 @@ class CostTrackingService(BaseService):
             return
             
         try:
-            settings = frappe.get_doc("LMS AI Settings")
-            settings.cost = (settings.cost or 0.0) + cost
+            # Sử dụng SQL atomic updates thay vì read-modify-write
+            frappe.db.sql("""
+                UPDATE `tabLMS AI Settings` 
+                SET cost = IFNULL(cost, 0) + %s
+            """, (cost,))
             
-            updated = False
-            for row in settings.get("agent_configs", []):
-                if row.get("agent_name") == agent_name:
-                    row.cost = (row.cost or 0.0) + cost
-                    updated = True
-                    break
+            frappe.db.sql("""
+                UPDATE `tabAI Agent Config`
+                SET cost = IFNULL(cost, 0) + %s
+                WHERE parent = 'LMS AI Settings' AND agent_name = %s
+            """, (cost, agent_name))
             
-            # If agent not found in configs, we can still update total_cost of parent
-            settings.save(ignore_permissions=True)
-            frappe.db.commit()
+            # KHÔNG gọi frappe.db.commit() ở đây để tránh phá vỡ transaction cha
             
             # --- DETAILED DATABASE COST LOGGING ---
             try:
@@ -517,10 +511,9 @@ class CostTrackingService(BaseService):
             today_str = date.today().isoformat()
             daily_cost_key = f"ai_cost:daily:{today_str}"
             
-            # Increment daily cost in Redis
-            current_daily_cost = frappe.cache().get_value(daily_cost_key) or 0.0
-            new_daily_cost = float(current_daily_cost) + cost
-            frappe.cache().set_value(daily_cost_key, new_daily_cost, expires_in_sec=86400 * 2)
+            # Increment daily cost in Redis using atomic incrbyfloat
+            new_daily_cost = frappe.cache().redis_server.incrbyfloat(daily_cost_key, cost)
+            frappe.cache().redis_server.expire(daily_cost_key, 86400 * 2)
             
             max_daily = self._get_max_cost_per_day()
             
@@ -571,10 +564,9 @@ class CostTrackingService(BaseService):
 # Convenience functions for quick access
 def get_total_cost_today() -> float:
     """Get total cost for today."""
-    service = CostTrackingService()
     today = date.today()
-    costs = service.get_list(filters={"cost_date": today}, fields=["*"], limit=0)
-    return sum(ct.get("total_cost") or 0.0 for ct in costs)
+    result = frappe.db.sql("SELECT SUM(total_cost) FROM `tabAI Grading Cost Track` WHERE cost_date = %s", today)
+    return result[0][0] if result and result[0][0] else 0.0
 
 
 def get_provider_cost_summary(provider: str, days: int = 30) -> Dict[str, Any]:

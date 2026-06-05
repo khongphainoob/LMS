@@ -13,6 +13,13 @@
             <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-lime-500">{{ __('Tomosa Intelligence') }}</p>
           </div>
         </div>
+        <button
+          @click="go('AIHelpCenter')"
+          class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg active:scale-95"
+        >
+          <span>📖</span>
+          <span class="hidden sm:inline">{{ __('User Guide') }}</span>
+        </button>
       </div>
     </header>
 

@@ -97,7 +97,7 @@ async function createSession() {
 				
 				router.push({
 					name: 'MCQGradingWorkspace',
-					params: { sessionSlug: res.route_slug || sessionNameId }
+					params: { sessionSlug: sessionNameId }
 				})
 			}
 			reader.readAsDataURL(uploadedFile.value)

@@ -154,6 +154,13 @@
 					  >
 						  <span>✓</span> <span class="hidden sm:inline">{{ __('Approve & Next') }}</span>
 					  </button>
+						<button
+							class="flex items-center gap-1 rounded bg-white border border-gray-200 px-3 py-1 text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all"
+							@click="flagCurrent"
+						>
+							<icons.Flag class="h-3 w-3" />
+							{{ __('Flag') }}
+						</button>
           </div>
         </div>
 
@@ -217,7 +224,7 @@
 				<div v-if="currentSub" class="flex-1 flex flex-col overflow-hidden">
 					<div class="border-b border-gray-100 p-4">
 						<div class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">{{ __('AI Suggested Score') }}</div>
-						<div v-if="currentSub.status === 'done'">
+						<div v-if="['done', 'flagged', 'grading'].includes(currentSub.status?.toLowerCase())">
 							<div class="flex items-center gap-1.5">
 								<span class="text-3xl font-black font-mono tracking-tighter text-blue-700">
 									{{ totalScore }}
@@ -238,7 +245,7 @@
 
 					<div class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6">
 						<!-- Feedback Section -->
-						<div v-if="currentSub.status === 'done'" class="space-y-3">
+						<div v-if="['done', 'flagged', 'grading'].includes(currentSub.status?.toLowerCase())" class="space-y-3">
 							<label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ __('AI Notes') }}</label>
 							<div class="rounded-lg border border-[#6d28d9]/20 bg-[#6d28d9]/5 p-3 text-[11px] text-gray-600 leading-relaxed">
 								{{ parsedFeedback?.overall_feedback || parsedFeedback?.summary || currentSub.ai_feedback || __('No detailed feedback available.') }}
@@ -246,10 +253,10 @@
 						</div>
 
 					<!-- Detailed Table -->
-						<div v-if="currentSub.status === 'done' && parsedCriteria.length" class="space-y-3">
+						<div v-if="['done', 'flagged', 'grading'].includes(currentSub.status?.toLowerCase()) && activeCriteria.length" class="space-y-3">
 							<label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ __('Grading Criteria') }}</label>
 							<div class="divide-y divide-gray-100 rounded-lg border border-gray-100 bg-white overflow-hidden shadow-sm">
-								<div v-for="q in parsedCriteria" :key="q.question_no || q.q_no" class="flex flex-col p-3 text-[11px] hover:bg-gray-50 transition-colors">
+								<div v-for="q in activeCriteria" :key="q.question_no || q.q_no" class="flex flex-col p-3 text-[11px] hover:bg-gray-50 transition-colors">
 									
 									<!-- Header của Câu hỏi -->
 									<div class="flex items-center justify-between mb-1">
@@ -303,7 +310,7 @@
 						<!-- Evaluation Widget for each grading -->
 						<div class="mt-6 flex justify-center pb-4">
 							<AIFeedbackWidget 
-								v-if="currentSub.status === 'done' || currentSub.status === 'flag'"
+								v-if="currentSub && ['done', 'flagged', 'grading'].includes(currentSub.status?.toLowerCase())"
 								serviceType="AI Grading"
 								:referenceId="currentSub.id"
 								:key="currentSub.id"
@@ -329,7 +336,7 @@
 						</button>
 						<button
 							class="flex-[2] rounded-lg bg-blue-600 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 shadow-sm"
-							@click="saveManualScores"
+							@click="saveCurrent('Grading')"
 						>
 							✓ {{ __('Save Scores') }}
 						</button>
@@ -432,14 +439,12 @@
 				</div>
 			</template>
 			<template #actions>
-				<div class="flex justify-end gap-2 px-4 pb-4">
-					<button class="rounded-lg border px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 bg-white" @click="showAddStudentModal = false">
-						{{ __('Cancel') }}
-					</button>
-					<button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90" @click="addStudent" :loading="isAddingStudent" :disabled="!newStudent.email">
-            {{ __('Add & Start Grading') }}
-          </button>
-				</div>
+				<div class="flex justify-end gap-3 p-4">
+              <button class="rounded-xl border border-slate-100 bg-white px-6 py-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50" @click="showAddStudentModal = false">{{ __('Cancel') }}</button>
+              <button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg disabled:opacity-50" @click="addStudent" :disabled="isAddingStudent">
+				{{ isAddingStudent ? __('Saving...') : __('Add & Start Grading') }}
+			  </button>
+            </div>
 			</template>
 		</Dialog>
 
@@ -511,14 +516,12 @@
 				</div>
 			</template>
 			<template #actions>
-				<div class="flex justify-end gap-2 px-4 pb-4">
-					<button class="rounded-lg border px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 bg-white" @click="showEditStudentModal = false">
-						{{ __('Cancel') }}
-					</button>
-					<button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90" @click="saveEditedStudent">
-						{{ __('Save Changes') }}
-					</button>
-				</div>
+				<div class="flex justify-end gap-3 p-4">
+              <button class="rounded-xl border border-slate-100 bg-white px-6 py-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50" @click="showEditStudentModal = false">{{ __('Cancel') }}</button>
+              <button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg disabled:opacity-50" @click="saveEditedStudent" :disabled="isSavingStudent">
+				{{ isSavingStudent ? __('Saving...') : __('Save changes') }}
+			  </button>
+            </div>
 			</template>
 		</Dialog>
 	</section>
@@ -558,12 +561,13 @@ const showAddStudentModal = ref(false)
 const showEditStudentModal = ref(false)
 const showDocument = ref(true)
 
-const newStudent = reactive({ name: '', sbd: '', email: '', images: [] })
 const isAddingStudent = ref(false)
+const isSavingStudent = ref(false)
 const isBatchGrading = ref(false)
 const isGradingCurrent = ref(false)
 const paperInput = ref(null)
 
+const newStudent = reactive({ name: '', sbd: '', email: '', images: [] })
 const editingStudent = reactive({ name: '', sbd: '', id: '', images: [], newImages: [] })
 
 const showNewCamera = ref(false)
@@ -684,25 +688,30 @@ const parsedFeedback = computed(() => {
   }
 })
 
-const parsedCriteria = computed(() => {
-  if (parsedFeedback.value?.mcq_results) {
-    return parsedFeedback.value.mcq_results
+const activeCriteria = ref([])
+
+watch([() => parsedFeedback.value, () => currentSub.value?.id], ([fb, subId]) => {
+  if (fb?.mcq_results) {
+    activeCriteria.value = JSON.parse(JSON.stringify(fb.mcq_results))
+    return
   }
   
   if (currentSub.value?.criteria_scores) {
     try {
       const raw = currentSub.value.criteria_scores
-      if (typeof raw === 'string') return JSON.parse(raw)
-      return Array.isArray(raw) ? raw : []
+      let parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+      activeCriteria.value = Array.isArray(parsed) ? JSON.parse(JSON.stringify(parsed)) : []
+      return
     } catch (e) {}
   }
-  return []
-})
+  
+  activeCriteria.value = []
+}, { immediate: true })
 
 const totalScore = computed(() => {
-  if (parsedCriteria.value && parsedCriteria.value.length > 0) {
+  if (activeCriteria.value && activeCriteria.value.length > 0) {
     let newTotal = 0
-    for (const q of parsedCriteria.value) {
+    for (const q of activeCriteria.value) {
       let qScore = 0
       if (q.details && q.details.length) {
         for (const d of q.details) {
@@ -727,11 +736,15 @@ const totalScore = computed(() => {
 async function deleteExistingImage(img) {
   if (!confirm(__('Are you sure you want to delete this image?'))) return
   try {
-    await createResource({ url: 'frappe.client.delete', auto: false }).submit({
-      doctype: 'File',
-      name: img.name
-    })
-    editingStudent.images = editingStudent.images.filter(i => i.file_url !== img.file_url)
+    		await createResource({ url: 'lms.lms.services.ai_grading.api.delete_ai_grading_submission_attachment', auto: false }).submit({
+			submission: editingStudent.id,
+			file_url: typeof img === 'string' ? img : img.file_url
+		})
+    		editingStudent.images = editingStudent.images.filter(i => {
+			const u = typeof i === 'string' ? i : i.file_url;
+			const targetU = typeof img === 'string' ? img : img.file_url;
+			return u !== targetU;
+		})
     frappe.show_alert({ message: __('Deleted image'), indicator: 'blue' })
     await loadSubmissions()
   } catch (e) {
@@ -896,6 +909,8 @@ function statusLabel(status) {
 		done: __('Approved'),
 		grading: __('Grading'),
 		flag: __('Need review'),
+        flagged: __('Flagged'),
+        failed: __('Failed'),
 		pending: __('Pending'),
 	}
 	return map[status] || status
@@ -1008,7 +1023,7 @@ async function handleGradeSubmission(sub) {
   await gradeCurrent()
 }
 
-async function saveManualScores() {
+async function saveCurrent(targetStatus = 'Done') {
 	if (!currentSub.value) return
 	
 	const feedback = parsedFeedback.value
@@ -1019,6 +1034,7 @@ async function saveManualScores() {
 
 	let newTotal = 0
 	if (feedback.mcq_results) {
+		feedback.mcq_results = activeCriteria.value
 		for (const q of feedback.mcq_results) {
 			let qScore = 0
 			if (q.details && q.details.length) {
@@ -1049,14 +1065,24 @@ async function saveManualScores() {
 			data: {
 				score: newTotal,
 				ai_feedback: newFeedbackStr,
-				status: 'Done'
+				status: targetStatus
 			}
 		})
-		frappe.show_alert({ message: __('Scores updated successfully!'), indicator: 'green' })
+		if (targetStatus === 'Flagged') {
+			frappe.show_alert({ message: __('Flagged {0} \'s post').format(currentSub.value.student_name), indicator: 'orange' })
+		} else if (targetStatus === 'Done') {
+			frappe.show_alert({ message: __('Approved {0} \'s post').format(currentSub.value.student_name), indicator: 'green' })
+		} else {
+			frappe.show_alert({ message: __('Saved {0} \'s post').format(currentSub.value.student_name), indicator: 'blue' })
+		}
 		await loadSubmissions()
 	} catch (error) {
 		frappe.msgprint(__('Error saving scores: ') + error.message)
 	}
+}
+
+function flagCurrent() {
+	saveCurrent('Flagged')
 }
 
 function exportGrades() {
@@ -1092,7 +1118,8 @@ function handleEditSubmission(sub) {
 }
 
 async function saveEditedStudent() {
-	if (!editingStudent.id) return
+	if (!editingStudent.id || isSavingStudent.value) return
+	isSavingStudent.value = true
 	try {
 		// Save name/sbd
 		await createResource({
@@ -1113,7 +1140,7 @@ async function saveEditedStudent() {
 			const imagesData = await Promise.all(newFiles.map(f => fileToDataUrl(f)))
 			const imagesNames = newFiles.map(f => f.name)
 
-			await createResource({ url: 'lms.lms.api.upload_ai_grading_submission_attachments', auto: false }).submit({
+			await createResource({ url: 'lms.lms.services.ai_grading.api.upload_ai_grading_submission_attachments', auto: false }).submit({
 				submission: editingStudent.id,
 				images_data: imagesData,
 				images_names: imagesNames
@@ -1125,6 +1152,8 @@ async function saveEditedStudent() {
 		await loadSubmissions()
 	} catch (e) {
 		console.error(e)
+	} finally {
+		isSavingStudent.value = false
 	}
 }
 
@@ -1133,6 +1162,7 @@ async function handleDeleteSubmission(sub) {
 }
 
 async function approveAndNext() {
+  await saveCurrent('Done')
   nextSub()
 }
 

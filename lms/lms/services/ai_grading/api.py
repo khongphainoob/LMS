@@ -11,11 +11,13 @@ from lms.lms.services.ai_rate_limit import check_and_record_usage
 @frappe.whitelist()
 def get_rubric_templates():
 	"""Returns a list of available rubric templates."""
+	frappe.only_for(["Course Creator", "Moderator", "Batch Evaluator"])
 	return frappe.get_list("LMS Rubric Template", fields=["name", "title", "description", "is_active"])
 
 @frappe.whitelist()
 def get_rubric_stats():
 	"""Returns statistics for rubrics."""
+	frappe.only_for(["Course Creator", "Moderator", "Batch Evaluator"])
 	return {
 		"total_templates": frappe.db.count("LMS Rubric Template"),
 		"total_criteria": frappe.db.count("LMS Rubric Criterion")
@@ -26,6 +28,9 @@ def get_rubric_detail(name):
 	"""Returns full detail of a rubric template including criteria."""
 	if not name:
 		frappe.throw(_("Rubric name is required"))
+	
+	from lms.lms.services._permissions import ensure_doc_ownership
+	ensure_doc_ownership("LMS Rubric Template", name)
 	
 	rubric = frappe.get_doc("LMS Rubric Template", name)
 	return {
@@ -38,6 +43,8 @@ def get_rubric_detail(name):
 @frappe.whitelist()
 def export_rubric(name):
 	"""Exports a rubric template to a Word document with MathJax support."""
+	from lms.lms.services._permissions import ensure_doc_ownership
+	ensure_doc_ownership("LMS Rubric Template", name)
 	from lms.lms.services.rubric_builder.rubric_builder_service import RubricBuilderService
 	return RubricBuilderService().export_rubric(name)
 
@@ -53,7 +60,7 @@ def get_ai_grading_sessions(grading_type=None, start=0, limit=20, search=None):
 
 	return frappe.get_list("AI Grading Session",
 		filters=filters,
-		fields=["name", "session_name", "route_slug", "grading_type", "subject", "level", "status", "modified"],
+		fields=["name", "session_name", "grading_type", "subject", "level", "status", "modified"],
 		order_by="modified desc",
 		limit_start=start,
 		limit_page_length=limit,
@@ -87,7 +94,7 @@ def create_ai_grading_session(data):
 	if isinstance(data, str):
 		data = json.loads(data)
 	doc = frappe.new_doc("AI Grading Session")
-	doc.route_slug = _slugify_ai_grading_session_name(data.get("session_name", ""))
+	doc.session_name = data.get("session_name", "")
 	allowed_fields = ["session_name", "batch", "course", "reference_doc_type", "reference_doc", "rubric", "grading_type", "subject", "level", "custom_instructions", "max_score", "min_word_count", "max_word_count", "ai_notes", "status"]
 	safe_data = {k: v for k, v in data.items() if k in allowed_fields}
 	doc.update(safe_data)
@@ -108,26 +115,27 @@ def create_ai_grading_session(data):
 
 	return {
 		"name": doc.name,
-		"session_name": doc.session_name,
-		"route_slug": doc.route_slug
+		"session_name": doc.session_name
 	}
 
 @frappe.whitelist()
 def update_ai_grading_session(session, data):
 	"""Update an existing AI Grading Session."""
+	_ensure_ai_grading_access_for_session(session)
 	if isinstance(data, str):
 		data = json.loads(data)
 	
 	doc = frappe.get_doc("AI Grading Session", session)
 	doc.update(data)
 	if "session_name" in data:
-		doc.route_slug = _slugify_ai_grading_session_name(data.get("session_name"))
+		doc.session_name = data.get("session_name")
 	doc.save()
 	return doc.name
 
 @frappe.whitelist()
 def delete_ai_grading_session(session):
 	"""Delete an AI Grading Session and all associated submissions."""
+	_ensure_ai_grading_access_for_session(session)
 	frappe.db.delete("AI Grading Submission", {"session": session})
 	frappe.delete_doc("AI Grading Session", session)
 	return True
@@ -135,11 +143,13 @@ def delete_ai_grading_session(session):
 @frappe.whitelist()
 def get_ai_grading_session_detail(session):
 	"""Get details for a single AI Grading Session."""
+	_ensure_ai_grading_access_for_session(session)
 	return get_ai_grading_session_by_name(session)
 
 @frappe.whitelist()
 def get_ai_grading_submissions(session):
 	"""Get all submissions for a given session."""
+	_ensure_ai_grading_access_for_session(session)
 	submissions = frappe.get_all(
 		"AI Grading Submission",
 		filters={"session": session},
@@ -167,70 +177,78 @@ def get_ai_grading_submissions(session):
 
 @frappe.whitelist()
 def sync_ai_grading_submissions(session):
-	"""Sync student submissions from the referenced LMS Assignment/Quiz."""
+	"""Sync student submissions from the referenced LMS Assignment/Quiz.
+	Also ensures all enrolled students in the batch/course are added to the session."""
+	_ensure_ai_grading_access_for_session(session)
 	session_doc = frappe.get_doc("AI Grading Session", session)
-	if not session_doc.reference_doc:
-		return {"status": "info", "message": "No reference document linked."}
 
-	valid_members = None
+	enrollments = []
 	if session_doc.batch:
-		enrollments = frappe.get_all(
-			"LMS Enrollment",
-			filters={"enrollment_from_batch": session_doc.batch},
-			fields=["member"]
-		)
-		valid_members = {en.member for en in enrollments}
-
+		enrollments = frappe.get_all("LMS Enrollment", filters={"enrollment_from_batch": session_doc.batch}, fields=["member", "member_name"])
+	elif session_doc.course:
+		enrollments = frappe.get_all("LMS Enrollment", filters={"course": session_doc.course}, fields=["member", "member_name"])
+		
 	synced_count = 0
-	if session_doc.reference_doc_type == "LMS Assignment":
-		submissions = frappe.get_all(
-			"LMS Assignment Submission",
-			filters={"assignment": session_doc.reference_doc},
-			fields=["name", "member", "member_name"]
-		)
-		for sub in submissions:
-			if valid_members is not None and sub.member not in valid_members:
-				continue
-			existing = frappe.get_all("AI Grading Submission", filters={"session": session, "student": sub.member}, limit=1)
-			if existing:
-				frappe.db.set_value("AI Grading Submission", existing[0].name, "lms_assignment_submission", sub.name)
-				synced_count += 1
-			else:
-				new_sub = frappe.get_doc({
-					"doctype": "AI Grading Submission",
-					"session": session,
-					"student": sub.member,
-					"student_name": sub.member_name,
-					"status": "Pending",
-					"lms_assignment_submission": sub.name
-				})
-				new_sub.insert(ignore_permissions=True)
-				synced_count += 1
+	
+	# Add all enrolled students first (so teacher can manually grade even if no LMS submission)
+	for en in enrollments:
+		existing = frappe.get_all("AI Grading Submission", filters={"session": session, "student": en.member}, limit=1)
+		if not existing:
+			new_sub = frappe.get_doc({
+				"doctype": "AI Grading Submission",
+				"session": session,
+				"student": en.member,
+				"student_name": en.member_name,
+				"status": "Pending"
+			})
+			new_sub.insert(ignore_permissions=True)
+			synced_count += 1
 
-	elif session_doc.reference_doc_type == "LMS Quiz":
-		submissions = frappe.get_all(
-			"LMS Quiz Submission",
-			filters={"quiz": session_doc.reference_doc},
-			fields=["name", "member", "member_name"]
-		)
-		for sub in submissions:
-			if valid_members is not None and sub.member not in valid_members:
-				continue
-			existing = frappe.get_all("AI Grading Submission", filters={"session": session, "student": sub.member}, limit=1)
-			if existing:
-				frappe.db.set_value("AI Grading Submission", existing[0].name, "lms_quiz_submission", sub.name)
-				synced_count += 1
-			else:
-				new_sub = frappe.get_doc({
-					"doctype": "AI Grading Submission",
-					"session": session,
-					"student": sub.member,
-					"student_name": sub.member_name,
-					"status": "Pending",
-					"lms_quiz_submission": sub.name
-				})
-				new_sub.insert(ignore_permissions=True)
-				synced_count += 1
+	# Then sync actual submissions from LMS Assignment/Quiz
+	if session_doc.reference_doc:
+		if session_doc.reference_doc_type == "LMS Assignment":
+			submissions = frappe.get_all(
+				"LMS Assignment Submission",
+				filters={"assignment": session_doc.reference_doc},
+				fields=["name", "member", "member_name"]
+			)
+			for sub in submissions:
+				existing = frappe.get_all("AI Grading Submission", filters={"session": session, "student": sub.member}, limit=1)
+				if existing:
+					frappe.db.set_value("AI Grading Submission", existing[0].name, "lms_assignment_submission", sub.name)
+				else:
+					new_sub = frappe.get_doc({
+						"doctype": "AI Grading Submission",
+						"session": session,
+						"student": sub.member,
+						"student_name": sub.member_name,
+						"status": "Pending",
+						"lms_assignment_submission": sub.name
+					})
+					new_sub.insert(ignore_permissions=True)
+					synced_count += 1
+
+		elif session_doc.reference_doc_type == "LMS Quiz":
+			submissions = frappe.get_all(
+				"LMS Quiz Submission",
+				filters={"quiz": session_doc.reference_doc},
+				fields=["name", "member", "member_name"]
+			)
+			for sub in submissions:
+				existing = frappe.get_all("AI Grading Submission", filters={"session": session, "student": sub.member}, limit=1)
+				if existing:
+					frappe.db.set_value("AI Grading Submission", existing[0].name, "lms_quiz_submission", sub.name)
+				else:
+					new_sub = frappe.get_doc({
+						"doctype": "AI Grading Submission",
+						"session": session,
+						"student": sub.member,
+						"student_name": sub.member_name,
+						"status": "Pending",
+						"lms_quiz_submission": sub.name
+					})
+					new_sub.insert(ignore_permissions=True)
+					synced_count += 1
 
 	frappe.db.commit()
 	return {"status": "success", "synced_count": synced_count}
@@ -381,25 +399,36 @@ def add_ai_grading_submission(
 	paper_images_data=None,
 	paper_images_names=None,
 ):
+	_ensure_ai_grading_access_for_session(session)
 	if not session or not frappe.db.exists("AI Grading Session", session):
 		frappe.throw(_("AI Grading Session not found."))
 
 	student = (student or "").strip()
 	user_name = student
-	if not frappe.db.exists("User", user_name):
-		user_name = frappe.db.get_value("User", {"username": student}, "name")
+	
+	if student:
+		if not frappe.db.exists("User", user_name):
+			user_name = frappe.db.get_value("User", {"username": student}, "name")
+		if not user_name:
+			# If a specific email is provided but not found, we can still just store it,
+			# but since it's a Link field, it might fail. So let's leave it blank.
+			user_name = None
+	else:
+		user_name = None
 
-	if not user_name:
-		frappe.throw(_("Student not found."))
-
-	existing = frappe.db.exists("AI Grading Submission", {"session": session, "student": user_name})
-	if existing:
-		return frappe.get_doc("AI Grading Submission", existing).as_dict()
+	if user_name:
+		existing = frappe.db.exists("AI Grading Submission", {"session": session, "student": user_name})
+		if existing:
+			return frappe.get_doc("AI Grading Submission", existing).as_dict()
 
 	doc = frappe.new_doc("AI Grading Submission")
 	doc.session = session
-	doc.student = user_name
-	doc.student_name = student_name or frappe.db.get_value("User", user_name, "full_name")
+	if user_name:
+		doc.student = user_name
+	
+	doc.student_name = student_name
+	if user_name and not student_name:
+		doc.student_name = frappe.db.get_value("User", user_name, "full_name")
 	doc.student_sbd = student_sbd
 	doc.status = "Pending"
 	doc.insert()
@@ -427,6 +456,60 @@ def add_ai_grading_submission(
 		doc.save(ignore_permissions=True)
 
 	return doc.as_dict()
+
+@frappe.whitelist()
+def upload_ai_grading_submission_attachments(submission, images_data=None, images_names=None):
+	if not frappe.db.exists("AI Grading Submission", submission):
+		frappe.throw(_("Submission not found."))
+	doc = frappe.get_doc("AI Grading Submission", submission)
+	_ensure_ai_grading_access_for_session(doc.session)
+
+	image_payloads = []
+	if images_data:
+		image_payloads = json.loads(images_data) if isinstance(images_data, str) else images_data
+
+	image_names_list = []
+	if images_names:
+		image_names_list = json.loads(images_names) if isinstance(images_names, str) else images_names
+
+	saved_urls = []
+	for idx, payload in enumerate(image_payloads):
+		name = image_names_list[idx] if idx < len(image_names_list) else None
+		url = _save_ai_grading_submission_image_data(payload, name, doc.doctype, doc.name)
+		if url: saved_urls.append(url)
+
+	if saved_urls and not doc.paper_image:
+		doc.paper_image = saved_urls[0]
+		doc.save(ignore_permissions=True)
+
+	return {"status": "success", "urls": saved_urls}
+
+@frappe.whitelist()
+def delete_ai_grading_submission_attachment(submission, file_url):
+	if not frappe.db.exists("AI Grading Submission", submission):
+		frappe.throw(_("Submission not found."))
+	doc = frappe.get_doc("AI Grading Submission", submission)
+	_ensure_ai_grading_access_for_session(doc.session)
+
+	# Find the file doc
+	file_docs = frappe.get_all(
+		"File",
+		filters={
+			"attached_to_doctype": "AI Grading Submission",
+			"attached_to_name": submission,
+			"file_url": file_url
+		}
+	)
+	
+	for fd in file_docs:
+		frappe.delete_doc("File", fd.name, ignore_permissions=True)
+
+	# Clear paper_image if it was the primary
+	if doc.paper_image == file_url:
+		doc.paper_image = None
+		doc.save(ignore_permissions=True)
+
+	return {"status": "success"}
 
 def _save_ai_grading_submission_image_data(data_url, file_name, attached_to_doctype, attached_to_name):
 	if not data_url or not isinstance(data_url, str): return None
@@ -457,10 +540,11 @@ def _save_ai_grading_submission_image_data(data_url, file_name, attached_to_doct
 
 @frappe.whitelist()
 def get_ai_grading_session_by_name(session_name):
+	_ensure_ai_grading_access_for_session(session_name)
 	session_detail = frappe.db.get_value(
 		"AI Grading Session",
 		session_name,
-		["name", "session_name", "route_slug", "grading_type", "subject", "level", "status", "ai_notes", "reference_doc_type", "reference_doc"],
+		["name", "session_name", "grading_type", "subject", "level", "status", "ai_notes", "reference_doc_type", "reference_doc"],
 		as_dict=1,
 	)
 	if not session_detail:
@@ -470,6 +554,7 @@ def get_ai_grading_session_by_name(session_name):
 
 @frappe.whitelist()
 def save_ai_grading_result(submission_id, data):
+	_ensure_ai_grading_access_for_submission(submission_id)
 	if isinstance(data, str): data = json.loads(data)
 	doc = frappe.get_doc("AI Grading Submission", submission_id)
 	doc.update(data)
@@ -478,29 +563,15 @@ def save_ai_grading_result(submission_id, data):
 
 @frappe.whitelist()
 def get_ai_grading_session_by_slug(session_slug, grading_type=None):
-	normalized_slug = _slugify_ai_grading_session_name(session_slug)
-	detail_fields = ["name", "session_name", "route_slug", "grading_type", "subject", "level", "status", "ai_notes", "reference_doc_type", "reference_doc"]
+	detail_fields = ["name", "session_name", "grading_type", "subject", "level", "status", "ai_notes", "reference_doc_type", "reference_doc"]
 	
-	filters = {"route_slug": normalized_slug}
-	if grading_type: filters["grading_type"] = grading_type
-	
-	session = frappe.db.get_value("AI Grading Session", filters, detail_fields, as_dict=1)
-	if not session:
-		# Fallback to name
-		session = frappe.db.get_value("AI Grading Session", session_slug, detail_fields, as_dict=1)
+	# Remove grading_type filter as it can break strict ID lookup if frontend passes mismatched type
+	session = frappe.db.get_value("AI Grading Session", {"name": session_slug}, detail_fields, as_dict=1)
 		
 	if not session:
-		frappe.throw(_("Session not found."))
+		frappe.throw(_("Session not found. Slug received: {0}").format(session_slug))
+	_ensure_ai_grading_access_for_session(session.name)
 	return session
-
-def _slugify_ai_grading_session_name(value):
-	import unicodedata
-	text = (value or "").strip().lower()
-	text = text.replace("đ", "d").replace("Đ", "d")
-	text = unicodedata.normalize("NFKD", text)
-	text = "".join(c for c in text if not unicodedata.combining(c))
-	text = re.sub(r"[^a-z0-9]+", "-", text)
-	return text.strip("-")
 
 @frappe.whitelist()
 def get_ai_grading_analytics():
@@ -520,6 +591,7 @@ def get_ai_grading_dissatisfaction_feed(limit=20):
 
 @frappe.whitelist()
 def get_ai_grading_session_statistics(session):
+	_ensure_ai_grading_access_for_session(session)
 	submissions = frappe.get_list("AI Grading Submission", filters={"session": session}, fields=["name", "score", "status"])
 	graded = [s for s in submissions if s.status == "Done"]
 	return {
@@ -530,16 +602,33 @@ def get_ai_grading_session_statistics(session):
 
 @frappe.whitelist()
 def send_ai_grading_result_email(submission):
+	_ensure_ai_grading_access_for_submission(submission)
 	sub = frappe.get_doc("AI Grading Submission", submission)
-	frappe.sendmail(recipients=[sub.student], subject=_("AI Grading Result"), content=f"Your score: {sub.score}")
+	
+	subject = _("AI Grading Result for {0}").format(sub.student_name or sub.student)
+	content = f"""
+	<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+		<h2 style="color: #1d4ed8;">{_("Grading Results Available")}</h2>
+		<p>{_("Hello")},</p>
+		<p>{_("Your submission has been graded by our AI system.")}</p>
+		<div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+			<p style="margin: 0; font-size: 16px;"><strong>{_("Score")}: <span style="color: #059669; font-size: 20px;">{sub.score}</span> / 10</strong></p>
+		</div>
+		<p style="font-size: 12px; color: #6b7280;">{_("This is an automated message. Please contact your instructor for more details.")}</p>
+	</div>
+	"""
+	
+	frappe.sendmail(recipients=[sub.student], subject=subject, content=content)
 	return True
 
 @frappe.whitelist()
 def get_ai_grading_session_attachments(session):
+	_ensure_ai_grading_access_for_session(session)
 	return frappe.get_all("File", filters={"attached_to_doctype": "AI Grading Session", "attached_to_name": session}, fields=["file_url", "file_name"])
 
 @frappe.whitelist()
 def upload_ai_grading_session_attachment(session, file_url, file_name=None):
+	_ensure_ai_grading_access_for_session(session)
 	# Implementation simplified for refactoring
 	return True
 
@@ -567,7 +656,7 @@ def _ensure_ai_grading_access_for_submission(submission: str, ptype: str = "writ
 	if not submission:
 		frappe.throw(_("Submission is required."))
 	doc = frappe.get_doc("AI Grading Submission", submission)
-	if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+	if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
 		frappe.throw(_("Không có quyền thực hiện trên Submission này."), frappe.PermissionError)
 
 
@@ -575,7 +664,7 @@ def _ensure_ai_grading_access_for_session(session: str, ptype: str = "write") ->
 	if not session:
 		frappe.throw(_("Session is required."))
 	doc = frappe.get_doc("AI Grading Session", session)
-	if doc.owner != frappe.session.user and not frappe.has_role("System Manager"):
+	if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
 		frappe.throw(_("Không có quyền thực hiện trên Session này."), frappe.PermissionError)
 
 

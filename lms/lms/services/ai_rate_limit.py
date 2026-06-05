@@ -7,7 +7,8 @@ class AILimitExceededError(frappe.ValidationError):
 
 def init_default_tiers():
     """Tự động khởi tạo 3 mức Tier cơ bản nếu chưa có."""
-    if frappe.db.count("LMS AI Tier") > 0:
+    if frappe.cache().get_value("lms_ai_tiers_initialized") or frappe.db.count("LMS AI Tier") > 0:
+        frappe.cache().set_value("lms_ai_tiers_initialized", True, expires_in_sec=3600)
         return
         
     tiers = [
@@ -50,22 +51,27 @@ def init_default_tiers():
     frappe.db.commit()
 
 def get_user_tier(user):
+    cache_key = f"lms_ai_tier:{user}"
+    cached_tier = frappe.cache().get_value(cache_key)
+    if cached_tier:
+        return cached_tier
+
     init_default_tiers()
     
+    tier_name = None
     # 1. Kiểm tra xem User có được gán trong bảng LMS AI Tier User không
     try:
         if frappe.db.exists("LMS AI Tier User", user):
             tier_name = frappe.db.get_value("LMS AI Tier User", user, "ai_tier")
-            if tier_name:
-                return tier_name
-    except Exception:
-        pass
+    except Exception as e:
+        frappe.log_error(f"Error getting AI Tier for user {user}: {e}", "AI Rate Limit")
     
-    # 2. Fallback to default tier (Free)
-    default_tier = frappe.db.get_value("LMS AI Tier", {"is_default": 1}, "name")
-    if default_tier:
-        return default_tier
-    return "Free"
+    if not tier_name:
+        # 2. Fallback to default tier (Free)
+        tier_name = frappe.db.get_value("LMS AI Tier", {"is_default": 1}, "name") or "Free"
+        
+    frappe.cache().set_value(cache_key, tier_name, expires_in_sec=300)
+    return tier_name
 
 def check_and_record_usage(user, service_type, increment=1):
     """
@@ -73,10 +79,7 @@ def check_and_record_usage(user, service_type, increment=1):
     If not, records the usage.
     service_type: 'Chatbot', 'Socratic', 'Document Upload', 'Quiz Gen', 'Rubric Gen', 'Lesson Plan', 'AI Grading'
     """
-    # Exclude Administrator from limits
-    if user == "Administrator":
-        return True
-
+    # We check budget FIRST before allowing Administrator bypass
     # 1. Kiểm tra ngân sách ngày toàn hệ thống (Daily Budget Limit)
     try:
         from lms.lms.services.cost_tracking import CostTrackingService
@@ -95,9 +98,15 @@ def check_and_record_usage(user, service_type, increment=1):
                 title="Hạn mức ngân sách hệ thống đã hết"
             )
     except Exception as e:
+        frappe.log_error(f"Cost Tracking Error: {str(e)}\n{frappe.get_traceback()}", "Rate Limit Budget Check")
+        pass # allow to continue if cost tracking fails
         if isinstance(e, frappe.ValidationError):
             raise e
-        pass
+        frappe.log_error(frappe.get_traceback(), "Rate Limit Check Failed")
+
+    # Exclude Administrator from personal limits
+    if user == "Administrator":
+        return True
 
     tier_name = get_user_tier(user)
     if not tier_name:
@@ -134,9 +143,9 @@ def check_and_record_usage(user, service_type, increment=1):
             
         cache_key = f"ai_usage:{service_type}:{period}:{user}:{time_suffix}"
         
-        # frappe.cache().get_value returns None if not exists
-        current_usage = frappe.cache().get_value(cache_key) or 0
-        current_usage = int(current_usage)
+        # Dùng get_value/set_value thay vì redis_server trực tiếp để tránh lỗi
+        current_usage = frappe.cache().get_value(cache_key)
+        current_usage = int(current_usage) if current_usage else 0
         
         if current_usage + increment > max_requests:
             frappe.throw(
@@ -145,12 +154,15 @@ def check_and_record_usage(user, service_type, increment=1):
                 title="AI Usage Limit Reached"
             )
             
-        keys_to_increment.append({"key": cache_key, "ttl": ttl, "current": current_usage})
+        keys_to_increment.append({"key": cache_key, "ttl": ttl})
         
     # All checks passed, record usage
     for k in keys_to_increment:
-        new_val = k["current"] + increment
+        old_val = frappe.cache().get_value(k["key"])
+        old_val = int(old_val) if old_val else 0
+        new_val = old_val + increment
         frappe.cache().set_value(k["key"], new_val, expires_in_sec=k["ttl"])
+
         
     # Print to terminal/console as requested
     print(f"\n[AI USAGE LOG] User: '{user}' | Service: '{service_type}' | Consumed: {increment} | Tier: '{tier_name}'")

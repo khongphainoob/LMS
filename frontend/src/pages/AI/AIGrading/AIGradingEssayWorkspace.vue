@@ -220,7 +220,7 @@
 						<!-- Evaluation Widget for each grading -->
 						<div class="mx-auto max-w-3xl mt-6 flex justify-center">
 							<AIFeedbackWidget 
-								v-if="currentSub && (currentSub.status === 'done' || currentSub.status === 'flag')"
+								v-if="currentSub && ['done', 'flagged', 'grading'].includes(currentSub.status?.toLowerCase())"
 								serviceType="AI Grading"
 								:referenceId="currentSub.id"
 								:key="currentSub.id"
@@ -263,7 +263,7 @@
 						<div class="text-[10px] font-bold uppercase tracking-widest text-gray-400">{{ __('Key to Grading') }}</div>
 
 						<div
-							v-for="(crit, ci) in criteria"
+							v-for="(crit, ci) in activeCriteria"
 							:key="ci"
 							class="rounded-xl border p-4 transition-all"
 							:class="[
@@ -298,12 +298,12 @@
 					<div class="p-4 border-t border-gray-100 bg-white">
 						<button
 							class="w-full rounded-lg bg-blue-600 py-3 text-xs font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
-							@click="approveCurrent"
+							@click="saveCurrent('Grading')"
 							:disabled="isApproving"
 						>
 							<icons.Loader2 v-if="isApproving" class="h-3.5 w-3.5 inline mr-1.5 animate-spin" />
 							<icons.CheckCircle v-else class="h-3.5 w-3.5 inline mr-1.5" />
-							{{ isApproving ? __('SAVING ...') : __('BROWSE & SAVE POINTS') }}
+							{{ isApproving ? __('SAVING ...') : __('SAVE RESULTS') }}
 						</button>
 					</div>
 				</div>
@@ -352,7 +352,9 @@
 			<template #actions>
 				<div class="flex justify-end gap-3 p-4">
 					<button class="rounded-xl border border-slate-100 bg-white px-6 py-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50" @click="showAddStudentModal = false">{{ __('Cancel') }}</button>
-					<button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg" @click="addStudent">{{ __('Add Student(s)') }}</button>
+					<button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg disabled:opacity-50" @click="addStudent" :disabled="isAddingStudent">
+						{{ isAddingStudent ? __('Saving...') : __('Add') }}
+					</button>
 				</div>
 			</template>
 		</Dialog>
@@ -434,7 +436,9 @@
 			<template #actions>
 				<div class="flex justify-end gap-3 p-4">
 					<button class="rounded-xl border border-slate-100 bg-white px-6 py-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50" @click="showEditStudentModal = false">{{ __('Cancel') }}</button>
-					<button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg" @click="saveEditedStudent">{{ __('Save changges') }}</button>
+					<button class="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black text-amber-400 uppercase tracking-widest shadow-lg disabled:opacity-50" @click="saveEditedStudent" :disabled="isSavingStudent">
+						{{ isSavingStudent ? __('Saving...') : __('Save changes') }}
+					</button>
 				</div>
 			</template>
 		</Dialog>
@@ -499,9 +503,7 @@ const addSubmissionResource = createResource({
 	url: 'lms.lms.services.ai_grading.api.add_ai_grading_submission',
 })
 
-const stopGradingResource = createResource({
-  url: 'lms.lms.services.ai_grading.api.stop_ai_grading',
-})
+const stopGradingResource = ref(null)
 
 const statusResource = createResource({
   url: 'lms.lms.services.ai_grading.api.get_ai_grading_status',
@@ -522,7 +524,10 @@ const isSyncing = ref(false)
 const showAddStudentModal = ref(false)
 const showDocument = ref(true)
 const showEditStudentModal = ref(false)
+const isAddingStudent = ref(false)
+const isSavingStudent = ref(false)
 
+// Adding a new student modal
 const newStudent = reactive({
 	name: '',
 	sbd: '',
@@ -627,15 +632,23 @@ function removeDraftImage(idx) {
 async function deleteExistingImage(img) {
 	if (!confirm(__('Are you sure you want to delete this photo?'))) return
 	try {
-		await createResource({ url: 'frappe.client.delete', auto: false }).submit({
-			doctype: 'File',
-			name: img.name 
+		await createResource({ url: 'lms.lms.services.ai_grading.api.delete_ai_grading_submission_attachment', auto: false }).submit({
+			submission: editingStudent.id,
+			file_url: typeof img === 'string' ? img : img.file_url
 		})
-		editingStudent.images = editingStudent.images.filter(i => i.file_url !== img.file_url)
+		editingStudent.images = editingStudent.images.filter(i => {
+			const u = typeof i === 'string' ? i : i.file_url;
+			const targetU = typeof img === 'string' ? img : img.file_url;
+			return u !== targetU;
+		})
 		frappe.show_alert({ message: __('Photo removed'), indicator: 'blue' })
 		await loadSubmissions()
 	} catch (e) {
-		editingStudent.images = editingStudent.images.filter(i => i.file_url !== img.file_url)
+		editingStudent.images = editingStudent.images.filter(i => {
+			const u = typeof i === 'string' ? i : i.file_url;
+			const targetU = typeof img === 'string' ? img : img.file_url;
+			return u !== targetU;
+		})
 	}
 }
 
@@ -730,13 +743,21 @@ const parsedFeedback = computed(() => {
   }
 })
 
-const criteria = computed(() => {
-  const fb = parsedFeedback.value
-  if (!fb) return []
+const activeCriteria = ref([])
 
-  // Standard criteria/results
-  if (Array.isArray(fb.criteria_results)) return fb.criteria_results
-  if (Array.isArray(fb.criteria)) return fb.criteria
+watch([() => parsedFeedback.value, () => currentSub.value?.id], ([fb, subId]) => {
+  if (!fb) {
+    if (currentSub.value?.criteria_scores) {
+      try {
+        const raw = currentSub.value.criteria_scores
+        let parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+        activeCriteria.value = Array.isArray(parsed) ? JSON.parse(JSON.stringify(parsed)) : []
+        return
+      } catch (e) {}
+    }
+    activeCriteria.value = []
+    return
+  }
 
   // Tier 4 Multi-Expert Pipeline (Mixed/MCQ/Solution)
   let results = []
@@ -765,8 +786,28 @@ const criteria = computed(() => {
     })
   }
 
-  return results
-})
+  if (results.length > 0) {
+    if (Array.isArray(fb.criteria_results)) {
+      results = results.concat(fb.criteria_results)
+    } else if (Array.isArray(fb.criteria)) {
+      results = results.concat(fb.criteria)
+    }
+    activeCriteria.value = JSON.parse(JSON.stringify(results))
+    return
+  }
+
+  // Standard criteria/results fallback
+  if (Array.isArray(fb.criteria_results)) {
+    activeCriteria.value = JSON.parse(JSON.stringify(fb.criteria_results))
+    return
+  }
+  if (Array.isArray(fb.criteria)) {
+    activeCriteria.value = JSON.parse(JSON.stringify(fb.criteria))
+    return
+  }
+
+  activeCriteria.value = []
+}, { immediate: true })
 
 const paperImages = computed(() => {
   const images = currentSub.value?.paper_images || []
@@ -775,13 +816,13 @@ const paperImages = computed(() => {
 const currentPaperImage = computed(() => paperImages.value[paperPageIndex.value] || '')
 const hasMultiplePaperImages = computed(() => paperImages.value.length > 1)
 
-const approvedCount = computed(() => submissions.value.filter(s => s.status === 'done').length)
-const flagCount = computed(() => submissions.value.filter(s => s.status === 'flag').length)
+const approvedCount = computed(() => submissions.value.filter(s => s.status?.toLowerCase() === 'done').length)
+const flagCount = computed(() => submissions.value.filter(s => ['flag', 'flagged'].includes(s.status?.toLowerCase())).length)
 const progressPercent = computed(() => submissions.value.length ? Math.round((approvedCount.value / submissions.value.length) * 100) : 0)
 
 const totalScore = computed(() => {
-	if (criteria.value && criteria.value.length > 0) {
-		return criteria.value.reduce((sum, c) => sum + (Number(c.score) || 0), 0)
+	if (activeCriteria.value && activeCriteria.value.length > 0) {
+		return activeCriteria.value.reduce((sum, c) => sum + (Number(c.score) || 0), 0)
 	}
 	if (parsedFeedback.value?.total_score != null) return parsedFeedback.value.total_score
 	return 0
@@ -809,7 +850,7 @@ function tagClass(status) {
 }
 
 function statusLabel(status) {
-	const map = { done: __('Approvered'), grading: __('Dotted'), flag: __('Needs correction'), pending: __('Wait') }
+	const map = { done: __('Approved'), grading: __('Grading'), flagged: __('Flagged'), flag: __('Flagged'), failed: __('Failed'), pending: __('Pending') }
 	return map[status] || status
 }
 
@@ -912,10 +953,12 @@ function handleEditSubmission(sub) {
   showEditStudentModal.value = true
 }
 async function addStudent() {
-	if (!newStudent.email || !resolvedSessionId.value) {
-		frappe.show_alert({ message: __('Please enter Student Email'), indicator: 'orange' })
+	if (!newStudent.name && !newStudent.sbd && !newStudent.email) {
+		frappe.show_alert({ message: __('Please enter at least one piece of student information (Name, SBD, or Email)'), indicator: 'orange' })
 		return
 	}
+	if (!resolvedSessionId.value || isAddingStudent.value) return
+	isAddingStudent.value = true
 	try {
 		const imageFiles = newStudent.images.filter(i => i.file).map(i => i.file)
 		const paperImagesData = await Promise.all(imageFiles.map(f => fileToDataUrl(f)))
@@ -937,11 +980,14 @@ async function addStudent() {
 		await loadSubmissions()
 	} catch (e) {
 		console.error(e)
+	} finally {
+		isAddingStudent.value = false
 	}
 }
 
 async function saveEditedStudent() {
-	if (!editingStudent.id) return
+	if (!editingStudent.id || isSavingStudent.value) return
+	isSavingStudent.value = true
 	try {
 		// Save name/sbd
 		await createResource({
@@ -962,7 +1008,7 @@ async function saveEditedStudent() {
 			const imagesData = await Promise.all(newFiles.map(f => fileToDataUrl(f)))
 			const imagesNames = newFiles.map(f => f.name)
 
-			await createResource({ url: 'lms.lms.api.upload_ai_grading_submission_attachments', auto: false }).submit({
+			await createResource({ url: 'lms.lms.services.ai_grading.api.upload_ai_grading_submission_attachments', auto: false }).submit({
 				submission: editingStudent.id,
 				images_data: imagesData,
 				images_names: imagesNames
@@ -1022,17 +1068,33 @@ async function runBatchGrading() {
 }
 
 function approveAndNext() {
-	approveCurrent()
+	saveCurrent('Done')
 	if (currentIdx.value < filteredSubmissions.value.length - 1) {
 		currentIdx.value++
 	}
 }
 
-async function approveCurrent() {
+async function saveCurrent(targetStatus = 'Done') {
 	if (!currentSub.value || isApproving.value) return
 	
 	const result = parsedFeedback.value ? { ...parsedFeedback.value } : {}
-	result.criteria_results = criteria.value
+	
+	let offset = 0
+	if (Array.isArray(result.mcq_results)) {
+		result.mcq_results = activeCriteria.value.slice(offset, offset + result.mcq_results.length)
+		offset += result.mcq_results.length
+	}
+	if (Array.isArray(result.solution_results)) {
+		result.solution_results = activeCriteria.value.slice(offset, offset + result.solution_results.length)
+		offset += result.solution_results.length
+	}
+	if (Array.isArray(result.criteria_results)) {
+		result.criteria_results = activeCriteria.value.slice(offset, offset + result.criteria_results.length)
+		offset += result.criteria_results.length
+	} else if (!result.mcq_results && !result.solution_results && activeCriteria.value.length > 0) {
+		result.criteria_results = activeCriteria.value
+	}
+
 	result.total_score = totalScore.value
 	result.overall_feedback = manualFeedback.value
 	
@@ -1043,10 +1105,16 @@ async function approveCurrent() {
 			data: {
 				score: totalScore.value,
 				ai_feedback: JSON.stringify(result),
-				status: 'Done'
+				status: targetStatus
 			}
 		})
-		frappe.show_alert({ message: __('Approved {0} \'s post').format(currentSub.value.name), indicator: 'green' })
+		if (targetStatus === 'Flagged') {
+			frappe.show_alert({ message: __('Flagged {0} \'s post').format(currentSub.value.name), indicator: 'orange' })
+		} else if (targetStatus === 'Done') {
+			frappe.show_alert({ message: __('Approved {0} \'s post').format(currentSub.value.name), indicator: 'green' })
+		} else {
+			frappe.show_alert({ message: __('Saved {0} \'s post').format(currentSub.value.name), indicator: 'blue' })
+		}
 		await loadSubmissions()
 	} catch (e) {
 		console.error(e)
@@ -1055,22 +1123,8 @@ async function approveCurrent() {
 	}
 }
 
-async function flagCurrent() {
-	if (!currentSub.value) return
-	try {
-		await createResource({
-			url: 'frappe.client.set_value',
-			auto: false
-		}).submit({
-			doctype: 'AI Grading Submission',
-			name: currentSub.value.id,
-			fieldname: 'status',
-			value: 'Flagged'
-		})
-		await loadSubmissions()
-	} catch (e) {
-		console.error(e)
-	}
+function flagCurrent() {
+	saveCurrent('Flagged')
 }
 
 function exportGrades() {

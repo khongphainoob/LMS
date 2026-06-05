@@ -60,8 +60,9 @@ def _run_rubric_generation_job(rubric_name, assessment_description, file_url, gr
     context_text = assessment_description or ""
     if file_url:
         try:
-            file_doc = frappe.get_doc("File", {"file_url": file_url})
-            file_content = get_content_from_file(file_doc.get_full_path())
+            from lms.lms.services._permissions import validate_file_path
+            file_path = validate_file_path(file_url)
+            file_content = get_content_from_file(file_path)
             context_text += f"\n\n--- NỘI DUNG FILE ĐÍNH KÈM ---\n{file_content}"
         except Exception as e:
             frappe.db.set_value("LMS Rubric Template", rubric_name, "description", f"Lỗi đọc file: {str(e)}")
@@ -146,6 +147,8 @@ def _run_rubric_generation_job(rubric_name, assessment_description, file_url, gr
 def delete_rubric(name):
     """Xóa Rubric Template."""
     frappe.only_for(["Moderator", "Course Creator", "Instructor", "Batch Evaluator", "System Manager"])
+    from lms.lms.services._permissions import ensure_doc_ownership
+    ensure_doc_ownership("LMS Rubric Template", name)
     frappe.delete_doc("LMS Rubric Template", name, ignore_permissions=True)
     return "ok"
 
@@ -154,6 +157,9 @@ def retry_generate_rubric(name):
     """Thử lại sinh Rubric nếu bị lỗi."""
     try:
         frappe.only_for(["Moderator", "Course Creator", "Instructor", "Batch Evaluator"])
+        
+        from lms.lms.services._permissions import ensure_doc_ownership
+        ensure_doc_ownership("LMS Rubric Template", name)
         
         from lms.lms.services.ai_rate_limit import check_and_record_usage
         check_and_record_usage(frappe.session.user, "Rubric Gen", increment=1)

@@ -24,7 +24,11 @@ class BaseService:
             doctype: Frappe DocType name this service manages
         """
         self.doctype = doctype
-        self.cache_prefix = f"lms:{doctype.lower().replace(' ', '_')}"
+
+    @property
+    def cache_prefix(self):
+        user = getattr(frappe.session, "user", "System")
+        return f"lms:{user}:{self.doctype.lower().replace(' ', '_')}"
 
     def get(self, name: str, fields: Optional[List[str]] = None, use_cache: bool = True) -> Dict[str, Any]:
         """
@@ -250,7 +254,8 @@ def cache_result(ttl: int = 300, cache_key_func: callable = None):
                 args_str = f"{args}_{kwargs}"
                 import hashlib
                 args_hash = hashlib.md5(args_str.encode()).hexdigest()[:12]
-                cache_key = f"{func.__name__}:{args_hash}"
+                user = getattr(frappe.session, "user", "System")
+                cache_key = f"{func.__name__}:{user}:{args_hash}"
 
             # Try to get from cache
             cached = frappe.cache().get_value(cache_key)

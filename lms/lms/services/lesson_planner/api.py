@@ -14,23 +14,9 @@ def extract_text_from_file(file_url):
     if not file_url:
         return ""
     try:
-        # Resolve path
-        if file_url.startswith("/files/"):
-            file_path = frappe.get_site_path("public", file_url.strip("/"))
-        elif file_url.startswith("/private/files/"):
-            file_path = frappe.get_site_path("private", file_url.replace("/private/", ""))
-        else:
-            file_name = file_url.split("/")[-1]
-            file_path = frappe.get_site_path("public", "files", file_name)
-            
-        if not os.path.exists(file_path):
-            # Fallback to local private folder search
-            private_path = frappe.get_site_path("private", "files", file_url.split("/")[-1])
-            if os.path.exists(private_path):
-                file_path = private_path
-            else:
-                return ""
-            
+        from lms.lms.services._permissions import validate_file_path
+        file_path = validate_file_path(file_url)
+        
         ext = os.path.splitext(file_path)[1].lower()
         if ext in [".txt", ".docx", ".doc", ".pdf", ".md"]:
             from lms.lms.agents.utils.file_parser import get_content_from_file
@@ -203,6 +189,8 @@ def resume_lesson_plan(plan_name, action, edited_content=None, feedback=None):
     """
     Whitelisted API endpoint to resume a paused graph run after teacher review (HITL).
     """
+    from lms.lms.services._permissions import ensure_teacher_or_owner
+    ensure_teacher_or_owner("AI Lesson Plan", plan_name)
     plan_doc = frappe.get_doc("AI Lesson Plan", plan_name)
     
     if plan_doc.status not in ["Review", "Draft"]:
@@ -241,6 +229,8 @@ def retry_lesson_plan(plan_name):
     LangGraph will automatically resume from the last successful checkpoint.
     """
     try:
+        from lms.lms.services._permissions import ensure_teacher_or_owner
+        ensure_teacher_or_owner("AI Lesson Plan", plan_name)
         from lms.lms.services.ai_rate_limit import check_and_record_usage
         check_and_record_usage(frappe.session.user, "Lesson Plan", increment=1)
         
@@ -266,6 +256,8 @@ def get_lesson_plan_status(plan_name):
     Whitelisted API endpoint to fetch the current live status of a lesson plan.
     """
     try:
+        from lms.lms.services._permissions import ensure_teacher_or_owner
+        ensure_teacher_or_owner("AI Lesson Plan", plan_name)
         plan = frappe.get_doc("AI Lesson Plan", plan_name)
         return {
             "name": plan.name,
@@ -276,6 +268,8 @@ def get_lesson_plan_status(plan_name):
             "linked_lesson": plan.linked_lesson,
             "standards": plan.curriculum_standards_matched
         }
+    except frappe.PermissionError:
+        raise
     except Exception:
         return {"error": "Plan not found"}
 
@@ -284,9 +278,9 @@ def get_planner_stats():
     """
     Whitelisted API endpoint to return analytical dashboard counters.
     """
-    total = len(frappe.get_list("AI Lesson Plan", limit_page_length=0))
-    completed = len(frappe.get_list("AI Lesson Plan", filters={"status": "Completed"}, limit_page_length=0))
-    review = len(frappe.get_list("AI Lesson Plan", filters={"status": "Review"}, limit_page_length=0))
+    total = len(frappe.get_list("AI Lesson Plan", filters={"teacher": frappe.session.user}, limit_page_length=0))
+    completed = len(frappe.get_list("AI Lesson Plan", filters={"teacher": frappe.session.user, "status": "Completed"}, limit_page_length=0))
+    review = len(frappe.get_list("AI Lesson Plan", filters={"teacher": frappe.session.user, "status": "Review"}, limit_page_length=0))
     
     # Simple metric: 1 lesson plan saves ~2.5 hours of manual work
     hours_saved = int(completed * 2.5)
@@ -303,6 +297,7 @@ def upload_reference_file():
     """
     Handles secure custom uploads for the Lesson Planner reference files.
     """
+    frappe.only_for(["Course Creator", "Moderator", "System Manager", "Instructor"])
     try:
         from lms.lms.services.ai_rate_limit import check_and_record_usage
         check_and_record_usage(frappe.session.user, "Document Upload", increment=1)
@@ -322,15 +317,21 @@ def upload_reference_file():
             frappe.throw(f"Định dạng file {ext} không được hỗ trợ. Chỉ nhận PDF, DOCX, TXT.")
             
         MAX_SIZE = 20 * 1024 * 1024 # 20MB
-        content = file.read()
-        if len(content) > MAX_SIZE:
+        file.seek(0, 2) # Seek to end
+        file_size = file.tell()
+        file.seek(0)
+        if file_size > MAX_SIZE:
             frappe.throw("Dung lượng file vượt quá giới hạn 20MB.")
+            
+        content = file.read()
+        if not content:
+            frappe.throw("File content is empty.")
             
         file_doc = frappe.get_doc({
             "doctype": "File",
             "file_name": file_name,
             "content": content,
-            "is_private": 0,
+            "is_private": 1,
             "folder": "Home/Attachments"
         })
         file_doc.insert(ignore_permissions=True)
