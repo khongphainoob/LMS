@@ -25,6 +25,10 @@ frappe.ready(() => {
 		)
 		hint.append(link)
 		actions.append(hint)
+
+		// Xóa/ẩn dòng đăng ký mặc định của Frappe nằm ở dưới cùng để tránh bị lặp
+		const defaultHints = document.querySelectorAll('div.sign-up-message')
+		defaultHints.forEach(el => el.style.display = 'none')
 	}
 
 	appendSignupHint()
