@@ -1698,6 +1698,9 @@ def create_meta_tag(tag_properties):
 def validate_meta_data_permissions(meta_type):
 	roles = frappe.get_roles()
 
+	if "System Manager" in roles or frappe.session.user == "Administrator":
+		return
+
 	if meta_type == "courses":
 		if not ("Course Creator" in roles or "Moderator" in roles):
 			frappe.throw(_("You do not have permission to update meta tags."))

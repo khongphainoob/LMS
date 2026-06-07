@@ -207,7 +207,7 @@ const handleClick = (link) => {
 			window.open(link.to, '_blank')
 			return
 		}
-		window.location.href = `/${link.to}`
+		window.location.href = link.to.startsWith('/') ? link.to : `/${link.to}`
 	}
 }
 
