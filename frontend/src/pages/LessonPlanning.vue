@@ -439,6 +439,16 @@ onMounted(() => {
 			loadPlans()
 			alert(`🔔 ${__("Draft prepared:")} ${payload.plan_name}\n\n${payload.message}`)
 		})
+		socket.on('lesson_plan_ready', (payload) => {
+			console.log("Receive Plan Completed notification:", payload)
+			loadPlans()
+			if (showViewModal.value && viewPlanData.value && viewPlanData.value.name === payload.plan_name) {
+				planDetailResource.submit({ plan_name: payload.plan_name })
+			}
+			if (window.frappe && frappe.show_alert) {
+				frappe.show_alert({ message: __('Lesson Plan Completed!'), indicator: 'green' })
+			}
+		})
 	}
 	// Notify server when user leaves during Review state
 	window.addEventListener('beforeunload', handlePageLeave)
@@ -447,6 +457,7 @@ onMounted(() => {
 onUnmounted(() => {
 	if (socket) {
 		socket.off('lesson_plan_review')
+		socket.off('lesson_plan_ready')
 	}
 	window.removeEventListener('beforeunload', handlePageLeave)
 })

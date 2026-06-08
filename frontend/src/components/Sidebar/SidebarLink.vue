@@ -102,7 +102,7 @@ function handleClick() {
 			window.open(props.link.to, '_blank')
 			return
 		}
-		window.location.href = `/${props.link.to}`
+		window.location.href = props.link.to.startsWith('/') ? props.link.to : `/${props.link.to}`
 	}
 }
 

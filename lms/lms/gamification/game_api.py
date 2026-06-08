@@ -599,7 +599,7 @@ def get_leaderboard_batches():
 	
 	if is_moderator_or_instructor:
 		is_super_admin = member in ('Administrator', 'admin') or any(r in user_roles for r in ['System Manager', 'Administrator'])
-		filters = {"published": 1}
+		filters = {}
 
 		if not is_super_admin:
 			managed_batches = frappe.get_all("Course Instructor", 
