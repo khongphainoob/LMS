@@ -66,6 +66,15 @@ function handleFile(e) {
 	uploadedFile.value = e.target.files[0]
 }
 
+async function fileToDataUrl(file) {
+	return await new Promise((resolve, reject) => {
+		const reader = new FileReader()
+		reader.onload = () => resolve(reader.result)
+		reader.onerror = () => reject(new Error('Unable to read file'))
+		reader.readAsDataURL(file)
+	})
+}
+
 async function createSession() {
 	if (!isReady.value) return
 	isCreating.value = true
@@ -85,22 +94,23 @@ async function createSession() {
 
 		if (res && uploadedFile.value) {
 			const sessionNameId = res.name || res
-			const reader = new FileReader()
-			reader.onload = async () => {
+			try {
+				const dataUrl = await fileToDataUrl(uploadedFile.value)
 				await createResource({
 					url: 'lms.lms.api.upload_ai_grading_session_attachment',
 				}).submit({
 					session: sessionNameId,
-					data_url: reader.result,
+					data_url: dataUrl,
 					file_name: uploadedFile.value.name
 				})
-				
-				router.push({
-					name: 'MCQGradingWorkspace',
-					params: { sessionSlug: sessionNameId }
-				})
+			} catch (e) {
+				console.error("Upload error", e)
 			}
-			reader.readAsDataURL(uploadedFile.value)
+			
+			router.push({
+				name: 'MCQGradingWorkspace',
+				params: { sessionSlug: sessionNameId }
+			})
 		}
 	} finally {
 		isCreating.value = false

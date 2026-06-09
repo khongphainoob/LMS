@@ -100,6 +100,15 @@ function removeQuestion(idx) {
 	questions.value.splice(idx, 1)
 }
 
+async function fileToDataUrl(file) {
+	return await new Promise((resolve, reject) => {
+		const reader = new FileReader()
+		reader.onload = () => resolve(reader.result)
+		reader.onerror = () => reject(new Error('Unable to read file'))
+		reader.readAsDataURL(file)
+	})
+}
+
 async function createSession() {
 	if (!isReady.value) return
 	isCreating.value = true
@@ -123,28 +132,27 @@ async function createSession() {
 			
 			// Upload template if exists
 			if (templateFile.value) {
-				const reader = new FileReader()
-				reader.onload = async () => {
+				try {
+					const dataUrl = await fileToDataUrl(templateFile.value)
 					await createResource({
 						url: 'lms.lms.api.upload_ai_grading_session_attachment',
 					}).submit({
 						session: sessionNameId,
-						data_url: reader.result,
+						data_url: dataUrl,
 						file_name: templateFile.value.name
 					})
 					
-					// Also update answer_sheet_template field specifically? 
-					// Let's just use the attachment for now, or update the doc field.
 					await createResource({
 						url: 'frappe.client.set_value',
 					}).submit({
 						doctype: 'AI Grading Session',
 						name: sessionNameId,
 						fieldname: 'answer_sheet_template',
-						value: templateFile.value.name // Usually requires a file path after upload
+						value: templateFile.value.name
 					})
+				} catch (e) {
+					console.error("Upload template error", e)
 				}
-				reader.readAsDataURL(templateFile.value)
 			}
 
 			router.push({

@@ -806,6 +806,23 @@ async function createSession() {
 			? { name: res }
 			: res
 		const newSessionSlug = sessionDoc.name
+		
+		if (fileInput.value && fileInput.value.files[0]) {
+			try {
+				const file = fileInput.value.files[0]
+				const dataUrl = await fileToDataUrl(file)
+				await uploadSessionAttachmentResource.submit({
+					session: newSessionSlug,
+					data_url: dataUrl,
+					file_name: file.name,
+				})
+				fileInput.value.value = ''
+				uploadedFileName.value = ''
+			} catch (e) {
+				console.error("Failed to upload reference doc:", e)
+			}
+		}
+
 		showNewSessionModal.value = false
 		newSession.name = ''
 		newSession.className = ''
