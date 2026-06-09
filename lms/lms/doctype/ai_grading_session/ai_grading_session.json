@@ -41,7 +41,7 @@
             "fieldtype": "Select",
             "in_list_view": 1,
             "label": "Grading Type",
-            "options": "Exam\nTest\nHomework",
+            "options": "Exam\nTest\nHomework\nMCQ",
             "reqd": 1
         },
         {

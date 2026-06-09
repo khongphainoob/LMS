@@ -627,7 +627,7 @@ def get_ai_grading_session_attachments(session):
 	return frappe.get_all("File", filters={"attached_to_doctype": "AI Grading Session", "attached_to_name": session}, fields=["file_url", "file_name"])
 
 @frappe.whitelist()
-def upload_ai_grading_session_attachment(session, file_url, file_name=None):
+def upload_ai_grading_session_attachment(session, file_url=None, data_url=None, file_name=None):
 	_ensure_ai_grading_access_for_session(session)
 	# Implementation simplified for refactoring
 	return True

@@ -6,7 +6,7 @@
 				class="group flex items-center gap-1.5 text-[11px] font-medium text-gray-500 transition-all hover:text-gray-900"
 				@click="$router.push({ name: 'AIGradingObjective' })"
 			>
-				<icons.ChevronLeft class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+				<ChevronLeft class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
 				{{ __('Revert') }}
 			</button>
 			<div class="h-5 w-px bg-gray-200" />
@@ -158,7 +158,7 @@
 							class="flex items-center gap-1 rounded bg-white border border-gray-200 px-3 py-1 text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all"
 							@click="flagCurrent"
 						>
-							<icons.Flag class="h-3 w-3" />
+							<Flag class="h-3 w-3" />
 							{{ __('Flag') }}
 						</button>
           </div>
@@ -358,27 +358,8 @@
 			<template #body-content>
 				<div class="space-y-4 p-4">
 					<div class="flex flex-col gap-1">
-						<label class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{ __('Search Student') }}</label>
-            <div class="relative">
-              <Search class="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-              <input 
-                v-model="studentSearchQuery" 
-                class="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 py-2 text-xs focus:border-blue-400 focus:outline-none"
-                :placeholder="__('Type to search student...')"
-                @input="searchStudents"
-              />
-            </div>
-            <div v-if="studentOptions.length" class="mt-1 max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-white shadow-lg z-20">
-              <div 
-                v-for="opt in studentOptions" 
-                :key="opt.name"
-                class="cursor-pointer p-3 text-xs hover:bg-blue-50 transition-colors flex flex-col gap-0.5"
-                @click="selectStudent(opt)"
-              >
-                <div class="font-bold text-gray-900">{{ opt.full_name }}</div>
-                <div class="text-[10px] text-gray-400 font-mono">{{ opt.name }}</div>
-              </div>
-            </div>
+						<label class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{ __('Student Name') }}</label>
+						<Input v-model="newStudent.name" :placeholder="__('e.g. Nguyen Van A')" class="!text-xs" />
 					</div>
 					<div class="flex flex-col gap-1">
 						<label class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{ __('Student SBD') }}</label>
@@ -388,9 +369,9 @@
           <!-- Image/Camera Section (Matches Essay Workspace) -->
 					<div class="flex flex-col gap-1 mt-2">
 						<label class="text-[11px] font-bold uppercase tracking-wide text-gray-500">{{ __('Photo / Paper Image') }}</label>
-						<input type="file" ref="studentPhotoInput" class="hidden" accept="image/*" multiple @change="handleStudentPhoto" />
+						<input type="file" ref="studentPhotoInput" class="hidden" accept="image/*" multiple @change="handleNewPhotoUpload" />
 						
-						<div v-if="!showCameraPreview" class="flex gap-2 w-full">
+						<div v-if="!showNewCamera" class="flex gap-2 w-full">
 							<div
 								class="flex-1 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-3 transition-colors hover:border-blue-500/50 hover:bg-blue-50/10 cursor-pointer"
 								@click="$refs.studentPhotoInput.click()"
@@ -401,21 +382,21 @@
 
 							<div
 								class="flex-1 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-3 transition-colors hover:border-blue-500/50 hover:bg-blue-50/10 cursor-pointer"
-								@click="openCamera"
+								@click="openCameraForNew"
 							>
 								<span class="text-xl mb-1 text-blue-600">📷</span>
 								<span class="text-[11px] font-medium text-gray-600">{{ __('Camera') }}</span>
 							</div>
 						</div>
 
-						<div v-if="showCameraPreview" class="relative mt-2 flex flex-col items-center rounded-xl overflow-hidden bg-black/90">
-							<video ref="cameraVideoElement" class="w-full h-auto max-h-[300px] object-contain" autoplay playsinline></video>
+						<div v-if="showNewCamera" class="relative mt-2 flex flex-col items-center rounded-xl overflow-hidden bg-black/90">
+							<video ref="newVideoEl" class="w-full h-auto max-h-[300px] object-contain" autoplay playsinline></video>
 							<canvas ref="cameraCanvasElement" class="hidden"></canvas>
 							<div class="absolute bottom-4 flex items-center gap-6">
-								<button class="flex h-10 w-10 items-center justify-center bg-red-500 rounded-full text-white shadow-lg shadow-red-500/30 transition-transform active:scale-90 hover:bg-red-600" @click="closeCamera">
+								<button class="flex h-10 w-10 items-center justify-center bg-red-500 rounded-full text-white shadow-lg shadow-red-500/30 transition-transform active:scale-90 hover:bg-red-600" @click="closeNewCamera">
 									✕
 								</button>
-								<button class="flex h-14 w-14 items-center justify-center bg-white rounded-full text-black shadow-lg border-4 border-gray-300 transition-transform active:scale-90 hover:bg-gray-100" @click="capturePhoto">
+								<button class="flex h-14 w-14 items-center justify-center bg-white rounded-full text-black shadow-lg border-4 border-gray-300 transition-transform active:scale-90 hover:bg-gray-100" @click="captureNewPhoto">
 									<span class="text-2xl">📸</span>
 								</button>
 							</div>
@@ -428,7 +409,7 @@
 							<div v-for="(img, idx) in newStudent.images" :key="idx" class="relative group aspect-square">
 								<img :src="img.preview" class="w-full h-full object-cover rounded-lg border border-gray-200" />
 								<button 
-									@click.stop="removeImage(idx)" 
+									@click.stop="removeDraftImage(idx)" 
 									class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-80 hover:opacity-100 transition-opacity"
 								>
 									✕
@@ -528,10 +509,10 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button, Dialog, Input, createResource } from 'frappe-ui'
-import { Search, UserPlus, Play, Trash2, Edit, RefreshCw, Maximize2, Square, Loader2, Eye, EyeOff, Download } from 'lucide-vue-next'
+import { Search, UserPlus, Play, Trash2, Edit, RefreshCw, Maximize2, Square, Loader2, Eye, EyeOff, Download, ChevronLeft, Flag } from 'lucide-vue-next'
 import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 
 const route = useRoute()
@@ -679,6 +660,7 @@ const parsedFeedback = computed(() => {
   if (!currentSub.value?.ai_feedback) return null
   try {
     const raw = currentSub.value.ai_feedback
+    if (typeof raw === 'object') return raw
     if (typeof raw === 'string' && raw.trim().startsWith('{')) {
       return JSON.parse(raw)
     }
@@ -691,8 +673,27 @@ const parsedFeedback = computed(() => {
 const activeCriteria = ref([])
 
 watch([() => parsedFeedback.value, () => currentSub.value?.id], ([fb, subId]) => {
-  if (fb?.mcq_results) {
-    activeCriteria.value = JSON.parse(JSON.stringify(fb.mcq_results))
+  if (fb?.mcq_results || fb?.solution_results) {
+    let combined = []
+    if (fb.mcq_results) {
+      combined = combined.concat(fb.mcq_results.map(q => ({
+        ...q,
+        question_no: q.question_no || q.q_no || q.name,
+        max_score: q.max_score || q.max,
+        feedback: q.feedback || q.note,
+        details: q.details || []
+      })))
+    }
+    if (fb.solution_results) {
+      combined = combined.concat(fb.solution_results.map(q => ({
+        ...q,
+        question_no: q.question_no || q.q_no || q.name,
+        max_score: q.max_score || q.max,
+        feedback: q.feedback || q.note,
+        details: q.details || []
+      })))
+    }
+    activeCriteria.value = JSON.parse(JSON.stringify(combined))
     return
   }
   
@@ -858,7 +859,11 @@ async function fileToDataUrl(file) {
 }
 
 async function addStudent() {
-	if (!newStudent.email || !sessionDoc.value?.name) return
+	if (!newStudent.name && !newStudent.sbd && !newStudent.email) {
+		frappe.show_alert({ message: __('Please enter at least one piece of student information (Name, SBD, or Email)'), indicator: 'orange' })
+		return
+	}
+	if (!sessionDoc.value?.name) return
 	isAddingStudent.value = true
 	try {
 		let paperImagesData = []
