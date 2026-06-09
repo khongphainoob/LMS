@@ -20,7 +20,7 @@
     <main class="py-8 flex justify-center overflow-x-auto print:py-0 print:overflow-visible">
       
       <!-- A4 Paper Mockup -->
-      <div id="print-area" class="bg-white text-black w-[210mm] min-h-[297mm] shadow-2xl p-[20mm] font-serif print:shadow-none print:w-full print:m-0 print:p-0" style="line-height: 1.5;">
+      <div id="print-area" class="bg-white text-black w-[210mm] min-h-[297mm] shadow-2xl p-[20mm] print:shadow-none print:w-full print:m-0 print:p-0" style="line-height: 1.5;">
         
         <!-- Header -->
         <div class="flex justify-between border-b-2 border-black pb-4 mb-6">
