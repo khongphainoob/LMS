@@ -2745,24 +2745,33 @@ def get_ai_grading_session_attachments(session):
 
 
 @frappe.whitelist()
-def upload_ai_grading_session_attachment(session, file_url, file_name=None):
+def upload_ai_grading_session_attachment(session, file_url=None, data_url=None, file_name=None):
 	"""Link a file to an AI Grading Session."""
 	if not frappe.db.exists("AI Grading Session", session):
 		frappe.throw(_("Session {0} not found").format(session))
 	
-	# Check if file exists
-	if not frappe.db.exists("File", {"file_url": file_url}):
-		pass
+	if data_url:
+		from lms.lms.services.ai_grading.api import _save_ai_grading_submission_image_data
+		saved_url = _save_ai_grading_submission_image_data(data_url, file_name, "AI Grading Session", session)
+		if saved_url:
+			return frappe.get_doc("File", {"file_url": saved_url}).as_dict()
+		else:
+			frappe.throw(_("Failed to save uploaded file."))
 
-	# Link the file
-	file_doc = frappe.get_doc("File", {"file_url": file_url})
-	file_doc.attached_to_doctype = "AI Grading Session"
-	file_doc.attached_to_name = session
-	if file_name:
-		file_doc.file_name = file_name
-	file_doc.save()
-	
-	return file_doc.as_dict()
+	if file_url:
+		if not frappe.db.exists("File", {"file_url": file_url}):
+			frappe.throw(_("File not found"))
+
+		file_doc = frappe.get_doc("File", {"file_url": file_url})
+		file_doc.attached_to_doctype = "AI Grading Session"
+		file_doc.attached_to_name = session
+		if file_name:
+			file_doc.file_name = file_name
+		file_doc.save()
+		
+		return file_doc.as_dict()
+
+	frappe.throw(_("Either file_url or data_url must be provided"))
 
 
 @frappe.whitelist()

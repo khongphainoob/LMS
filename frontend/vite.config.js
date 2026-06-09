@@ -59,6 +59,9 @@ export default defineConfig(async ({ mode }) => {
 			target: 'esnext'
 		},
 		optimizeDeps: {
+			esbuildOptions: {
+				target: 'esnext'
+			},
 			include: [
 				'feather-icons',
 				'tailwind.config.js',
