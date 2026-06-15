@@ -253,7 +253,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { createResource, call } from 'frappe-ui'
 import * as icons from 'lucide-vue-next'
@@ -330,10 +330,6 @@ const retryQuiz = () => {
       .catch((err) => console.error(err))
   }
 }
-
-onMounted(() => {
-  quizResource.fetch()
-})
 
 const quiz = computed(() => quizResource.data || {})
 
@@ -431,6 +427,27 @@ const exportToExcel = () => {
   link.click()
   document.body.removeChild(link)
 }
+
+const socket = inject('$socket')
+
+const handleQuizUpdate = (data) => {
+  if (data.quiz_id === props.quizID) {
+    quizResource.fetch()
+  }
+}
+
+onMounted(() => {
+  quizResource.fetch()
+  if (socket) {
+    socket.on('ai_quiz_update', handleQuizUpdate)
+  }
+})
+
+onUnmounted(() => {
+  if (socket) {
+    socket.off('ai_quiz_update', handleQuizUpdate)
+  }
+})
 </script>
 
 <style scoped>

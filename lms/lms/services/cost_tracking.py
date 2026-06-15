@@ -561,6 +561,67 @@ class CostTrackingService(BaseService):
             frappe.log_error(f"Failed to send budget warning notification: {e}")
 
 
+# ===== REDIS QUEUE DRAIN (fixes dashboard metrics) =====
+
+def drain_cost_queue(batch_size: int = 100) -> int:
+    """
+    Drain the Redis ai_cost_queue and write events to DB.
+
+    Called by scheduled job every 5 minutes.
+    AICostCallbackHandler pushes cost events to Redis (thread-safe).
+    This function drains them to tabAI Grading Cost Track (persistent).
+
+    Returns:
+        Number of events processed
+    """
+    import json
+    from datetime import date
+
+    cache = frappe.cache()
+    processed = 0
+
+    for _ in range(batch_size):
+        event_raw = cache.redis.rpop("ai_cost_queue")
+        if not event_raw:
+            break
+
+        try:
+            event = json.loads(event_raw)
+            agent = event.get("agent", "unknown")
+            cost = float(event.get("cost", 0))
+            tokens = int(event.get("tokens", 0))
+            provider = event.get("provider", "")
+            model = event.get("model", "")
+
+            if cost > 0:
+                track_agent_cost(
+                    agent_name=agent,
+                    cost=cost,
+                    tokens=tokens,
+                    provider=provider,
+                    model=model,
+                )
+            processed += 1
+        except Exception as e:
+            frappe.log_error(f"drain_cost_queue error: {e}", "Cost Queue Drain")
+
+    if processed > 0:
+        frappe.db.commit()
+
+    return processed
+
+
+def schedule_cost_queue_drain():
+    """
+    Enqueue the drain job. Called by hooks.py every 5 minutes.
+    """
+    frappe.enqueue(
+        "lms.lms.services.cost_tracking.drain_cost_queue",
+        queue="short",
+        timeout=300,
+    )
+
+
 # Convenience functions for quick access
 def get_total_cost_today() -> float:
     """Get total cost for today."""

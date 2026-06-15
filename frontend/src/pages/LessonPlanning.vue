@@ -422,9 +422,17 @@ const md = new MarkdownIt({
 })
 md.use(mathjax3)
 
+const restoreLatexEscapes = (text) => {
+	if (!text) return ''
+	return String(text)
+		.replace(/\x09/g, '\\t')
+		.replace(/\x0c/g, '\\f')
+}
+
 function renderMarkdown(content) {
 	if (!content) return ''
-	return md.render(content)
+	const cleaned = restoreLatexEscapes(content)
+	return md.render(cleaned)
 }
 
 const { brand } = sessionStore()

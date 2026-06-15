@@ -226,7 +226,7 @@ const totalCost = computed(() => {
 const errorRate = computed(() => {
   if (!rawData.value?.error_stats || totalCalls.value === 0) return 0
   const errors = rawData.value.error_stats.reduce((acc, curr) => acc + curr.error_count, 0)
-  return (errors / totalCalls.value) * 100
+  return Math.min((errors / totalCalls.value) * 100, 100)
 })
 
 const averageRating = computed(() => {

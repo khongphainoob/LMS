@@ -258,6 +258,7 @@ def generate_quiz_orchestrator(quiz_id, config=None):
         quiz_doc.add_comment("Comment", "🏁 Hoàn tất! Bộ đề đã sẵn sàng.")
         quiz_doc.save(ignore_permissions=True)
         frappe.db.commit()
+        frappe.publish_realtime("ai_quiz_update", {"quiz_id": quiz_id, "status": "Completed"}, user=quiz_doc.owner)
 
     except Exception as e:
         error_msg = f"❌ Lỗi hệ thống: {str(e)}"
@@ -268,6 +269,7 @@ def generate_quiz_orchestrator(quiz_id, config=None):
             quiz_doc.add_comment("Comment", error_msg)
             quiz_doc.save(ignore_permissions=True)
             frappe.db.commit()
+            frappe.publish_realtime("ai_quiz_update", {"quiz_id": quiz_id, "status": "Failed"}, user=quiz_doc.owner)
     finally:
         try:
             from langfuse import Langfuse

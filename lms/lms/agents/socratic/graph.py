@@ -1,10 +1,9 @@
-"""Socratic Tutor Graph – LangGraph StateGraph implementation.
+"""Socratic Tutor Graph — LangGraph StateGraph implementation.
 
 Flow:
 1. First message (with image): preprocess → context_builder → evaluator → END
-   - Evaluator calls LLM to analyze student's work and returns detailed analysis
 2. Follow-up messages: preprocess → context_builder → evaluator → socratic_hint → END
-   - Evaluator checks context, socratic_hint generates Socratic questions
+3. All responses validated via shared content_validator before delivery
 """
 import frappe
 from langgraph.graph import StateGraph, END, START
@@ -16,33 +15,31 @@ from .nodes.socratic_hint import socratic_hint_node
 from .nodes.answer_revealer import answer_revealer_node
 from .state import SocraticState
 
+# === REUSABLE SHARED NODES ===
+from lms.lms.agents.shared_nodes.content_validator import content_validator_node, ValidatorContext
+from lms.lms.agents.shared_nodes.confidence_router import route_by_confidence, build_confidence_route_map
+
 
 def route_after_evaluation(state: dict) -> str:
-    """Route based on whether evaluator already produced a full response.
-    - If evaluator generated a response (first-time analysis) → END
-    - If student needs hints → socratic_hint
-    - If too many attempts → answer_revealer
-    """
+    """Route based on whether evaluator already produced a full response."""
     response = state.get("response")
     message_type = state.get("message_type", "")
-    
-    # If evaluator already produced a full analysis response, go to END
+
     if response and message_type == "analysis":
         frappe.logger("socratic").info("[router] → END (analysis complete)")
         return "end"
-    
-    # Check mistake count for hint vs reveal
+
     mistake_count = state.get("mistake_count", 0)
     if mistake_count >= 3:
         frappe.logger("socratic").info(f"[router] → answer_revealer (mistakes={mistake_count})")
         return "answer_revealer"
-    
+
     frappe.logger("socratic").info(f"[router] → socratic_hint (mistakes={mistake_count})")
     return "socratic_hint"
 
 
 def build_socratic_graph():
-    """Build and compile the Socratic Tutor graph."""
+    """Build and compile the Socratic Tutor graph with content validation."""
     graph = StateGraph(SocraticState)
 
     graph.add_node("preprocess", preprocess_node)
@@ -50,6 +47,14 @@ def build_socratic_graph():
     graph.add_node("evaluator", evaluator_node)
     graph.add_node("socratic_hint", socratic_hint_node)
     graph.add_node("answer_revealer", answer_revealer_node)
+
+    # Pre-delivery content validation gate
+    validator_ctx = ValidatorContext(
+        agent_name="socratic",
+        content_field="response",
+        enabled_dimensions=["PA", "PS"],
+    )
+    graph.add_node("content_validator", lambda s: content_validator_node(s, validator_ctx))
 
     graph.add_edge(START, "preprocess")
     graph.add_edge("preprocess", "context_builder")
@@ -65,8 +70,12 @@ def build_socratic_graph():
         },
     )
 
-    graph.add_edge("socratic_hint", END)
-    graph.add_edge("answer_revealer", END)
+    # Response paths → validator → route
+    graph.add_edge("socratic_hint", "content_validator")
+    graph.add_edge("answer_revealer", "content_validator")
+
+    route_map = build_confidence_route_map()
+    graph.add_conditional_edges("content_validator", route_by_confidence, route_map)
 
     return graph.compile()
 

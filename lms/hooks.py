@@ -135,6 +135,9 @@ scheduler_events = {
 		"*/15 * * * *": [
 			"lms.lms.gamification.tasks.recalculate_leaderboard",
 		],
+		"*/5 * * * *": [
+			"lms.lms.services.cost_tracking.schedule_cost_queue_drain",
+		],
 		"*/3 * * * *": [
 			"lms.lms.services.lesson_planner.api.send_review_reminder_and_auto_approve",
 			"lms.lms.services.ai_exam.api.send_exam_review_reminder_and_auto_approve",

@@ -264,6 +264,7 @@ import dayjs from '@/utils/dayjs'
 import * as icons from 'lucide-vue-next'
 import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 import markdownit from 'markdown-it'
+import mathjax3 from 'markdown-it-mathjax3'
 import DOMPurify from 'dompurify'
 import CourseBatchSelector from '@/components/ai/CourseBatchSelector.vue'
 
@@ -271,28 +272,42 @@ const md = markdownit({
   html: true,
   linkify: true,
   typographer: true
+}).use(mathjax3)
+
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+  if (node.tagName === 'STYLE') {
+    node.__styleContent = node.textContent
+  }
 })
+
+DOMPurify.addHook('afterSanitizeElements', (node) => {
+  if (node && node.tagName === 'STYLE' && node.__styleContent !== undefined) {
+    node.textContent = node.__styleContent
+  }
+})
+
+const nfc = (text) => text ? String(text).normalize('NFC') : ''
+
+const restoreLatexEscapes = (text) => {
+  if (!text) return ''
+  return String(text)
+    .replace(/\x09/g, '\\t')
+    .replace(/\x0c/g, '\\f')
+}
 
 const renderMarkdown = (content) => {
   if (!content) return ''
-  
-  let html = md.render(content)
-  
-  if (window.katex) {
-    html = html.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
-      try {
-        return '<div class="math-block">' + window.katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false }) + '</div>'
-      } catch (e) { return match }
-    })
-    
-    html = html.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
-      try {
-        return window.katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false })
-      } catch (e) { return match }
-    })
-  }
-  
-  return DOMPurify.sanitize(html)
+  const cleaned = restoreLatexEscapes(nfc(content))
+  const rawHtml = md.render(cleaned)
+  return DOMPurify.sanitize(rawHtml, {
+    USE_PROFILES: { html: true, mathMl: true, svg: true },
+    ADD_TAGS: ['style', 'mjx-container', 'mjx-assistive-mml'],
+    ADD_ATTR: [
+      'style', 'jax', 'display', 'class', 'id', 'width', 'height', 'valign', 'viewBox',
+      'unselectable', 'focusable', 'aria-hidden', 'transform', 'stroke', 'fill',
+      'stroke-width', 'd', 'data-c', 'data-mml-node', 'data-mjx-xml', 'data-background'
+    ]
+  })
 }
 
 const { brand } = sessionStore()

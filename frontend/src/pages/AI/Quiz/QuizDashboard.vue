@@ -169,7 +169,7 @@
 </style>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { createResource, createListResource, call } from 'frappe-ui'
 import * as icons from 'lucide-vue-next'
@@ -214,9 +214,25 @@ const retryQuiz = (name) => {
   }
 }
 
+const socket = inject('$socket')
+
+const handleQuizUpdate = () => {
+  quizzesResource.fetch()
+  statsResource.fetch()
+}
+
 onMounted(() => {
   quizzesResource.fetch()
   statsResource.fetch()
+  if (socket) {
+    socket.on('ai_quiz_update', handleQuizUpdate)
+  }
+})
+
+onUnmounted(() => {
+  if (socket) {
+    socket.off('ai_quiz_update', handleQuizUpdate)
+  }
 })
 const statsData = computed(() => statsResource.data || { total: 0, completed: 0, processing: 0, accuracy: '0%' })
 

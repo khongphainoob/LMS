@@ -54,12 +54,21 @@ class RAGConfig:
 		"""Load config from LMS AI Settings, with fallback to defaults."""
 		config = cls()
 
-		# Set Qdrant path from Frappe site
+		# Set Qdrant path from Frappe site (fallback)
 		try:
 			import frappe
 			config.qdrant_path = os.path.join(frappe.get_site_path(), "rag_vectors")
 		except Exception:
 			config.qdrant_path = "./rag_vectors"
+
+		# Auto-detect Docker Qdrant server on localhost:6333
+		try:
+			import urllib.request
+			req = urllib.request.Request("http://localhost:6333/healthz", method="GET")
+			urllib.request.urlopen(req, timeout=1)
+			config.qdrant_url = "http://localhost:6333"
+		except Exception:
+			pass  # No Docker Qdrant, use embedded path
 
 		# Override from LMS AI Settings (Desk)
 		try:
@@ -75,6 +84,7 @@ class RAGConfig:
 				"rag_reranker_model": "reranker_model",
 				"rag_search_top_k": "search_top_k",
 				"rag_rerank_top_k": "rerank_top_k",
+				"rag_qdrant_url": "qdrant_url",
 			}
 
 			for desk_field, config_field in _map.items():

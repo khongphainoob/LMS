@@ -1,0 +1,75 @@
+{
+  "doctype": "DocType",
+  "name": "AI Monitor Event",
+  "module": "LMS",
+  "engine": "InnoDB",
+  "istable": 0,
+  "track_changes": 0,
+  "fields": [
+    {
+      "fieldname": "event_type",
+      "fieldtype": "Select",
+      "label": "Event Type",
+      "reqd": 1,
+      "options": "circuit_open\ncircuit_close\ncircuit_half_open\nvalidator_fail\nvalidator_pass\nfallback_trigger\nretry_exhausted\nprovider_health_change\nbudget_warning\nrate_limit_hit"
+    },
+    {
+      "fieldname": "agent_name",
+      "fieldtype": "Data",
+      "label": "Agent Name"
+    },
+    {
+      "fieldname": "provider",
+      "fieldtype": "Data",
+      "label": "AI Provider"
+    },
+    {
+      "fieldname": "model",
+      "fieldtype": "Data",
+      "label": "AI Model"
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "session_id",
+      "fieldtype": "Data",
+      "label": "Session ID"
+    },
+    {
+      "fieldname": "severity",
+      "fieldtype": "Select",
+      "label": "Severity",
+      "options": "info\nwarning\nerror\ncritical"
+    },
+    {
+      "fieldname": "timestamp",
+      "fieldtype": "Datetime",
+      "label": "Timestamp",
+      "default": "Now"
+    },
+    {
+      "fieldname": "section_break_1",
+      "fieldtype": "Section Break",
+      "label": "Details"
+    },
+    {
+      "fieldname": "details",
+      "fieldtype": "Code",
+      "label": "Details (JSON)",
+      "description": "Event-specific data in JSON format"
+    },
+    {
+      "fieldname": "resolved",
+      "fieldtype": "Check",
+      "label": "Resolved",
+      "default": "0"
+    },
+    {
+      "fieldname": "resolved_at",
+      "fieldtype": "Datetime",
+      "label": "Resolved At"
+    }
+  ]
+}

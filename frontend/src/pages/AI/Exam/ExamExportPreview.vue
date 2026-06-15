@@ -98,20 +98,49 @@
 </template>
 
 <script setup>
-import { inject, onMounted, onUpdated, ref } from 'vue'
+import { inject, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { createResource, Button, call } from 'frappe-ui'
 import MarkdownIt from 'markdown-it'
+import mathjax3 from 'markdown-it-mathjax3'
 import DOMPurify from 'dompurify'
 
-const md = new MarkdownIt({ html: true, breaks: true })
+const md = new MarkdownIt({ html: true, breaks: true }).use(mathjax3)
 
 const nfc = (text) => text ? String(text).normalize('NFC') : ''
 
+const restoreLatexEscapes = (text) => {
+  if (!text) return ''
+  return String(text)
+    .replace(/\x09/g, '\\t')
+    .replace(/\x0c/g, '\\f')
+}
+
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+  if (node.tagName === 'STYLE') {
+    node.__styleContent = node.textContent
+  }
+})
+
+DOMPurify.addHook('afterSanitizeElements', (node) => {
+  if (node && node.tagName === 'STYLE' && node.__styleContent !== undefined) {
+    node.textContent = node.__styleContent
+  }
+})
+
 const renderMarkdown = (text) => {
   if (!text) return ''
-  const rawHtml = md.render(nfc(text))
-  return DOMPurify.sanitize(rawHtml)
+  const cleaned = restoreLatexEscapes(nfc(text))
+  const rawHtml = md.render(cleaned)
+  return DOMPurify.sanitize(rawHtml, {
+    USE_PROFILES: { html: true, mathMl: true, svg: true },
+    ADD_TAGS: ['style', 'mjx-container', 'mjx-assistive-mml'],
+    ADD_ATTR: [
+      'style', 'jax', 'display', 'class', 'id', 'width', 'height', 'valign', 'viewBox',
+      'unselectable', 'focusable', 'aria-hidden', 'transform', 'stroke', 'fill',
+      'stroke-width', 'd', 'data-c', 'data-mml-node', 'data-mjx-xml', 'data-background'
+    ]
+  })
 }
 
 const cleanOptionText = (opt) => {
@@ -121,33 +150,6 @@ const cleanOptionText = (opt) => {
   }
   return text
 }
-
-let mathRenderTimer = null
-const renderMath = () => {
-  if (mathRenderTimer) clearTimeout(mathRenderTimer)
-  mathRenderTimer = setTimeout(() => {
-    if (!window.renderMathInElement) return
-    const el = document.getElementById('print-area')
-    if (!el) return
-    window.renderMathInElement(el, {
-      delimiters: [
-        {left: '$$', right: '$$', display: true},
-        {left: '$', right: '$', display: false},
-        {left: '\\(', right: '\\)', display: false},
-        {left: '\\[', right: '\\]', display: true}
-      ],
-      throwOnError: false
-    })
-  }, 200)
-}
-
-onMounted(() => {
-  renderMath()
-})
-
-onUpdated(() => {
-  renderMath()
-})
 
 const router = useRouter()
 const route = useRoute()

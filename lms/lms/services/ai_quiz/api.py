@@ -237,6 +237,8 @@ def sync_to_lms(quiz_id):
             
         # Save the LMS Quiz once with all appended questions
         lms_quiz.save(ignore_permissions=True)
+        ai_quiz.status = "Completed"
+        ai_quiz.save(ignore_permissions=True)
         frappe.db.commit()
         return {"status": "success", "lms_quiz_id": lms_quiz.name}
     except frappe.exceptions.UniqueValidationError:

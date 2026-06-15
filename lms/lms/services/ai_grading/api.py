@@ -164,6 +164,7 @@ def get_ai_grading_submissions(session):
 			"paper_image",
 			"ai_feedback",
 			"teacher_feedback",
+			"criteria_scores",
 		],
 		order_by="creation asc",
 	)
@@ -263,9 +264,11 @@ def _get_ai_grading_inputs(submission_name, primary_image=None):
 	images = []
 	file_urls = []
 	text_content = ""
+	logger = frappe.logger("ai_grading_inputs")
 
 	if primary_image:
 		images.append(primary_image)
+		logger.info(f"[{submission_name}] primary_image: {primary_image}")
 
 	# 1. Fetch attachments from AI Grading Submission directly
 	attached_files = frappe.get_all(
@@ -275,17 +278,21 @@ def _get_ai_grading_inputs(submission_name, primary_image=None):
 			"attached_to_name": submission_name,
 			"is_private": 0,
 		},
-		fields=["file_url"],
+		fields=["file_url", "file_name"],
 		order_by="creation asc",
 	)
+	logger.info(f"[{submission_name}] attached files found: {len(attached_files)}")
 
 	for file_doc in attached_files:
 		file_url = getattr(file_doc, "file_url", None)
+		file_name = getattr(file_doc, "file_name", "unknown")
 		if file_url:
 			if _is_ai_grading_image_file(file_url) and file_url not in images:
 				images.append(file_url)
+				logger.info(f"[{submission_name}] image: {file_name} -> {file_url}")
 			elif not _is_ai_grading_image_file(file_url) and file_url not in file_urls:
 				file_urls.append(file_url)
+				logger.info(f"[{submission_name}] doc: {file_name} -> {file_url}")
 
 	# 2. Fetch inputs from linked LMS Assignment Submission if available
 	sub_doc = frappe.get_doc("AI Grading Submission", submission_name)
@@ -343,6 +350,11 @@ def _get_ai_grading_inputs(submission_name, primary_image=None):
 		if extracted:
 			text_content += extracted + "\n"
 
+	logger.info(
+		f"[{submission_name}] INPUT SUMMARY: "
+		f"{len(images)} images, {len(file_urls)} docs, "
+		f"text_length={len(text_content.strip())} chars"
+	)
 	return {"images": images, "text_content": text_content.strip()}
 
 def _extract_text_from_files(file_urls):
@@ -669,10 +681,39 @@ def _ensure_ai_grading_access_for_session(session: str, ptype: str = "write") ->
 
 
 def _set_submission_status(submission: str, status: str, extra: dict | None = None) -> None:
-	values = {"status": status}
-	if extra:
-		values.update(extra)
-	frappe.db.set_value("AI Grading Submission", submission, values, update_modified=True)
+	try:
+		doc = frappe.get_doc("AI Grading Submission", submission)
+		doc.status = status
+		if extra:
+			doc.update(extra)
+		doc.save(ignore_permissions=True)
+	except Exception:
+		frappe.log_error(title="AI Grading: _set_submission_status failed", message=frappe.get_traceback())
+		values = {"status": status}
+		if extra:
+			values.update(extra)
+		frappe.db.set_value("AI Grading Submission", submission, values, update_modified=True)
+
+	# Publish realtime event so frontend updates live without polling
+	try:
+		session_id = frappe.db.get_value("AI Grading Submission", submission, "session")
+		payload = {
+			"submission": submission,
+			"session": session_id,
+			"status": status,
+		}
+		if extra:
+			if "score" in extra:
+				payload["score"] = extra["score"]
+			if "last_error" in extra:
+				payload["last_error"] = extra["last_error"]
+		frappe.publish_realtime(
+			"ai_grading_score_update",
+			payload,
+			room=session_id if session_id else None,
+		)
+	except Exception:
+		pass  # Never block grading on realtime failure
 
 
 def _extract_total_score(result: dict) -> float | None:
@@ -775,6 +816,9 @@ def start_batch_ai_grading(session: str):
 
 	if not submission_ids:
 		return {"success": True, "status": "completed", "message": "Không có bài thi nào cần chấm."}
+
+	# Pre-load session context ONCE before batch starts (cached in Redis)
+	_load_session_context_once(session)
 
 	# Enqueue batch job runner with the list of submission IDs
 	job = frappe.enqueue(
@@ -911,11 +955,68 @@ except ImportError:
 				return func
 			return decorator
 
+def _load_session_context_once(session: str) -> dict:
+	"""
+	Load rubric, answer key, and document context ONCE per session.
+	Cached in Redis for all submissions in the batch.
+
+	Returns dict with exam_context, rubric_context, answer_key ready to use.
+	"""
+	cache_key = f"grading_context:{session}"
+	cached = frappe.cache().get_value(cache_key)
+	if cached:
+		return cached
+
+	# Load rubric from session
+	context = {"exam_context": "", "rubric_context": "", "answer_key": {}}
+	try:
+		session_doc = frappe.get_doc("AI Grading Session", session)
+		if session_doc.rubric:
+			rubric_doc = frappe.get_doc("AI Grading Rubric", session_doc.rubric)
+			rubric_text = f"RUBRIC: {rubric_doc.rubric_name}\n"
+			for crit in rubric_doc.get("criteria", []):
+				rubric_text += f"- {crit.criterion_name} (Max {crit.max_score}): {crit.description}\n"
+			context["rubric_context"] = rubric_text
+			context["exam_context"] = rubric_text
+
+		# Load reference documents attached to session
+		if session_doc.reference_doc_type and session_doc.reference_doc:
+			try:
+				from lms.lms.agents.utils.file_parser import get_content_from_file
+				ref_doc = frappe.get_doc(session_doc.reference_doc_type, session_doc.reference_doc)
+				if hasattr(ref_doc, "file_url") and ref_doc.file_url:
+					file_path = frappe.get_site_path(ref_doc.file_url.lstrip("/"))
+					content = get_content_from_file(file_path)
+					if content:
+						context["exam_context"] += f"\n\nTÀI LIỆU THAM KHẢO:\n{content[:5000]}"
+			except Exception:
+				pass
+
+		# Extract answer key from rubric
+		try:
+			from lms.lms.agents.tools.document_tools import skill_extract_answer_key
+			skill_extract_answer_key.invoke({"session_id": session})
+			from lms.lms.agents.utils.filesystem import _read_filesystem
+			answer_key_str = _read_filesystem(session, "answer_key.json")
+			if answer_key_str:
+				import json
+				context["answer_key"] = json.loads(answer_key_str)
+		except Exception:
+			pass
+
+	except Exception as e:
+		frappe.log_error(f"Failed to load session context: {e}", "AI Grading Context")
+
+	# Cache for 2 hours (batch grading window)
+	frappe.cache().set_value(cache_key, context, expires_in_sec=7200)
+	return context
+
+
 def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> None:
 	"""Background job: run grading pipeline and persist results to `AI Grading Submission`."""
 	from lms.lms.services.observability import init_langfuse_native_sdk
 	init_langfuse_native_sdk()
-	
+
 	from lms.lms.agents.grading.orchestrator import run_grading_session
 
 	try:
@@ -941,7 +1042,20 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 			)
 			frappe.db.commit()
 			return
-		
+
+		# Pre-load session context ONCE (cached in Redis for all submissions)
+		# Then pre-write to submission's filesystem so grading pipeline finds it
+		session_id = doc.session
+		if session_id:
+			ctx = _load_session_context_once(session_id)
+			# Write cached context to submission's filesystem directory
+			# so skill_load_context / skill_extract_answer_key find the data
+			from lms.lms.agents.utils.filesystem import _write_to_filesystem
+			if ctx.get("exam_context"):
+				_write_to_filesystem(submission, "exam_context.txt", ctx["exam_context"])
+			if ctx.get("answer_key"):
+				_write_to_filesystem(submission, "answer_key.json", ctx["answer_key"])
+
 		result = run_grading_session(session_id=submission, image_paths=paper_images, text_content=text_content)
 		if frappe.cache().get_value(_ai_grading_stop_key(submission)):
 			return
@@ -983,6 +1097,28 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 		is_flagged, reason, priority = should_flag_grading(result, max_score)
 		final_status = "Flagged" if is_flagged else "Done"
 
+		# Build criteria_scores list from result
+		criteria_list = []
+		if isinstance(result, dict):
+			if isinstance(result.get("mcq_results"), list):
+				for q in result["mcq_results"]:
+					criteria_list.append({
+						"question_no": q.get("question_no") or q.get("q_no") or q.get("name"),
+						"score": q.get("score", 0),
+						"max_score": q.get("max_score") or q.get("max", 0),
+						"feedback": q.get("feedback") or q.get("note", ""),
+						"details": q.get("details") or []
+					})
+			if isinstance(result.get("solution_results"), list):
+				for q in result["solution_results"]:
+					criteria_list.append({
+						"question_no": q.get("question_no") or q.get("q_no") or q.get("name"),
+						"score": q.get("score", 0),
+						"max_score": q.get("max_score") or q.get("max", 0),
+						"feedback": q.get("feedback") or q.get("note", ""),
+						"details": q.get("details") or []
+					})
+
 		extra = {
 			"grading_completed_at": now_datetime(),
 			"ai_feedback": json.dumps(result, ensure_ascii=False),
@@ -996,6 +1132,8 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 			extra["score"] = score
 		if is_flagged:
 			extra["flag_reason"] = reason
+		if criteria_list:
+			extra["criteria_scores"] = json.dumps(criteria_list, ensure_ascii=False)
 
 		try:
 			from lms.lms.services.cost_tracking import track_agent_cost
@@ -1005,6 +1143,16 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 
 		_set_submission_status(submission, final_status, extra)
 		frappe.db.commit()
+		
+		try:
+			session_owner = frappe.db.get_value("AI Grading Session", doc.session, "owner")
+			frappe.publish_realtime("ai_grading_update", {
+				"submission_id": submission,
+				"session": doc.session,
+				"status": final_status
+			}, user=requested_by or session_owner)
+		except Exception:
+			pass
 		
 		if is_flagged:
 			notify_teacher(
@@ -1028,6 +1176,15 @@ def _run_ai_grading_job(submission: str, requested_by: str | None = None) -> Non
 				},
 			)
 			frappe.db.commit()
+			try:
+				session_owner = frappe.db.get_value("AI Grading Session", doc.session, "owner")
+				frappe.publish_realtime("ai_grading_update", {
+					"submission_id": submission,
+					"session": doc.session,
+					"status": "Failed"
+				}, user=requested_by or session_owner)
+			except Exception:
+				pass
 		except Exception:
 			pass
 	finally:

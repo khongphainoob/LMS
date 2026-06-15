@@ -45,14 +45,15 @@ NHIỆM VỤ: Kiểm tra tính toán và tính nhất quán của lời giải d
     "severity": "none | low | medium | high"
 }}
 
-LƯU Ý: Nếu bài là MCQ thuần túy và không có lời giải viết tay, hãy trả về 'calculation_errors': [] và severity: 'none'.
+LƯU Ý: Nếu bài là MCQ thuần túy và không có lời giải viết tay, hãy trả về 'calculation_errors': [] và severity: 'none'. Nếu phản hồi có chứa ký tự backslash '\' (ví dụ các ký hiệu toán học LaTeX), hãy double escape nó thành '\\' để JSON hợp lệ.
 
 DỮ LIỆU BÀI LÀM:
 {grading_manifest}
 """
 
 def _get_logic_model():
-    return get_model("logic")[0]
+    return get_model("logic", max_tokens=8192)[0]
+
 
 @observe(as_type="generation", name="Logic Specialist Analysis")
 def run_logic_analysis(context: GradingContext) -> Optional[LogicReport]:
@@ -88,10 +89,11 @@ def run_logic_analysis(context: GradingContext) -> Optional[LogicReport]:
         config = get_unified_config_dict(agent_name="Logic Specialist", session_id=session_id, tags=["AI Grading"])
         response = model.invoke(prompt, config=config)
         
-        import re
-        json_match = re.search(r"\{.*\}", response.content, re.DOTALL)
-        if json_match:
-            return json.loads(json_match.group(0))
+        from lms.lms.agents.utils.json_utils import extract_json
+        parsed_json = extract_json(response.content, expected_type="object")
+        if parsed_json:
+            return parsed_json
+
     except Exception as e:
         logger.error(f"Error in Logic Specialist: {str(e)}")
         

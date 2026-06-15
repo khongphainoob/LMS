@@ -94,6 +94,30 @@ def aggregate_final_grade(context: dict) -> dict:
         "answer_key": context.get('answer_key', {})
     }
 
+    # Validate input data BEFORE calling LLM
+    has_visual = bool(manifest["visual_reports"])
+    has_logic = bool(manifest["logic_report"]) and manifest["logic_report"] != {}
+    has_rubric = bool(manifest["rubric"] and manifest["rubric"] != "No context provided")
+    has_answer_key = bool(manifest["answer_key"])
+
+    if not has_visual and not has_logic:
+        logger.error(
+            f"[aggregator] EMPTY INPUT: visual_reports={has_visual}, "
+            f"logic_report={has_logic}, rubric={has_rubric}, "
+            f"answer_key={has_answer_key}, exam_type={exam_type}"
+        )
+        return {
+            "error": (
+                "Không thể chấm điểm: thiếu dữ liệu đầu vào. "
+                "Visual Reports trống (không OCR được ảnh) và Logic Report trống (không phân tích được bài làm). "
+                "Vui lòng kiểm tra: 1) Ảnh bài làm có rõ không, 2) Rubric đã được tải lên chưa, "
+                "3) Answer Key đã được trích xuất chưa."
+            ),
+            "total_score": 0.0,
+            "confidence": 0.0,
+            "summary": "Không thể chấm điểm do thiếu dữ liệu đầu vào.",
+        }
+
     try:
         prompt = AGGREGATOR_PROMPT_TEMPLATE.format(
             final_manifest=json.dumps(manifest, ensure_ascii=False, indent=2)

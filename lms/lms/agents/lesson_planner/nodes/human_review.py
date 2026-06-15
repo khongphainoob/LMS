@@ -37,7 +37,10 @@ def human_review_node(state: LessonPlanState) -> dict:
             # Save the draft content into the database so the teacher can view it on the UI
             frappe.db.set_value("AI Lesson Plan", plan_doc_name, {
                 "review_draft": state["lesson_content"],
-                "status": "Review"
+                "status": "Review",
+                "review_started_at": frappe.utils.now_datetime(),
+                "review_notified": 0,
+                "review_feedback": None
             })
             frappe.db.commit()
             
