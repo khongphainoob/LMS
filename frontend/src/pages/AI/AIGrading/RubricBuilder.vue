@@ -348,7 +348,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, reactive } from 'vue'
-import { createResource, Dialog } from 'frappe-ui'
+import { createResource, Dialog, toast } from 'frappe-ui'
 import { FileText, Sparkles, Link2, Plus, X, Upload, Download, Edit3, Trash2, ExternalLink, RefreshCw } from 'lucide-vue-next'
 
 const rubrics = ref([])
@@ -489,7 +489,7 @@ const generateResource = createResource({
 	onSuccess: (data) => {
 		generating.value = false
 		showGenerateModal.value = false
-		frappe.show_alert({ message: __('Đã gửi yêu cầu tạo Rubric chạy ngầm. Vui lòng đợi vài phút và tải lại danh sách.'), indicator: 'green' })
+		toast.success(__('Đã gửi yêu cầu tạo Rubric chạy ngầm. Vui lòng đợi vài phút và tải lại danh sách.'))
 		rubricListResource.fetch()
 		statsResource.fetch()
 	},
@@ -528,12 +528,12 @@ const exportResource = createResource({
 const deleteResource = createResource({
 	url: 'lms.lms.services.rubric_builder.api.delete_rubric',
 	onSuccess: () => {
-		frappe.show_alert({ message: __('Rubric deleted'), indicator: 'red' })
+		toast.error(__('Rubric deleted'))
 		rubricListResource.fetch()
 		statsResource.fetch()
 	},
 	onError: (err) => {
-		frappe.msgprint(__('Lỗi khi xóa: {0}', [err.message || err]))
+		toast.error(__('Lỗi khi xóa: {0}').replace('{0}', err.message || err))
 	}
 })
 
@@ -553,11 +553,11 @@ function handleDelete(name) {
 const retryResource = createResource({
 	url: 'lms.lms.services.rubric_builder.api.retry_generate_rubric',
 	onSuccess: () => {
-		frappe.show_alert({ message: __('Đã gửi yêu cầu tạo lại. Vui lòng đợi và tải lại trang sau.'), indicator: 'green' })
+		toast.success(__('Đã gửi yêu cầu tạo lại. Vui lòng đợi và tải lại trang sau.'))
 		rubricListResource.fetch()
 	},
 	onError: (err) => {
-		frappe.msgprint(__('Lỗi khi thử lại: {0}', [err.message || err]))
+		toast.error(__('Lỗi khi thử lại: {0}').replace('{0}', err.message || err))
 	}
 })
 

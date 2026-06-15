@@ -102,7 +102,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Button, Input, createResource } from 'frappe-ui'
+import { Button, Input, createResource, toast } from 'frappe-ui'
 import EssayImageUploadBlock from '@/components/AIGrading/EssayImageUploadBlock.vue'
 
 const props = defineProps({
@@ -149,17 +149,17 @@ const submissionsList = ref([])
 
 function gradeSubmission() {
 	if (!submission.value.student_name) {
-		frappe.show_alert({ message: __('Please enter a student name'), indicator: 'orange' })
+		toast.error(__('Please enter a student name'))
 		return
 	}
 	
 	console.log('Grading essay for:', submission.value.student_name)
-	frappe.show_alert({ message: __('Grading in progress...'), indicator: 'blue' })
+	toast(__('Grading in progress...'))
 }
 
 function saveSubmission() {
 	if (!submission.value.student_name) {
-		frappe.show_alert({ message: __('Please enter a student name'), indicator: 'orange' })
+		toast.error(__('Please enter a student name'))
 		return
 	}
 	// Add logic to save submission to the session
@@ -174,7 +174,7 @@ function saveSubmission() {
 function saveSession() {
 	console.log('Saving session:', props.sessionId)
 	// Alert or Toast for save success
-	frappe.show_alert({ message: __('Session saved successfully!'), indicator: 'green' })
+	toast.success(__('Session saved successfully!'))
 }
 
 function exitSession() {
