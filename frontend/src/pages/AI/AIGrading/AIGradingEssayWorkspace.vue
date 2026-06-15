@@ -458,7 +458,7 @@ async function fileToDataUrl(file) {
 }
 import { ref, computed, reactive, onMounted, watch, onUnmounted, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Dialog, Input, createResource } from 'frappe-ui'
+import { Dialog, Input, createResource, toast } from 'frappe-ui'
 import * as icons from 'lucide-vue-next'
 import dayjs from '@/utils/dayjs'
 import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
@@ -573,7 +573,7 @@ async function startCamera(videoEl) {
 		cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
 		if (videoEl) videoEl.srcObject = cameraStream
 	} catch (e) {
-		frappe.show_alert({ message: __('Failed to open camera'), indicator: 'red' })
+		toast.error(__('Failed to open camera'))
 	}
 }
 
@@ -652,7 +652,7 @@ async function deleteExistingImage(img) {
 			const targetU = typeof img === 'string' ? img : img.file_url;
 			return u !== targetU;
 		})
-		frappe.show_alert({ message: __('Photo removed'), indicator: 'blue' })
+		toast(__('Photo removed'))
 		await loadSubmissions()
 	} catch (e) {
 		editingStudent.images = editingStudent.images.filter(i => {
@@ -669,10 +669,7 @@ async function syncSubmissions() {
 	try {
 		const res = await syncSubmissionsResource.submit({ session: resolvedSessionId.value })
 		if (res && res.status === 'success') {
-			frappe.show_alert({ 
-				message: __('{0} new submissions synced').replace('{0}', res.synced_count), 
-				indicator: 'green' 
-			})
+			toast.success(__('{0} new submissions synced').replace('{0}', res.synced_count))
 			await loadSubmissions()
 		}
 	} catch (e) {
@@ -918,14 +915,11 @@ async function gradeCurrent() {
     await loadSubmissions()
     
     if (res && res.success) {
-      frappe.show_alert({ message: __('Grading Started'), indicator: 'green' })
+      toast.success(__('Grading Started'))
     }
   } catch (e) {
     console.error('Grading error:', e)
-    frappe.show_alert({ 
-      message: __('Connection error or Timeout. AI is still running in the background, please wait or reload the page.'), 
-      indicator: 'orange' 
-    })
+    toast.error(__('Connection error or Timeout. AI is still running in the background, please wait or reload the page.'))
     loadSubmissions()
   } finally {
     isGradingCurrent.value = false
@@ -980,7 +974,7 @@ function handleEditSubmission(sub) {
 }
 async function addStudent() {
 	if (!newStudent.name && !newStudent.sbd && !newStudent.email) {
-		frappe.show_alert({ message: __('Please enter at least one piece of student information (Name, SBD, or Email)'), indicator: 'orange' })
+		toast.error(__('Please enter at least one piece of student information (Name, SBD, or Email)'))
 		return
 	}
 	if (!resolvedSessionId.value || isAddingStudent.value) return
@@ -1078,12 +1072,12 @@ async function runBatchGrading() {
       session: resolvedSessionId.value 
     })
     if (res && res.submission_ids && res.submission_ids.length > 0) {
-      frappe.show_alert({ message: __('Batch marking in progress...'), indicator: 'blue' })
+      toast(__('Batch marking in progress...'))
       res.submission_ids.forEach(id => pollGradingStatus(id))
     } else if (res && res.message) {
-      frappe.show_alert({ message: res.message, indicator: 'orange' })
+      toast.error(res.message)
     } else {
-      frappe.show_alert({ message: __('No pending papers found or limit reached.'), indicator: 'orange' })
+      toast.error(__('No pending papers found or limit reached.'))
     }
     await loadSubmissions()
   } catch (e) {
@@ -1136,11 +1130,11 @@ async function saveCurrent(targetStatus = 'Done') {
 			}
 		})
 		if (targetStatus === 'Flagged') {
-			frappe.show_alert({ message: __('Flagged {0} \'s post').format(currentSub.value.name), indicator: 'orange' })
+			toast.error(__('Flagged {0}\'s submission').replace('{0}', currentSub.value.name))
 		} else if (targetStatus === 'Done') {
-			frappe.show_alert({ message: __('Approved {0} \'s post').format(currentSub.value.name), indicator: 'green' })
+			toast.success(__('Approved {0}\'s submission').replace('{0}', currentSub.value.name))
 		} else {
-			frappe.show_alert({ message: __('Saved {0} \'s post').format(currentSub.value.name), indicator: 'blue' })
+			toast(__('Saved {0}\'s submission').replace('{0}', currentSub.value.name))
 		}
 		await loadSubmissions()
 	} catch (e) {
@@ -1156,7 +1150,7 @@ function flagCurrent() {
 
 function exportGrades() {
 	if (!submissions.value || submissions.value.length === 0) {
-		frappe.msgprint(__('No data to export'))
+		toast.error(__('No data to export'))
 		return
 	}
 	let csv = '\uFEFF'
@@ -1178,7 +1172,7 @@ function exportGrades() {
 }
 
 async function saveAllToDatabase() {
-	frappe.show_alert({ message: __('Data has been synced automatically.'), indicator: 'blue' })
+	toast(__('Data has been synced automatically.'))
 }
 </script>
 

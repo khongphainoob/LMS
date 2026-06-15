@@ -511,7 +511,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted, onUnmounted, watch, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Button, Dialog, Input, createResource } from 'frappe-ui'
+import { Button, Dialog, Input, createResource, toast } from 'frappe-ui'
 import { Search, UserPlus, Play, Trash2, Edit, RefreshCw, Maximize2, Square, Loader2, Eye, EyeOff, Download, ChevronLeft, Flag } from 'lucide-vue-next'
 import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 
@@ -764,7 +764,7 @@ async function deleteExistingImage(img) {
 			const targetU = typeof img === 'string' ? img : img.file_url;
 			return u !== targetU;
 		})
-    frappe.show_alert({ message: __('Deleted image'), indicator: 'blue' })
+    toast(__('Deleted image'))
     await loadSubmissions()
   } catch (e) {
     console.error(e)
@@ -805,7 +805,7 @@ async function startCamera(videoEl) {
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
     if (videoEl) videoEl.srcObject = cameraStream
   } catch (e) {
-    frappe.show_alert({ message: __('Camera Error'), indicator: 'red' })
+    toast.error(__('Camera Error'))
   }
 }
 
@@ -878,7 +878,7 @@ async function fileToDataUrl(file) {
 
 async function addStudent() {
 	if (!newStudent.name && !newStudent.sbd && !newStudent.email) {
-		frappe.show_alert({ message: __('Please enter at least one piece of student information (Name, SBD, or Email)'), indicator: 'orange' })
+		toast.error(__('Please enter at least one piece of student information (Name, SBD, or Email)'))
 		return
 	}
 	if (!sessionDoc.value?.name) return
@@ -996,13 +996,10 @@ async function gradeCurrent() {
 		// Bắt đầu poll để tự động nạp kết quả khi xong
 		pollGradingStatus(submissionId)
 
-		frappe.show_alert({ message: __('Grading started (background run). Can do something else.'), indicator: 'blue' })
+		toast(__('Grading started (background run). Can do something else.'))
   } catch (e) {
     console.error('Grading error:', e)
-    frappe.show_alert({ 
-			message: __('Failed to start grading. Please try again.'),
-			indicator: 'red'
-    })
+    toast.error(__('Failed to start grading. Please try again.'))
     loadSubmissions()
   } finally {
     isGradingCurrent.value = false
@@ -1093,15 +1090,15 @@ async function saveCurrent(targetStatus = 'Done') {
 			}
 		})
 		if (targetStatus === 'Flagged') {
-			frappe.show_alert({ message: __('Flagged {0} \'s post').format(currentSub.value.student_name), indicator: 'orange' })
+			toast.error(__('Flagged {0}\'s submission').replace('{0}', currentSub.value.student_name))
 		} else if (targetStatus === 'Done') {
-			frappe.show_alert({ message: __('Approved {0} \'s post').format(currentSub.value.student_name), indicator: 'green' })
+			toast.success(__('Approved {0}\'s submission').replace('{0}', currentSub.value.student_name))
 		} else {
-			frappe.show_alert({ message: __('Saved {0} \'s post').format(currentSub.value.student_name), indicator: 'blue' })
+			toast(__('Saved {0}\'s submission').replace('{0}', currentSub.value.student_name))
 		}
 		await loadSubmissions()
 	} catch (error) {
-		frappe.msgprint(__('Error saving scores: ') + error.message)
+		toast.error(__('Error saving scores: ') + error.message)
 	}
 }
 
@@ -1111,7 +1108,7 @@ function flagCurrent() {
 
 function exportGrades() {
 	if (!submissions.value || submissions.value.length === 0) {
-		frappe.msgprint(__('No data to export'))
+		toast.error(__('No data to export'))
 		return
 	}
 	let csv = '\uFEFF'
@@ -1219,12 +1216,12 @@ async function runBatchGrading() {
       session: sessionDoc.value.name 
     })
     if (res && res.submission_ids && res.submission_ids.length > 0) {
-      frappe.show_alert({ message: __('Batch marking in progress...'), indicator: 'blue' })
+      toast(__('Batch marking in progress...'))
       res.submission_ids.forEach(id => pollGradingStatus(id))
     } else if (res && res.message) {
-      frappe.show_alert({ message: res.message, indicator: 'orange' })
+      toast.error(res.message)
     } else {
-      frappe.show_alert({ message: __('No pending papers found or limit reached.'), indicator: 'orange' })
+      toast.error(__('No pending papers found or limit reached.'))
     }
     await loadSubmissions()
   } catch (e) {
