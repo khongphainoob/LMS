@@ -31,7 +31,8 @@
         "output_tokens",
         "estimated_cost_usd",
         "retry_count",
-        "last_error"
+        "last_error",
+        "criteria_scores"
     ],
     "fields": [
         {
@@ -176,6 +177,11 @@
             "fieldname": "last_error",
             "fieldtype": "Small Text",
             "label": "Last Error"
+        },
+        {
+            "fieldname": "criteria_scores",
+            "fieldtype": "Long Text",
+            "label": "Criteria Scores"
         }
     ],
     "modified": "2026-04-22 23:00:00.000000",
