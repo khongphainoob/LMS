@@ -1,0 +1,86 @@
+{
+  "doctype": "DocType",
+  "name": "AI User Feedback",
+  "module": "LMS",
+  "engine": "InnoDB",
+  "istable": 0,
+  "track_changes": 0,
+  "fields": [
+    {
+      "fieldname": "session_type",
+      "fieldtype": "Select",
+      "label": "Session Type",
+      "reqd": 1,
+      "options": "Chatbot\nSocratic\nLesson Plan\nExam\nQuiz\nGrading"
+    },
+    {
+      "fieldname": "session_id",
+      "fieldtype": "Dynamic Link",
+      "label": "Session",
+      "reqd": 1,
+      "options": "session_type"
+    },
+    {
+      "fieldname": "user",
+      "fieldtype": "Link",
+      "label": "User",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "rating",
+      "fieldtype": "Select",
+      "label": "Rating",
+      "reqd": 1,
+      "options": "5 - R\u1ea5t t\u1ed1t\n4 - T\u1ed1t\n3 - T\u1ea1m \u0111\u01b0\u1ee3c\n2 - K\u00e9m\n1 - R\u1ea5t k\u00e9m"
+    },
+    {
+      "fieldname": "rating_category",
+      "fieldtype": "Select",
+      "label": "Category",
+      "options": "accuracy\nhelpfulness\nclarity\nspeed\nengagement"
+    },
+    {
+      "fieldname": "section_break_1",
+      "fieldtype": "Section Break",
+      "label": "Feedback"
+    },
+    {
+      "fieldname": "feedback_text",
+      "fieldtype": "Small Text",
+      "label": "Feedback Text"
+    },
+    {
+      "fieldname": "content_snapshot",
+      "fieldtype": "Long Text",
+      "label": "Content Snapshot",
+      "description": "The AI-generated content at time of feedback"
+    },
+    {
+      "fieldname": "timestamp",
+      "fieldtype": "Datetime",
+      "label": "Timestamp",
+      "default": "Now"
+    },
+    {
+      "fieldname": "section_break_2",
+      "fieldtype": "Section Break",
+      "label": "Admin"
+    },
+    {
+      "fieldname": "reviewed_by",
+      "fieldtype": "Link",
+      "label": "Reviewed By",
+      "options": "User"
+    },
+    {
+      "fieldname": "action_taken",
+      "fieldtype": "Small Text",
+      "label": "Action Taken"
+    }
+  ]
+}

@@ -518,7 +518,7 @@ const removeTag = (tag) => {
 
 const check_permission = () => {
 	let user_is_instructor = false
-	if (user.data?.is_moderator) return
+	if (user.data?.is_moderator || user.data?.is_instructor) return
 
 	instructors.value.forEach((instructor) => {
 		if (!user_is_instructor && instructor == user.data?.name) {

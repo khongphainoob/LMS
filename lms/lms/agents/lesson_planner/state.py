@@ -45,3 +45,10 @@ class LessonPlanState(TypedDict):
     input_tokens: int
     output_tokens: int
     total_cost_usd: float
+
+    # ===== VALIDATION =====
+    evaluation_result: Optional[dict]
+    needs_review: Optional[bool]
+    flagged_issues: Optional[List[str]]
+    validator_summary: Optional[str]
+    delivery_decision: Optional[str]

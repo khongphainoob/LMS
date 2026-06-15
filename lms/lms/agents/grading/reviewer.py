@@ -77,7 +77,8 @@ HÃY TRẢ VỀ BẢN JSON ĐÃ ĐƯỢC SỬA LỖI. CHỈ TRẢ VỀ JSON.
 @observe(as_type="generation", name="Reviewer Specialist Analysis")
 def run_review_analysis(context: GradingContext, draft_result: Dict) -> Dict:
     logger.info("Reviewer Agent: Double-checking the results...")
-    model, _, _ = get_model("review")
+    model, _, _ = get_model("review", max_tokens=8192)
+
 
     try:
         prompt = REVIEWER_PROMPT_TEMPLATE.format(

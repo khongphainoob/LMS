@@ -276,6 +276,10 @@ def approve_blueprint(exam_name: str, modified_blueprint: str = None):
         if doc.owner != frappe.session.user and "System Manager" not in frappe.get_roles(frappe.session.user):
             frappe.throw(_("Không có quyền truy cập đề thi này."), frappe.PermissionError)
             
+        doc.db_set("status", "Processing")
+        frappe.db.commit()
+        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, user=doc.owner)
+        
         frappe.enqueue(
             "lms.lms.agents.exam.orchestrator.run_exam_graph",
             exam_name=exam_name,

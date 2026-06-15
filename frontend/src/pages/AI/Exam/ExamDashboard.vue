@@ -118,7 +118,7 @@
 <script setup>
 import { createResource, Button, Badge, Spinner } from 'frappe-ui'
 import { useRouter } from 'vue-router'
-import { inject, onMounted, ref } from 'vue'
+import { inject, onMounted, onUnmounted, ref } from 'vue'
 
 const router = useRouter()
 const socket = inject('$socket')
@@ -222,11 +222,19 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString()
 }
 
+const handleExamUpdate = (data) => {
+  examsResource.reload()
+}
+
 onMounted(() => {
   if (socket) {
-    socket.on('ai_exam_update', (data) => {
-      examsResource.reload()
-    })
+    socket.on('ai_exam_update', handleExamUpdate)
+  }
+})
+
+onUnmounted(() => {
+  if (socket) {
+    socket.off('ai_exam_update', handleExamUpdate)
   }
 })
 </script>

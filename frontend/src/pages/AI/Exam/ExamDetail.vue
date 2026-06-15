@@ -250,26 +250,54 @@
 </template>
 
 <script setup>
-import { inject, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue'
+import { inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { createResource, Button, Badge, Spinner, call } from 'frappe-ui'
 import MarkdownIt from 'markdown-it'
+import mathjax3 from 'markdown-it-mathjax3'
 import DOMPurify from 'dompurify'
-import 'katex/dist/katex.min.css'
 import AIFeedbackWidget from '@/components/ai/AIFeedbackWidget.vue'
 
 const router = useRouter()
 const route = useRoute()
 const socket = inject('$socket')
 
-const md = new MarkdownIt({ html: true, breaks: true })
+const md = new MarkdownIt({ html: true, breaks: true }).use(mathjax3)
 
 const nfc = (text) => text ? String(text).normalize('NFC') : ''
 
+const restoreLatexEscapes = (text) => {
+  if (!text) return ''
+  return String(text)
+    .replace(/\x09/g, '\\t')
+    .replace(/\x0c/g, '\\f')
+}
+
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+  if (node.tagName === 'STYLE') {
+    node.__styleContent = node.textContent
+  }
+})
+
+DOMPurify.addHook('afterSanitizeElements', (node) => {
+  if (node && node.tagName === 'STYLE' && node.__styleContent !== undefined) {
+    node.textContent = node.__styleContent
+  }
+})
+
 const renderMarkdown = (text) => {
   if (!text) return ''
-  const rawHtml = md.render(nfc(text))
-  return DOMPurify.sanitize(rawHtml)
+  const cleaned = restoreLatexEscapes(nfc(text))
+  const rawHtml = md.render(cleaned)
+  return DOMPurify.sanitize(rawHtml, {
+    USE_PROFILES: { html: true, mathMl: true, svg: true },
+    ADD_TAGS: ['style', 'mjx-container', 'mjx-assistive-mml'],
+    ADD_ATTR: [
+      'style', 'jax', 'display', 'class', 'id', 'width', 'height', 'valign', 'viewBox',
+      'unselectable', 'focusable', 'aria-hidden', 'transform', 'stroke', 'fill',
+      'stroke-width', 'd', 'data-c', 'data-mml-node', 'data-mjx-xml', 'data-background'
+    ]
+  })
 }
 
 const cleanOptionText = (opt) => {
@@ -281,27 +309,6 @@ const cleanOptionText = (opt) => {
   return text
 }
 
-let mathRenderTimer = null
-const renderMath = () => {
-  // Debounce to avoid hammering KaTeX on rapid re-renders
-  if (mathRenderTimer) clearTimeout(mathRenderTimer)
-  mathRenderTimer = setTimeout(() => {
-    if (!window.renderMathInElement) return
-    // Scope to exam content ONLY — not document.body — to avoid sidebar lag
-    const el = document.getElementById('exam-content-area')
-    if (!el) return
-    window.renderMathInElement(el, {
-      delimiters: [
-        {left: '$$', right: '$$', display: true},
-        {left: '$', right: '$', display: false},
-        {left: '\\(', right: '\\)', display: false},
-        {left: '\\[', right: '\\]', display: true}
-      ],
-      throwOnError: false
-    })
-  }, 200)
-}
-
 const handleExamUpdate = (data) => {
   if (data.name === route.params.examID) {
     examResource.reload()
@@ -309,7 +316,6 @@ const handleExamUpdate = (data) => {
 }
 
 onMounted(() => {
-  renderMath()
   if (socket) {
     socket.on('ai_exam_update', handleExamUpdate)
   }
@@ -319,11 +325,6 @@ onUnmounted(() => {
   if (socket) {
     socket.off('ai_exam_update', handleExamUpdate)
   }
-  if (mathRenderTimer) clearTimeout(mathRenderTimer)
-})
-
-onUpdated(() => {
-  renderMath()
 })
 
 const examResource = createResource({
@@ -461,15 +462,6 @@ const parseMedia = (str) => {
   }
 }
 
-onMounted(() => {
-  if (socket) {
-    socket.on('ai_exam_update', (data) => {
-      if (data.name === route.params.examID) {
-        examResource.reload()
-      }
-    })
-  }
-})
 </script>
 
 <style scoped>

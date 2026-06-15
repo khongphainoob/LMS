@@ -149,7 +149,7 @@ const isInstructor = () => {
 }
 
 const isAdmin = computed(() => {
-	return user.data?.is_moderator || isInstructor()
+	return user.data?.is_moderator || user.data?.is_instructor || isInstructor()
 })
 
 const breadcrumbs = computed(() => {

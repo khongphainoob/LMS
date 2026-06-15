@@ -84,7 +84,15 @@ YÊU CẦU BẮT BUỘC:
 2. Mỗi câu hỏi BẮT BUỘC cung cấp 4 đáp án (A, B, C, D) trong đó CHỈ CÓ MỘT đáp án đúng. Trường `options` BẮT BUỘC phải có đủ 4 phần tử.
 3. Cung cấp một lời giải chi tiết, từng bước một cho MỖI câu hỏi trong trường `explanation`.
 4. Mọi văn bản, câu hỏi, lời giải BẮT BUỘC viết bằng Tiếng Việt chuẩn mực.
-5. Trả kết quả về dưới dạng ĐÚNG MỘT OBJECT JSON duy nhất, có cấu trúc như sau:
+5. HƯỚNG DẪN ĐỊNH DẠNG CÔNG THỨC TOÁN/LÝ/HÓA (LaTeX):
+   - Tất cả các ký hiệu toán học, hằng số, biến số, công thức, phương trình BẮT BUỘC phải được đặt trong cặp dấu đô-la đơn cho công thức nội dòng (inline math, ví dụ: $x = A \\\\cos(\\\\omega t + \\\\varphi)$) hoặc cặp dấu đô-la kép cho công thức khối (display math, ví dụ: $$T = 2\\\\pi \\\\sqrt{{\\\\frac{{l}}{{g}}}}$$).
+   - Tuyệt đối KHÔNG viết công thức hoặc ký hiệu toán học (như x, y, a, b, lambda, omega, pi, cos, sin) dưới dạng văn bản thường mà không có dấu bao đô-la $. Ví dụ: viết $a$ thay vì a, viết $\\\\omega$ thay vì omega hoặc \\omega.
+   - Tuyệt đối không để dấu cách ngay sau ký tự $ mở đầu hoặc ngay trước ký tự $ kết thúc. Ví dụ: viết $\\\\omega$ hoặc $x=4$ (ĐÚNG), KHÔNG viết $ \\\\omega $ hoặc $ x = 4 $ (SAI).
+   - Quy tắc viết ký hiệu LaTeX:
+     + Sử dụng các ký hiệu chuẩn LaTeX: ví dụ $\\\\pi$ (KHÔNG được viết $\\\\text{{\\\\pi}}$ vì \\pi chỉ chạy được ở chế độ toán), $\\\\cos$ (thay vì \\\\text{{cos}}), $\\\\sin$ (thay vì \\\\text{{sin}}), $\\\\lambda$ (thay vì \\\\text{{\\\\lambda}}), $\\\\mu$ (thay vì \\\\text{{\\\\mu}}).
+     + Khi viết các đơn vị hoặc văn bản tiếng Việt bên trong công thức, sử dụng `\\\\text{{...}}` (ví dụ: $v = 10 \\\\text{{ m/s}}$, $a = 1 \\\\text{{ mm}}$). KHÔNG lồng ký hiệu toán học vào trong `\\\\text{{...}}`.
+     + Đảm bảo dấu backslash trong chuỗi JSON được escape chính xác (sử dụng hai dấu backslash `\\\\` trong chuỗi để tránh lỗi cú pháp JSON, ví dụ: `\\\\\\\\lambda` hoặc `\\\\\\\\frac`).
+6. Trả kết quả về dưới dạng ĐÚNG MỘT OBJECT JSON duy nhất, có cấu trúc như sau:
 ```json
 {{
   "section_name": "Tên phần thi",
@@ -126,7 +134,15 @@ YÊU CẦU BẮT BUỘC:
 2. Mỗi câu hỏi lớn BẮT BUỘC phải có CHÍNH XÁC 4 ý/phát biểu phụ (a, b, c, d) trong phần `options`. Mỗi ý phải có `is_correct=true` (Đúng) hoặc `is_correct=false` (Sai).
 3. Lời giải `explanation` phải giải thích rõ ràng tại sao từng ý a, b, c, d là đúng hay sai.
 4. Mọi văn bản viết bằng Tiếng Việt.
-5. Trả về OBJECT JSON như sau:
+5. HƯỚNG DẪN ĐỊNH DẠNG CÔNG THỨC TOÁN/LÝ/HÓA (LaTeX):
+   - Tất cả các ký hiệu toán học, hằng số, biến số, công thức, phương trình BẮT BUỘC phải được đặt trong cặp dấu đô-la đơn cho công thức nội dòng (inline math, ví dụ: $x = A \\\\cos(\\\\omega t + \\\\varphi)$) hoặc cặp dấu đô-la kép cho công thức khối (display math, ví dụ: $$T = 2\\\\pi \\\\sqrt{{\\\\frac{{l}}{{g}}}}$$).
+   - Tuyệt đối KHÔNG viết công thức hoặc ký hiệu toán học (như x, y, a, b, lambda, omega, pi, cos, sin) dưới dạng văn bản thường mà không có dấu bao đô-la $. Ví dụ: viết $a$ thay vì a, viết $\\\\omega$ thay vì omega hoặc \\omega.
+   - Tuyệt đối không để dấu cách ngay sau ký tự $ mở đầu hoặc ngay trước ký tự $ kết thúc. Ví dụ: viết $\\\\omega$ hoặc $x=4$ (ĐÚNG), KHÔNG viết $ \\\\omega $ hoặc $ x = 4 $ (SAI).
+   - Quy tắc viết ký hiệu LaTeX:
+     + Sử dụng các ký hiệu chuẩn LaTeX: ví dụ $\\\\pi$ (KHÔNG được viết $\\\\text{{\\\\pi}}$ vì \\pi chỉ chạy được ở chế độ toán), $\\\\cos$ (thay vì \\\\text{{cos}}), $\\\\sin$ (thay vì \\\\text{{sin}}), $\\\\lambda$ (thay vì \\\\text{{\\\\lambda}}), $\\\\mu$ (thay vì \\\\text{{\\\\mu}}).
+     + Khi viết các đơn vị hoặc văn bản tiếng Việt bên trong công thức, sử dụng `\\\\text{{...}}` (ví dụ: $v = 10 \\\\text{{ m/s}}$, $a = 1 \\\\text{{ mm}}$). KHÔNG lồng ký hiệu toán học vào trong `\\\\text{{...}}`.
+     + Đảm bảo dấu backslash trong chuỗi JSON được escape chính xác (sử dụng hai dấu backslash `\\\\` trong chuỗi để tránh lỗi cú pháp JSON, ví dụ: `\\\\\\\\lambda` hoặc `\\\\\\\\frac`).
+6. Trả về OBJECT JSON như sau:
 ```json
 {{
   "section_name": "Tên phần thi",
@@ -168,7 +184,15 @@ YÊU CẦU BẮT BUỘC:
 3. Trường `correct_answer` chứa đáp án mẫu ngắn gọn (kết quả cuối cùng).
 4. Cung cấp một lời giải chi tiết, từng bước một trong `explanation`.
 5. Mọi văn bản viết bằng Tiếng Việt.
-6. Trả về OBJECT JSON như sau:
+6. HƯỚNG DẪN ĐỊNH DẠNG CÔNG THỨC TOÁN/LÝ/HÓA (LaTeX):
+   - Tất cả các ký hiệu toán học, hằng số, biến số, công thức, phương trình BẮT BUỘC phải được đặt trong cặp dấu đô-la đơn cho công thức nội dòng (inline math, ví dụ: $x = A \\\\cos(\\\\omega t + \\\\varphi)$) hoặc cặp dấu đô-la kép cho công thức khối (display math, ví dụ: $$T = 2\\\\pi \\\\sqrt{{\\\\frac{{l}}{{g}}}}$$).
+   - Tuyệt đối KHÔNG viết công thức hoặc ký hiệu toán học (như x, y, a, b, lambda, omega, pi, cos, sin) dưới dạng văn bản thường mà không có dấu bao đô-la $. Ví dụ: viết $a$ thay vì a, viết $\\\\omega$ thay vì omega hoặc \\omega.
+   - Tuyệt đối không để dấu cách ngay sau ký tự $ mở đầu hoặc ngay trước ký tự $ kết thúc. Ví dụ: viết $\\\\omega$ hoặc $x=4$ (ĐÚNG), KHÔNG viết $ \\\\omega $ hoặc $ x = 4 $ (SAI).
+   - Quy tắc viết ký hiệu LaTeX:
+     + Sử dụng các ký hiệu chuẩn LaTeX: ví dụ $\\\\pi$ (KHÔNG được viết $\\\\text{{\\\\pi}}$ vì \\pi chỉ chạy được ở chế độ toán), $\\\\cos$ (thay vì \\\\text{{cos}}), $\\\\sin$ (thay vì \\\\text{{sin}}), $\\\\lambda$ (thay vì \\\\text{{\\\\lambda}}), $\\\\mu$ (thay vì \\\\text{{\\\\mu}}).
+     + Khi viết các đơn vị hoặc văn bản tiếng Việt bên trong công thức, sử dụng `\\\\text{{...}}` (ví dụ: $v = 10 \\\\text{{ m/s}}$, $a = 1 \\\\text{{ mm}}$). KHÔNG lồng ký hiệu toán học vào trong `\\\\text{{...}}`.
+     + Đảm bảo dấu backslash trong chuỗi JSON được escape chính xác (sử dụng hai dấu backslash `\\\\` trong chuỗi để tránh lỗi cú pháp JSON, ví dụ: `\\\\\\\\lambda` hoặc `\\\\\\\\frac`).
+7. Trả về OBJECT JSON như sau:
 ```json
 {{
   "section_name": "Tên phần thi",

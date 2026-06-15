@@ -85,3 +85,19 @@
   padding-top: 0.5em;
   padding-bottom: 0.5em;
 }
+
+/* Fix Tailwind CSS block reset breaking MathJax inline SVG */
+mjx-container svg {
+  display: inline !important;
+}
+
+mjx-container[display="true"] {
+  display: block !important;
+  margin: 1em 0 !important;
+}
+
+mjx-container[display="true"] svg {
+  display: block !important;
+  margin: 0 auto !important;
+}
+

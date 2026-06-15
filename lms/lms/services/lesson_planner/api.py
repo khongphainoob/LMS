@@ -31,6 +31,9 @@ def run_lesson_planner_orchestrator(plan_name, resume_payload=None):
     """
     try:
         plan_doc = frappe.get_doc("AI Lesson Plan", plan_name)
+        if plan_doc.status == "Completed":
+            logger.info(f"Lesson plan {plan_name} is already Completed. Skipping orchestrator run.")
+            return
         
         # Load thread config
         thread_id = plan_doc.thread_id or f"thread_{frappe.generate_hash(length=8)}"
@@ -53,7 +56,9 @@ def run_lesson_planner_orchestrator(plan_name, resume_payload=None):
             status_update = "Illustrating" if resume_payload.get("action") == "approve" else "Writing"
             frappe.db.set_value("AI Lesson Plan", plan_name, {
                 "status": status_update,
-                "review_feedback": resume_payload.get("feedback")
+                "review_feedback": resume_payload.get("feedback"),
+                "review_started_at": None,
+                "review_notified": 0
             })
             frappe.db.commit()
             
@@ -141,6 +146,11 @@ def run_lesson_planner_orchestrator(plan_name, resume_payload=None):
             frappe.db.commit()
         
     except Exception as e:
+        from langgraph.errors import GraphInterrupt
+        if isinstance(e, GraphInterrupt):
+            logger.info(f"Orchestrator paused for HITL review for plan {plan_name}.")
+            return
+
         logger.error(f"Orchestrator failed for plan {plan_name}: {e}", exc_info=True)
         frappe.db.set_value("AI Lesson Plan", plan_name, {
             "status": "Failed",
@@ -207,7 +217,9 @@ def resume_lesson_plan(plan_name, action, edited_content=None, feedback=None):
     frappe.db.set_value("AI Lesson Plan", plan_name, {
         "reviewed_at": frappe.utils.now_datetime(),
         "reviewed_by": frappe.session.user,
-        "status": status_update
+        "status": status_update,
+        "review_started_at": None,
+        "review_notified": 0
     })
     frappe.db.commit()
     
@@ -380,6 +392,8 @@ def send_review_reminder_and_auto_approve():
                 "status": "Illustrating",
                 "reviewed_at": now,
                 "reviewed_by": "System (Auto-approved after timeout)",
+                "review_started_at": None,
+                "review_notified": 0
             })
             frappe.db.commit()
             frappe.enqueue(

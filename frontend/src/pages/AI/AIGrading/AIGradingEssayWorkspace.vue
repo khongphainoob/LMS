@@ -456,7 +456,7 @@ async function fileToDataUrl(file) {
 		reader.readAsDataURL(file)
 	})
 }
-import { ref, computed, reactive, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, reactive, onMounted, watch, onUnmounted, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Dialog, Input, createResource } from 'frappe-ui'
 import * as icons from 'lucide-vue-next'
@@ -477,10 +477,24 @@ const sessionDoc = ref(null)
 const sessionLoading = ref(false)
 const activePolls = new Map() // Theo dõi các vòng lặp đang chạy
 
+const socket = inject('$socket')
+
+const handleGradingUpdate = (data) => {
+  const subId = data.submission_id || data.submission
+  if (data.session === resolvedSessionId.value || (subId && submissions.value.some(s => s.id === subId))) {
+    loadSubmissions()
+  }
+}
+
 onUnmounted(() => {
   // Dọn dẹp tất cả vòng lặp khi rời trang
   activePolls.forEach(interval => clearInterval(interval))
   activePolls.clear()
+  stopCamera()
+  if (socket) {
+    socket.off('ai_grading_update', handleGradingUpdate)
+    socket.off('ai_grading_score_update', handleGradingUpdate)
+  }
 })
 
 const submissionsResource = createResource({
@@ -552,9 +566,6 @@ const newPhotoInput = ref(null)
 const editPhotoInput = ref(null)
 let cameraStream = null
 
-onUnmounted(() => {
-	stopCamera()
-})
 
 async function startCamera(videoEl) {
 	try {
@@ -686,9 +697,21 @@ onMounted(async () => {
     await loadSessionBySlug()
     if (resolvedSessionId.value) {
       await loadSubmissions()
+      
+      // Khởi động poll cho các submission đã ở trạng thái grading trước đó
+      submissions.value.forEach(s => {
+        if (s.status === 'grading') {
+          pollGradingStatus(s.id)
+        }
+      })
     }
   } catch (e) {
     console.error("Lỗi nạp dữ liệu Workspace:", e)
+  }
+  
+  if (socket) {
+    socket.on('ai_grading_update', handleGradingUpdate)
+    socket.on('ai_grading_score_update', handleGradingUpdate)
   }
 })
 
@@ -888,11 +911,14 @@ async function gradeCurrent() {
       submission: submissionId
     })
     
+    // Khởi động polling ngay lập tức
+    pollGradingStatus(submissionId)
+    
     // Khi có kết quả (hoặc timeout), nạp lại dữ liệu
     await loadSubmissions()
     
     if (res && res.success) {
-      frappe.show_alert({ message: __('Grading Completed'), indicator: 'green' })
+      frappe.show_alert({ message: __('Grading Started'), indicator: 'green' })
     }
   } catch (e) {
     console.error('Grading error:', e)
@@ -1104,6 +1130,7 @@ async function saveCurrent(targetStatus = 'Done') {
 			submission_id: currentSub.value.id,
 			data: {
 				score: totalScore.value,
+				criteria_scores: JSON.stringify(activeCriteria.value),
 				ai_feedback: JSON.stringify(result),
 				status: targetStatus
 			}

@@ -336,7 +336,7 @@
 						</button>
 						<button
 							class="flex-[2] rounded-lg bg-blue-600 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 shadow-sm"
-							@click="saveCurrent('Grading')"
+							@click="saveCurrent('Done')"
 						>
 							✓ {{ __('Save Scores') }}
 						</button>
@@ -509,7 +509,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button, Dialog, Input, createResource } from 'frappe-ui'
 import { Search, UserPlus, Play, Trash2, Edit, RefreshCw, Maximize2, Square, Loader2, Eye, EyeOff, Download, ChevronLeft, Flag } from 'lucide-vue-next'
@@ -523,10 +523,23 @@ const sessionDoc = ref(null)
 const sessionLoading = ref(false)
 const activePolls = new Map() // Theo dõi các vòng lặp đang chạy
 
+const socket = inject('$socket')
+
+const handleGradingUpdate = (data) => {
+  const subId = data.submission_id || data.submission
+  if (data.session === sessionDoc.value?.name || (subId && submissions.value.some(s => s.id === subId))) {
+    loadSubmissions()
+  }
+}
+
 onUnmounted(() => {
   // Dọn dẹp tất cả vòng lặp khi rời trang
   activePolls.forEach(interval => clearInterval(interval))
   activePolls.clear()
+  if (socket) {
+    socket.off('ai_grading_update', handleGradingUpdate)
+    socket.off('ai_grading_score_update', handleGradingUpdate)
+  }
 })
 
 const submissionsResource = createResource({
@@ -600,6 +613,11 @@ onMounted(async () => {
   submissionsResource.data = []
 	await loadSession()
 	await loadSubmissions()
+
+  if (socket) {
+    socket.on('ai_grading_update', handleGradingUpdate)
+    socket.on('ai_grading_score_update', handleGradingUpdate)
+  }
 })
 
 onUnmounted(() => {
@@ -1069,6 +1087,7 @@ async function saveCurrent(targetStatus = 'Done') {
 			submission_id: currentSub.value.id,
 			data: {
 				score: newTotal,
+				criteria_scores: JSON.stringify(activeCriteria.value),
 				ai_feedback: newFeedbackStr,
 				status: targetStatus
 			}

@@ -19,6 +19,10 @@ from lms.lms.agents.lesson_planner.nodes.assessment import assessment_node
 from lms.lms.agents.lesson_planner.nodes.formatter import formatter_node
 from lms.lms.doctype.agent_log.agent_log import AgentLog
 
+# === REUSABLE SHARED NODES ===
+from lms.lms.agents.shared_nodes.content_validator import content_validator_node, ValidatorContext
+from lms.lms.agents.shared_nodes.confidence_router import route_by_confidence, build_confidence_route_map
+
 def log_wrapper(node_name, func):
     # Trả về func luôn vì LMSUnifiedCallbackHandler đã lo việc tracking on_chain_start/end
     return func
@@ -38,16 +42,25 @@ def build_lesson_planner_graph():
     graph.add_node("planner", log_wrapper("planner", planner_node))
     graph.add_node("writer", log_wrapper("writer", writer_node))
     graph.add_node("human_review", log_wrapper("human_review", human_review_node))
-    
+
     graph.add_node("illustration_planner", log_wrapper("illustration_planner", illustration_planner_node))
     graph.add_node("illus_dispatcher", log_wrapper("illus_dispatcher", illus_dispatch))
     graph.add_node("mermaid_agent", log_wrapper("mermaid_agent", mermaid_node))
     graph.add_node("matplotlib_agent", log_wrapper("matplotlib_agent", matplotlib_node))
     graph.add_node("image_gen_agent", log_wrapper("image_gen_agent", image_gen_node))
     graph.add_node("tikz_agent", log_wrapper("tikz_agent", tikz_node))
-    
+
     graph.add_node("assessment", log_wrapper("assessment", assessment_node))
     graph.add_node("formatter", log_wrapper("formatter", formatter_node))
+
+    # Pre-delivery content validation gate
+    validator_ctx = ValidatorContext(
+        agent_name="lesson_planner",
+        content_field="lesson_content",
+        source_field="retrieved_curriculum",
+        enabled_dimensions=["PA", "PS", "CR", "FC"],
+    )
+    graph.add_node("content_validator", lambda s: content_validator_node(s, validator_ctx))
     
     # 2. Register Edges
     graph.add_edge(START, "retriever")
@@ -78,9 +91,15 @@ def build_lesson_planner_graph():
     graph.add_edge("image_gen_agent", "assessment")
     graph.add_edge("tikz_agent", "assessment")
     
-    # Final path
+    # Final path — formatter → validator → route
     graph.add_edge("assessment", "formatter")
-    graph.add_edge("formatter", END)
+    graph.add_edge("formatter", "content_validator")
+
+    # Low-quality content routes back to HITL for teacher review
+    route_map = build_confidence_route_map({
+        "hitl_review": "human_review",
+    })
+    graph.add_conditional_edges("content_validator", route_by_confidence, route_map)
     
     # 3. Add Sqlite Checkpointer for HITL interrupt state recovery
     from langgraph.checkpoint.sqlite import SqliteSaver

@@ -100,7 +100,8 @@ def node_analyze(state: ExamState, config: RunnableConfig):
     ensure_frappe_connection(config)
     """Phase 1: Content Analysis"""
     exam_name = state["exam_name"]
-    frappe.publish_realtime("ai_exam_progress", {"status": "Analyzing knowledge..."}, room=exam_name)
+    owner = frappe.db.get_value("AI Exam", exam_name, "owner") or "Administrator"
+    frappe.publish_realtime("ai_exam_progress", {"status": "Analyzing knowledge..."}, user=owner)
     llm, _, _ = get_llm("exam_generator", temperature=0.2)
     state_config = state["teacher_config"]
     prompt = ANALYSIS_PROMPT.format(
@@ -121,7 +122,8 @@ def node_blueprint(state: ExamState, config: RunnableConfig):
     ensure_frappe_connection(config)
     """Phase 2: Blueprint Generation"""
     exam_name = state["exam_name"]
-    frappe.publish_realtime("ai_exam_progress", {"status": "Generating blueprint..."}, room=exam_name)
+    owner = frappe.db.get_value("AI Exam", exam_name, "owner") or "Administrator"
+    frappe.publish_realtime("ai_exam_progress", {"status": "Generating blueprint..."}, user=owner)
     llm, _, _ = get_llm("exam_generator", temperature=0.3)
     state_config = state["teacher_config"]
     prompt = BLUEPRINT_PROMPT.format(
@@ -152,7 +154,7 @@ def node_blueprint(state: ExamState, config: RunnableConfig):
             "review_started_at": frappe.utils.now_datetime(),
             "review_notified": 0
         })
-        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=exam_name)
+        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, user=doc.owner)
         try:
             frappe.new_doc("Notification Log").update({
                 "subject": f"Đề thi {doc.title or exam_name} đã tạo xong Blueprint. Vui lòng duyệt!",
@@ -170,12 +172,13 @@ def node_review_blueprint(state: ExamState, config: RunnableConfig):
     ensure_frappe_connection(config)
     """Human-in-the-loop: Pause execution to wait for human review."""
     exam_name = state["exam_name"]
-    frappe.publish_realtime("ai_exam_progress", {"status": "Waiting for review..."}, room=exam_name)
+    owner = frappe.db.get_value("AI Exam", exam_name, "owner") or "Administrator"
+    frappe.publish_realtime("ai_exam_progress", {"status": "Waiting for review..."}, user=owner)
     
     feedback = interrupt("Please review the blueprint.")
     
     if feedback and isinstance(feedback, str) and feedback != "approve":
-        frappe.publish_realtime("ai_exam_progress", {"status": "Regenerating blueprint..."}, room=exam_name)
+        frappe.publish_realtime("ai_exam_progress", {"status": "Regenerating blueprint..."}, user=owner)
         new_config = dict(state["teacher_config"])
         new_config["teacher_instructions"] = new_config.get("teacher_instructions", "") + f"\n\n[USER FEEDBACK FOR REGENERATION]: {feedback}"
         
@@ -187,7 +190,7 @@ def node_review_blueprint(state: ExamState, config: RunnableConfig):
             "regenerate_count": current_count
         })
         
-    frappe.publish_realtime("ai_exam_progress", {"status": "Generating questions..."}, room=exam_name)
+    frappe.publish_realtime("ai_exam_progress", {"status": "Generating questions..."}, user=owner)
     doc = frappe.get_doc("AI Exam", exam_name)
     doc.db_set("status", "Processing")
     return Command(goto="prepare_sections")
@@ -274,7 +277,8 @@ def node_process_section(state: SectionState, config: RunnableConfig):
 def node_format_final(state: ExamState, config: RunnableConfig):
     ensure_frappe_connection(config)
     exam_name = state["exam_name"]
-    frappe.publish_realtime("ai_exam_progress", {"status": "Formatting final exam..."}, room=exam_name)
+    owner = frappe.db.get_value("AI Exam", exam_name, "owner") or "Administrator"
+    frappe.publish_realtime("ai_exam_progress", {"status": "Formatting final exam..."}, user=owner)
     
     sections = state.get("sections_drafts", [])
     sections.sort(key=lambda x: x.get("_index", 999))
@@ -362,7 +366,7 @@ def node_format_final(state: ExamState, config: RunnableConfig):
     doc.status = "Completed"
     doc.save(ignore_permissions=True)
     frappe.db.commit()
-    frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=exam_name)
+    frappe.publish_realtime("ai_exam_update", {"name": exam_name}, user=doc.owner)
     
     return {"final_exam": final_exam}
 
@@ -511,7 +515,7 @@ def run_exam_graph(exam_name: str, resume_action: str = None, modified_blueprint
             if doc.status == "Failed" and state and state.values and state.values.get("blueprint"):
                 frappe.logger().info(f"[AI Exam] Resuming {exam_name} from existing approved blueprint after failure.")
                 doc.db_set("status", "Processing")
-                frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
+                frappe.publish_realtime("ai_exam_update", {"name": exam_name}, user=doc.owner)
                 # Resume from prepare_sections
                 graph.invoke(Command(goto="prepare_sections"), config=config)
                 flush_langfuse()
@@ -522,11 +526,11 @@ def run_exam_graph(exam_name: str, resume_action: str = None, modified_blueprint
             if not can_proceed:
                 doc.db_set("status", "Failed")
                 doc.db_set("error_log", "AI Rate limit exceeded.")
-                frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
+                frappe.publish_realtime("ai_exam_update", {"name": exam_name}, user=doc.owner)
                 return
 
             doc.db_set("status", "Processing")
-            frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=doc.name)
+            frappe.publish_realtime("ai_exam_update", {"name": exam_name}, user=doc.owner)
 
             try:
                 from lms.lms.agents.quiz.extractor import extract_text_from_quiz_source
@@ -577,7 +581,7 @@ def run_exam_graph(exam_name: str, resume_action: str = None, modified_blueprint
         frappe.log_error(f"AI Exam Graph Error: {full_traceback}", "AI Exam")
         frappe.db.set_value("AI Exam", exam_name, "status", "Failed")
         frappe.db.set_value("AI Exam", exam_name, "error_log", full_traceback)
-        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, room=exam_name)
+        frappe.publish_realtime("ai_exam_update", {"name": exam_name}, user=doc.owner)
 
 def load_state_from_file(exam_name: str) -> dict:
     config = {"configurable": {"thread_id": exam_name}}
