@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TOMOSA — AI-Powered Learning Platform</title>
+  <meta name="description" content="TOMOSA - Nền tảng học tập tích hợp AI giúp giáo viên tiết kiệm 40+ giờ/tháng. AI Grading, Socratic Tutor, Gamification.">
+  
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- AOS - Animate on Scroll -->
+  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+
+  <style>
+    /* ====== RESET & BASE ====== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #06060f;
+      color: #ffffff;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ====== NAVBAR ====== */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 1rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: background 0.4s, box-shadow 0.4s, padding 0.4s;
+    }
+    .navbar.scrolled {
+      background: rgba(6, 6, 15, 0.92);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 2px 30px rgba(0,0,0,0.4);
+      padding: 0.7rem 2rem;
+    }
+    .nav-logo {
+      font-size: 1.6rem; font-weight: 800;
+      background: linear-gradient(135deg, #00d2ff, #7c3aed);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a {
+      font-size: 0.9rem; font-weight: 500; opacity: 0.75;
+      transition: opacity 0.3s;
+    }
+    .nav-links a:hover { opacity: 1; }
+    .btn-nav-login {
+      padding: 8px 24px; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      color: white; border: none; cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .btn-nav-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,210,255,0.3);
+    }
+
+    /* ====== HERO ====== */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 6rem 2rem 4rem;
+      position: relative; overflow: hidden;
+      background: #020008;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: 
+        radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(0, 210, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(30, 58, 138, 0.3) 0%, transparent 60%);
+      animation: universePulse 12s ease-in-out infinite alternate;
+      z-index: 0;
+    }
+    @keyframes universePulse {
+      0% { opacity: 0.5; transform: scale(1) rotate(0deg); }
+      100% { opacity: 1; transform: scale(1.1) rotate(3deg); }
+    }
+    /* Floating particles */
+    .particles { position: absolute; inset: 0; pointer-events: none; z-index: 1; perspective: 1000px; }
+    .particle {
+      position: absolute; border-radius: 50%;
+      animation: twinkle ease-in-out infinite alternate;
+    }
+    @keyframes twinkle {
+      0% { opacity: 0.2; transform: scale(0.5); }
+      100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+    }
+    .hero-content { position: relative; z-index: 2; max-width: 900px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 50px;
+      background: rgba(0,210,255,0.1);
+      border: 1px solid rgba(0,210,255,0.25);
+      font-size: 0.85rem; font-weight: 500; margin-bottom: 2rem;
+      color: #00d2ff;
+    }
+    .hero-badge .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #00d2ff;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .hero h1 {
+      font-size: clamp(2.8rem, 6vw, 4.5rem); font-weight: 900;
+      line-height: 1.1; margin-bottom: 1.5rem;
+      letter-spacing: -2px;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, #00d2ff, #7c3aed, #3a7bd5);
+      background-size: 200% 200%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: gradientShift 4s ease-in-out infinite;
+    }
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .hero-subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: rgba(255,255,255,0.65);
+      max-width: 650px; margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .typing-cursor {
+      display: inline-block; width: 3px; height: 1.2em;
+      background: #00d2ff; margin-left: 2px;
+      animation: blink 1s step-end infinite;
+      vertical-align: text-bottom;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    
+    .hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 32px; border-radius: 12px;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      color: white;
+      box-shadow: 0 4px 15px rgba(0,210,255,0.25);
+    }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(0,210,255,0.4);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.3);
+      transform: translateY(-3px);
+    }
+    .scroll-indicator {
+      position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      opacity: 0.5; animation: scrollBounce 2s ease-in-out infinite;
+    }
+    .scroll-indicator span { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; }
+    .scroll-arrow { width: 20px; height: 20px; border-right: 2px solid white; border-bottom: 2px solid white; transform: rotate(45deg); }
+    @keyframes scrollBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(10px); }
+    }
+
+    /* ====== SECTION BASE ====== */
+    section { padding: 6rem 2rem; }
+    .section-container { max-width: 1200px; margin: 0 auto; }
+    .section-header { text-align: center; margin-bottom: 4rem; }
+    .section-label {
+      display: inline-block; font-size: 0.8rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 3px;
+      color: #00d2ff; margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
+      letter-spacing: -1px; margin-bottom: 1rem;
+    }
+    .section-desc {
+      font-size: 1.1rem; color: rgba(255,255,255,0.55);
+      max-width: 600px; margin: 0 auto;
+    }
+
+    /* ====== STATS ====== */
+    .stats {
+      background: linear-gradient(180deg, rgba(0,210,255,0.03) 0%, transparent 100%);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem;
+      max-width: 1000px; margin: 0 auto; text-align: center;
+    }
+    .stat-item { padding: 1.5rem; }
+    .stat-number {
+      font-size: clamp(2rem, 4vw, 3rem); font-weight: 900;
+      background: linear-gradient(135deg, #00d2ff, #7c3aed);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    .stat-label { font-size: 0.9rem; color: rgba(255,255,255,0.5); font-weight: 500; }
+
+    /* ====== FEATURES ====== */
+    .features { background: #06060f; }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+    }
+    .feature-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px; padding: 2rem;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, #00d2ff, transparent);
+      opacity: 0; transition: opacity 0.4s;
+    }
+    .feature-card:hover {
+      transform: translateY(-8px);
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(0,210,255,0.2);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon {
+      width: 50px; height: 50px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 1.2rem;
+    }
+    .feature-icon.grading { background: rgba(239,68,68,0.12); }
+    .feature-icon.exam { background: rgba(59,130,246,0.12); }
+    .feature-icon.socratic { background: rgba(16,185,129,0.12); }
+    .feature-icon.chatbot { background: rgba(168,85,247,0.12); }
+    .feature-icon.lesson { background: rgba(245,158,11,0.12); }
+    .feature-icon.game { background: rgba(236,72,153,0.12); }
+    .feature-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.6rem; }
+    .feature-card p { font-size: 0.9rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
+    .feature-tag {
+      display: inline-block; margin-top: 1rem;
+      padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+      background: rgba(0,210,255,0.1); color: #00d2ff;
+    }
+
+    /* ====== TECH STACK ====== */
+    .tech { background: linear-gradient(180deg, #06060f 0%, #0a0a1a 100%); }
+    .tech-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+    .tech-card {
+      display: flex; gap: 1.5rem; align-items: flex-start;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px; padding: 2rem;
+      transition: all 0.4s;
+    }
+    .tech-card:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(0,210,255,0.15);
+      transform: translateX(8px);
+    }
+    .tech-icon {
+      flex-shrink: 0; width: 56px; height: 56px;
+      border-radius: 14px; display: flex;
+      align-items: center; justify-content: center; font-size: 1.6rem;
+    }
+    .tech-icon.ocr { background: linear-gradient(135deg, rgba(0,210,255,0.15), rgba(0,210,255,0.05)); }
+    .tech-icon.agent { background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(124,58,237,0.05)); }
+    .tech-icon.rag { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05)); }
+    .tech-icon.review { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05)); }
+    .tech-info h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .tech-info p { font-size: 0.88rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
+    .tech-stat {
+      display: inline-block; margin-top: 0.8rem;
+      padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700;
+    }
+    .tech-stat.blue { background: rgba(0,210,255,0.12); color: #00d2ff; }
+    .tech-stat.purple { background: rgba(124,58,237,0.12); color: #a78bfa; }
+    .tech-stat.green { background: rgba(16,185,129,0.12); color: #34d399; }
+    .tech-stat.yellow { background: rgba(245,158,11,0.12); color: #fbbf24; }
+
+    /* ====== PRICING ====== */
+    .pricing { background: #06060f; }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem;
+      align-items: stretch;
+    }
+    .price-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 2.5rem 2rem;
+      text-align: center; position: relative;
+      transition: all 0.4s;
+      display: flex; flex-direction: column;
+    }
+    .price-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .price-card.featured {
+      background: rgba(0,210,255,0.05);
+      border-color: rgba(0,210,255,0.25);
+      transform: scale(1.03);
+    }
+    .price-card.featured:hover { transform: scale(1.03) translateY(-6px); }
+    .price-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      color: white; white-space: nowrap;
+    }
+    .price-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; opacity: 0.9; }
+    .price-amount {
+      font-size: 2.8rem; font-weight: 900; margin-bottom: 0.3rem;
+      background: linear-gradient(135deg, #ffffff, rgba(255,255,255,0.7));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .price-period { font-size: 0.85rem; color: rgba(255,255,255,0.4); margin-bottom: 1.5rem; }
+    .price-features { list-style: none; text-align: left; margin-bottom: 2rem; flex-grow: 1; }
+    .price-features li {
+      padding: 0.5rem 0; font-size: 0.88rem; color: rgba(255,255,255,0.6);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .price-features li .check { color: #34d399; font-weight: 700; }
+    .price-features li .cross { color: rgba(255,255,255,0.2); }
+    .btn-price {
+      width: 100%; padding: 12px; border-radius: 10px; font-weight: 600;
+      font-size: 0.95rem; cursor: pointer; transition: all 0.3s; border: none;
+    }
+    .btn-price.primary {
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      color: white;
+    }
+    .btn-price.outline {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: white;
+    }
+    .btn-price:hover { transform: translateY(-2px); }
+
+    /* ====== CTA ====== */
+    .cta {
+      text-align: center;
+      background: linear-gradient(180deg, #06060f 0%, #0d0d2b 50%, #06060f 100%);
+      position: relative; overflow: hidden;
+    }
+    .cta::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,210,255,0.08) 0%, transparent 70%);
+    }
+    .cta-content { position: relative; z-index: 2; }
+    .cta h2 {
+      font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
+      margin-bottom: 1rem; letter-spacing: -1px;
+    }
+    .cta p {
+      font-size: 1.1rem; color: rgba(255,255,255,0.55);
+      max-width: 500px; margin: 0 auto 2.5rem;
+    }
+
+    /* ====== FOOTER ====== */
+    .footer {
+      padding: 3rem 2rem; text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.3); font-size: 0.85rem;
+    }
+
+    /* ====== RESPONSIVE ====== */
+    @media (max-width: 1024px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .nav-links a:not(.btn-nav-login) { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .tech-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+      .features-grid { grid-template-columns: 1fr; }
+      .hero h1 { letter-spacing: -1px; }
+      .price-card.featured { transform: scale(1); }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .hero-buttons { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ====== NAVBAR ====== -->
+<nav class="navbar" id="navbar">
+  <a href="#" class="nav-logo">
+    {% if app_logo %}
+      <img src="{{ app_logo }}" alt="Logo" style="height: 32px; vertical-align: middle; margin-right: 8px;">
+    {% else %}
+      🎓
+    {% endif %}
+    TOMOSA
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#tech">Technology</a>
+    <a href="#pricing">Pricing</a>
+    <a href="/login" class="btn-nav-login">Login →</a>
+  </div>
+</nav>
+
+<!-- ====== HERO ====== -->
+<section class="hero" id="hero">
+  <div class="particles" id="particles"></div>
+  <div class="hero-content">
+    <div class="hero-badge" data-aos="fade-down" data-aos-delay="100">
+      <span class="dot"></span>
+      AI-Powered Learning Platform
+    </div>
+    <h1 data-aos="fade-up" data-aos-delay="200">
+      Teach Smarter with<br><span class="gradient">TOMOSA AI</span>
+    </h1>
+    <p class="hero-subtitle" data-aos="fade-up" data-aos-delay="400">
+      <span id="typed-text"></span><span class="typing-cursor"></span>
+    </p>
+    <div class="hero-buttons" data-aos="fade-up" data-aos-delay="600">
+      <a href="/login" class="btn btn-primary">🚀 Get Started Free</a>
+      <a href="#features" class="btn btn-secondary">📚 Explore Features</a>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <span>Scroll</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- ====== STATS ====== -->
+<section class="stats" id="stats">
+  <div class="section-container">
+    <div class="stats-grid">
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="0">
+        <div class="stat-number" data-target="7">0</div>
+        <div class="stat-label">AI Modules</div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-number" data-target="98.3" data-suffix="%">0</div>
+        <div class="stat-label">OCR Accuracy</div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-number" data-target="40" data-prefix="+" data-suffix="h">0</div>
+        <div class="stat-label">Hours Saved / Month</div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="300">
+        <div class="stat-number" data-target="70" data-prefix="↓" data-suffix="%">0</div>
+        <div class="stat-label">Less Hallucination</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== FEATURES ====== -->
+<section class="features" id="features">
+  <div class="section-container">
+    <div class="section-header">
+      <div class="section-label" data-aos="fade-up">Features</div>
+      <h2 class="section-title" data-aos="fade-up" data-aos-delay="100">Everything Teachers & Students Need</h2>
+      <p class="section-desc" data-aos="fade-up" data-aos-delay="200">6 AI-powered modules designed to save time, boost engagement, and deliver personalized learning.</p>
+    </div>
+    <div class="features-grid">
+      <!-- Card 1: AI Grading -->
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+        <div class="feature-icon grading">📝</div>
+        <h3>AI Grading</h3>
+        <p>Grade MCQ & Essay assignments automatically with 6-agent cross-verification pipeline. Supports handwriting, formulas, and diagrams.</p>
+        <span class="feature-tag">For Teachers · 8-step pipeline</span>
+      </div>
+      <!-- Card 2: Exam & Quiz Creator -->
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="feature-icon exam">📋</div>
+        <h3>Exam & Quiz Creator</h3>
+        <p>Generate full exams (30-40 questions) and quizzes (10-20 questions) from your materials. Dual-LLM validation ensures quality.</p>
+        <span class="feature-tag">For Teachers · Dual-LLM validated</span>
+      </div>
+      <!-- Card 3: Lesson Plan Creator -->
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="feature-icon lesson">📖</div>
+        <h3>Lesson Plan Creator</h3>
+        <p>AI generates complete lesson plans with auto-illustrations (Mermaid diagrams, charts, TikZ) and assessment activities.</p>
+        <span class="feature-tag">For Teachers · 7-node graph</span>
+      </div>
+      <!-- Card 4: Socratic Tutor -->
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+        <div class="feature-icon socratic">🎓</div>
+        <h3>Socratic Tutor</h3>
+        <p>AI tutor that guides students through problem-solving with hints — never gives direct answers. Encourages critical thinking 24/7.</p>
+        <span class="feature-tag">For Students · Hint-based learning</span>
+      </div>
+      <!-- Card 5: AI Chatbot -->
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="feature-icon chatbot">🤖</div>
+        <h3>AI Chatbot (RAG)</h3>
+        <p>Smart Q&A assistant grounded in teacher-uploaded materials. Zero hallucination — every answer references real course documents.</p>
+        <span class="feature-tag">For Students · RAG-powered</span>
+      </div>
+      <!-- Card 6: Gamification -->
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="feature-icon game">🎮</div>
+        <h3>5 Learning Games</h3>
+        <p>Memory Match, Word Scramble, Timed Quiz, Drag & Drop, Spin Wheel — turn revision into fun. Leaderboard & badges included.</p>
+        <span class="feature-tag">For Students · +40-60% engagement</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== TECH STACK ====== -->
+<section class="tech" id="tech">
+  <div class="section-container">
+    <div class="section-header">
+      <div class="section-label" data-aos="fade-up">Technology</div>
+      <h2 class="section-title" data-aos="fade-up" data-aos-delay="100">Built for Accuracy & Trust</h2>
+      <p class="section-desc" data-aos="fade-up" data-aos-delay="200">4 core technologies ensure every AI output is accurate, safe, and pedagogically sound.</p>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card" data-aos="fade-right" data-aos-delay="0">
+        <div class="tech-icon ocr">👁️</div>
+        <div class="tech-info">
+          <h3>Vision OCR</h3>
+          <p>Recognizes handwriting, math formulas, and diagrams from photos. Powered by GPT-4o Vision.</p>
+          <span class="tech-stat blue">98.3% Accuracy · IAM Benchmark</span>
+        </div>
+      </div>
+      <div class="tech-card" data-aos="fade-left" data-aos-delay="100">
+        <div class="tech-icon agent">🔗</div>
+        <div class="tech-info">
+          <h3>Multi-Agent Pipeline</h3>
+          <p>6 specialist AIs cross-verify every submission through an 8-step pipeline. No single point of failure.</p>
+          <span class="tech-stat purple">6 Agents · 8-Step Verification</span>
+        </div>
+      </div>
+      <div class="tech-card" data-aos="fade-right" data-aos-delay="200">
+        <div class="tech-icon rag">📚</div>
+        <div class="tech-info">
+          <h3>RAG — Retrieval-Augmented Generation</h3>
+          <p>All AI responses are grounded in teacher-uploaded materials. Eliminates fabricated information.</p>
+          <span class="tech-stat green">↓ 70% Hallucination Reduction</span>
+        </div>
+      </div>
+      <div class="tech-card" data-aos="fade-left" data-aos-delay="300">
+        <div class="tech-icon review">🛡️</div>
+        <div class="tech-info">
+          <h3>Auto-Review & Content Validator</h3>
+          <p>Confidence gate auto-retries below 80%. All outputs pass 3-dimension safety check before delivery.</p>
+          <span class="tech-stat yellow">3D Check: Accuracy · Pedagogy · Safety</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== PRICING ====== -->
+<section class="pricing" id="pricing">
+  <div class="section-container">
+    <div class="section-header">
+      <div class="section-label" data-aos="fade-up">Pricing</div>
+      <h2 class="section-title" data-aos="fade-up" data-aos-delay="100">Start Free. Upgrade Anytime.</h2>
+      <p class="section-desc" data-aos="fade-up" data-aos-delay="200">Less than a cup of coffee per month. Save 40+ hours of grading time.</p>
+    </div>
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="price-card" data-aos="zoom-in" data-aos-delay="0">
+        <div class="price-name">Free</div>
+        <div class="price-amount">$0</div>
+        <div class="price-period">forever</div>
+        <ul class="price-features">
+          <li><span class="check">✓</span> Core LMS</li>
+          <li><span class="check">✓</span> 5 AI calls / day</li>
+          <li><span class="check">✓</span> 2 game types</li>
+          <li><span class="check">✓</span> 1 class (max 30 students)</li>
+          <li><span class="cross">—</span> AI Grading</li>
+          <li><span class="cross">—</span> Lesson Planner</li>
+        </ul>
+        <a href="/login" class="btn-price outline">Get Started</a>
+      </div>
+      <!-- Basic -->
+      <div class="price-card" data-aos="zoom-in" data-aos-delay="100">
+        <div class="price-name">Basic</div>
+        <div class="price-amount">$5</div>
+        <div class="price-period">/ teacher / month</div>
+        <ul class="price-features">
+          <li><span class="check">✓</span> Full AI Grading (MCQ + Essay)</li>
+          <li><span class="check">✓</span> Quiz & Exam Generator</li>
+          <li><span class="check">✓</span> 5 learning games</li>
+          <li><span class="check">✓</span> 3 classes (60 students each)</li>
+          <li><span class="check">✓</span> Socratic Tutor</li>
+          <li><span class="cross">—</span> Lesson Planner</li>
+        </ul>
+        <a href="/login" class="btn-price outline">Start Basic</a>
+      </div>
+      <!-- Pro (Featured) -->
+      <div class="price-card featured" data-aos="zoom-in" data-aos-delay="200">
+        <div class="price-badge">🔥 Most Popular</div>
+        <div class="price-name">Pro</div>
+        <div class="price-amount">$10</div>
+        <div class="price-period">/ teacher / month</div>
+        <ul class="price-features">
+          <li><span class="check">✓</span> All AI tools unlimited</li>
+          <li><span class="check">✓</span> Lesson Planner + Illustrations</li>
+          <li><span class="check">✓</span> Unlimited classes</li>
+          <li><span class="check">✓</span> Advanced Analytics</li>
+          <li><span class="check">✓</span> Priority support</li>
+          <li><span class="check">✓</span> RAG Chatbot for students</li>
+        </ul>
+        <a href="/login" class="btn-price primary">Start Pro</a>
+      </div>
+      <!-- Team / School -->
+      <div class="price-card" data-aos="zoom-in" data-aos-delay="300">
+        <div class="price-name">Team / School</div>
+        <div class="price-amount">$8</div>
+        <div class="price-period">/ teacher / month (min 10)</div>
+        <ul class="price-features">
+          <li><span class="check">✓</span> All Pro features</li>
+          <li><span class="check">✓</span> Admin dashboard</li>
+          <li><span class="check">✓</span> Custom branding</li>
+          <li><span class="check">✓</span> SSO integration</li>
+          <li><span class="check">✓</span> Dedicated support</li>
+          <li><span class="check">✓</span> School-wide analytics</li>
+        </ul>
+        <a href="/login" class="btn-price outline">Contact Us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== CTA ====== -->
+<section class="cta">
+  <div class="section-container cta-content">
+    <h2 data-aos="fade-up">Ready to Save 40+ Hours<br>Every Month?</h2>
+    <p data-aos="fade-up" data-aos-delay="100">Join thousands of teachers who are already teaching smarter with TOMOSA AI.</p>
+    <div data-aos="fade-up" data-aos-delay="200">
+      <a href="/login" class="btn btn-primary" style="font-size:1.1rem; padding:16px 40px;">🚀 Start Free — No Credit Card</a>
+    </div>
+  </div>
+</section>
+
+<!-- ====== FOOTER ====== -->
+<footer class="footer">
+  <p>© 2026 TOMOSA — AI-Powered Learning Platform. Built with ❤️ for Teachers.</p>
+</footer>
+
+<!-- ====== SCRIPTS ====== -->
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script>
+  // ====== AOS Init ======
+  AOS.init({
+    duration: 800,
+    easing: 'ease-out-cubic',
+    once: true,
+    offset: 60,
+  });
+
+  // ====== Navbar Scroll Effect ======
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // ====== Typing Effect ======
+  const phrases = [
+    'Save 40+ hours/month on grading with Multi-Agent AI.',
+    'Generate exams & quizzes in 2 minutes, not 2 hours.',
+    'Socratic Tutor guides students 24/7 — never gives answers.',
+    'RAG-powered Chatbot: zero hallucination, 100% grounded.',
+    'All-in-one: LMS + AI + Gamification — from $5/month.'
+  ];
+  let phraseIdx = 0, charIdx = 0, isDeleting = false;
+  const typedEl = document.getElementById('typed-text');
+
+  function typeEffect() {
+    const current = phrases[phraseIdx];
+    if (isDeleting) {
+      typedEl.textContent = current.substring(0, charIdx--);
+      if (charIdx < 0) {
+        isDeleting = false;
+        phraseIdx = (phraseIdx + 1) % phrases.length;
+        setTimeout(typeEffect, 400);
+        return;
+      }
+      setTimeout(typeEffect, 25);
+    } else {
+      typedEl.textContent = current.substring(0, charIdx++);
+      if (charIdx > current.length) {
+        isDeleting = true;
+        setTimeout(typeEffect, 2200);
+        return;
+      }
+      setTimeout(typeEffect, 45);
+    }
+  }
+  setTimeout(typeEffect, 800);
+
+  // ====== Counter Animation ======
+  const counters = document.querySelectorAll('.stat-number');
+  const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const target = parseFloat(el.dataset.target);
+        const prefix = el.dataset.prefix || '';
+        const suffix = el.dataset.suffix || '';
+        const isDecimal = target % 1 !== 0;
+        const duration = 2000;
+        const startTime = performance.now();
+
+        function updateCounter(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // easeOutExpo
+          const ease = 1 - Math.pow(2, -10 * progress);
+          const current = target * ease;
+          el.textContent = prefix + (isDecimal ? current.toFixed(1) : Math.floor(current)) + suffix;
+          if (progress < 1) requestAnimationFrame(updateCounter);
+        }
+        requestAnimationFrame(updateCounter);
+        counterObserver.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(c => counterObserver.observe(c));
+
+  // ====== Floating Particles ======
+  const particlesContainer = document.getElementById('particles');
+  const colors = ['#ffffff', '#00d2ff', '#7c3aed', '#3a7bd5'];
+  for (let i = 0; i < 100; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = Math.random() * 100 + '%';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.color = p.style.background; // For currentColor in box-shadow
+    p.style.boxShadow = `0 0 ${Math.random() * 10 + 5}px ${p.style.background}`;
+    p.style.animationDuration = (Math.random() * 4 + 2) + 's';
+    p.style.animationDelay = (Math.random() * 4) + 's';
+    particlesContainer.appendChild(p);
+  }
+</script>
+</body>
+</html>
