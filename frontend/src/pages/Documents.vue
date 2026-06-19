@@ -165,7 +165,7 @@
 					</div>
 					<div class="flex items-center justify-end gap-3 pt-2">
 						<button class="rounded-lg border border-outline-gray-2 px-4 py-2 text-sm font-medium text-ink-gray-7 hover:bg-surface-gray-2" @click="showUploadModal = false">{{ __('Cancel') }}</button>
-						<button class="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50" :disabled="uploading || !uploadForm.title || !uploadForm.file" @click="handleUpload">
+						<button class="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50" :disabled="uploading || !uploadForm.title || !uploadForm.file || (uploadForm.scope === 'Course' && !uploadForm.course && !uploadForm.batch)" @click="handleUpload">
 							{{ uploading ? __('Uploading...') : __('Upload') }}
 						</button>
 					</div>
@@ -178,7 +178,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { createResource, Breadcrumbs, Dialog, usePageMeta } from 'frappe-ui'
+import { createResource, Breadcrumbs, Dialog, usePageMeta, toast } from 'frappe-ui'
 import { FileText, FolderOpen, Upload, Download } from 'lucide-vue-next'
 import { sessionStore } from '@/stores/session'
 
@@ -309,6 +309,10 @@ function onFileSelect(e) {
 
 function handleUpload() {
 	if (!uploadForm.file || !uploadForm.title) return
+	if (uploadForm.scope === 'Course' && !uploadForm.course && !uploadForm.batch) {
+		toast.error(__('Please select a course or a batch for this document.'))
+		return
+	}
 	uploading.value = true
 	const reader = new FileReader()
 	reader.onload = () => {
