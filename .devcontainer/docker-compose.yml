@@ -1,39 +1,48 @@
-version: "3.8"
+version: "3.7"
 
 services:
-  frappe:
-    image: ubuntu:22.04
-    volumes:
-      - ..:/workspace:cached
-      - frappe-bench:/home/frappe/frappe-bench
-    environment:
-      - DEBIAN_FRONTEND=noninteractive
-    command: sleep infinity
-    depends_on:
-      - mariadb
-      - redis
-
   mariadb:
     image: mariadb:10.6
     restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_ROOT_HOST: "%"
-    volumes:
-      - mariadb-data:/var/lib/mysql
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --skip-character-set-client-handshake
       - --skip-innodb-read-only-compressed
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
     volumes:
-      - redis-data:/data
+      - mariadb-data:/var/lib/mysql
+
+  redis-cache:
+    image: redis:alpine
+    restart: unless-stopped
+
+  redis-queue:
+    image: redis:alpine
+    restart: unless-stopped
+
+  redis-socketio:
+    image: redis:alpine
+    restart: unless-stopped
+
+  frappe:
+    image: frappe/bench:latest
+    restart: unless-stopped
+    command: sleep infinity
+    environment:
+      - SHELL=/bin/bash
+    volumes:
+      - ..:/workspace:cached
+    working_dir: /workspace
+    ports:
+      - 8000:8000
+      - 9000:9000
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+      - redis-socketio
 
 volumes:
-  frappe-bench:
   mariadb-data:
-  redis-data:

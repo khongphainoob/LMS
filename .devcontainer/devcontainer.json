@@ -3,8 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "frappe",
   "workspaceFolder": "/workspace",
-
-  "features": {},
+  "remoteUser": "frappe",
 
   "forwardPorts": [8000, 9000],
   "portsAttributes": {
@@ -20,19 +19,18 @@
   },
 
   "postCreateCommand": "bash /workspace/.devcontainer/setup.sh",
+  "shutdownAction": "stopCompose",
 
   "customizations": {
     "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "python.defaultInterpreterPath": "/home/frappe/frappe-bench/env/bin/python"
+      },
       "extensions": [
         "ms-python.python",
-        "Vue.volar",
-        "bradlc.vscode-tailwindcss"
-      ],
-      "settings": {
-        "python.defaultInterpreterPath": "/home/frappe/frappe-bench/env/bin/python"
-      }
+        "Vue.volar"
+      ]
     }
-  },
-
-  "remoteUser": "frappe"
+  }
 }
