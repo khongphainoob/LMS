@@ -3,7 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "frappe",
   "workspaceFolder": "/workspace",
-  "remoteUser": "frappe",
+  "remoteUser": "root",
 
   "forwardPorts": [8000, 9000],
   "portsAttributes": {
