@@ -45,6 +45,7 @@ docker compose down -v      # xóa cả dữ liệu
 | Hiện tượng | Nguyên nhân | Cách xử lý |
 |---|---|---|
 | `429 Too Many Requests` khi kéo image | Docker Hub giới hạn người dùng ẩn danh | `docker login` (tài khoản Docker Hub miễn phí) rồi chạy lại |
+| `error getting credentials ... docker-credential-desktop.exe: executable file not found` (WSL) | `~/.docker/config.json` trỏ tới helper của Docker Desktop mà WSL không thấy | Mở Docker Desktop và bật Settings → Resources → WSL integration cho distro đang dùng; hoặc nếu dùng Docker cài thẳng trong WSL thì xóa khóa `credsStore` khỏi file đó (xem lệnh bên dưới) |
 | `bind: address already in use` | Cổng 8080 đang bị chiếm | Đổi `LMS_PORT` trong `.env` |
 | Link ra `502 Bad Gateway` | App còn đang cài/khởi động | Đợi tới khi log hiện `READY` |
 | `$'\r': command not found` | Windows đổi dòng sang CRLF | Compose đã tự bỏ `\r`; nếu vẫn lỗi: `git config core.autocrlf false` rồi clone lại |
@@ -61,3 +62,10 @@ docker compose down -v      # xóa cả dữ liệu
 - Web chạy bằng gunicorn (không bật Werkzeug debugger) và chỉ nghe trên `127.0.0.1`.
 - Mật khẩu Administrator mặc định là chuỗi ngẫu nhiên, không phải `admin`.
 - Chỉ dùng dữ liệu giả. Free tier của Gemini có thể dùng nội dung gửi lên để cải thiện sản phẩm của Google.
+
+Xóa `credsStore` trên WSL (có sao lưu trước):
+
+```bash
+cp ~/.docker/config.json ~/.docker/config.json.bak
+python3 -c "import json,os; p=os.path.expanduser('~/.docker/config.json'); c=json.load(open(p)); c.pop('credsStore',None); json.dump(c,open(p,'w'),indent=2)"
+```
