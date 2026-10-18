@@ -1,42 +1,115 @@
-version: "3.7"
 name: lms
+
+# Demo Frappe LMS (code của repo này). Hướng dẫn và xử lý lỗi: docker/DEMO.md
+x-bench-image: &bench-image ${BENCH_IMAGE:-frappe/bench:latest}
+
 services:
   mariadb:
     image: mariadb:10.8
+    restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --skip-character-set-client-handshake
       - --skip-innodb-read-only-compressed # Temporary fix for MariaDB 10.6
     environment:
-      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-123}
     volumes:
       - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent || mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
-  redis:
+  redis-cache:
     image: redis:alpine
+    restart: unless-stopped
+
+  redis-queue:
+    image: redis:alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-queue-data:/data
+
+  redis-socketio:
+    image: redis:alpine
+    restart: unless-stopped
 
   qdrant:
     image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-      - "6334:6334"
+    restart: unless-stopped
     volumes:
       - qdrant-data:/qdrant/storage
 
+  # Volume mới tạo thuộc root; cấp quyền cho user `frappe` (uid 1000) trước khi dựng bench.
+  fix-perms:
+    image: *bench-image
+    user: "0"
+    command: chown -R 1000:1000 /home/frappe/data
+    volumes:
+      - bench-data:/home/frappe/data
+
   frappe:
-    image: frappe/bench:latest
-    command: bash /workspace/init.sh
+    image: *bench-image
+    restart: unless-stopped
+    # `tr -d '\r'` để chạy được cả khi Git trên Windows đổi init.sh sang CRLF
+    command: ["bash", "-c", "tr -d '\\r' < /lms-src/docker/init.sh > /tmp/init.sh && exec bash /tmp/init.sh"]
     environment:
       - SHELL=/bin/bash
+      - DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-123}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - RESYNC=${RESYNC:-0}
       - RAG_QDRANT_URL=http://qdrant:6333
     working_dir: /home/frappe
     volumes:
-      - .:/workspace
+      - ..:/lms-src
+      - bench-data:/home/frappe/data
+    depends_on:
+      fix-perms:
+        condition: service_completed_successfully
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+      redis-socketio:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H 'Host: lms.localhost' http://127.0.0.1:8000/api/method/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40m
+
+  # Cổng vào duy nhất: web + Socket.IO. Chỉ mở trên localhost của máy chủ.
+  web:
+    image: nginx:alpine
+    restart: unless-stopped
     ports:
-      - 8000:8000
-      - 9000:9000
+      - "127.0.0.1:${LMS_PORT:-8080}:80"
+    volumes:
+      - ./nginx-demo.conf:/etc/nginx/conf.d/default.conf:ro
+      - bench-data:/home/frappe/data:ro
+    depends_on:
+      - frappe
+
+  # Link công khai tạm (https://xxxx.trycloudflare.com), không cần tài khoản.
+  # Bật: docker compose --profile tunnel up -d ; lấy link: docker compose logs tunnel
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://web:80
+    depends_on:
+      - web
 
 volumes:
   mariadb-data:
+  redis-queue-data:
   qdrant-data:
+  bench-data:

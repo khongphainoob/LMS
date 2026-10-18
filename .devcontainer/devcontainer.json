@@ -1,36 +1,17 @@
 {
-  "name": "Frappe LMS Dev",
-  "dockerComposeFile": "docker-compose.yml",
+  "name": "Frappe LMS Demo",
+  "dockerComposeFile": "../docker/docker-compose.yml",
   "service": "frappe",
-  "workspaceFolder": "/workspace",
-  "remoteUser": "root",
-
-  "forwardPorts": [8000, 9000],
-  "portsAttributes": {
-    "8000": {
-      "label": "Frappe Web",
-      "onAutoForward": "openBrowserOnce",
-      "visibility": "public"
-    },
-    "9000": {
-      "label": "Frappe Socketio",
-      "visibility": "public"
-    }
-  },
-
-  "postCreateCommand": "bash /workspace/.devcontainer/setup.sh",
+  "runServices": ["frappe", "web"],
+  "overrideCommand": false,
+  "workspaceFolder": "/lms-src",
+  "remoteUser": "frappe",
   "shutdownAction": "stopCompose",
-
-  "customizations": {
-    "vscode": {
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "python.defaultInterpreterPath": "/home/frappe/frappe-bench/env/bin/python"
-      },
-      "extensions": [
-        "ms-python.python",
-        "Vue.volar"
-      ]
+  "forwardPorts": ["web:80"],
+  "portsAttributes": {
+    "80": {
+      "label": "Frappe LMS",
+      "onAutoForward": "notify"
     }
   }
 }
